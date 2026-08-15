@@ -203,7 +203,7 @@ export default function SignupScreen({ navigation }: any) {
             <TouchableOpacity style={styles.linkBtn} onPress={goBack}>
               <Text style={styles.linkText}>
                 {step === "details"
-                  ? "Already have an account? <Text style={styles.linkStrong}>Log in</Text>"
+                  ? "Already have an account? Log in"
                   : "Back to details"}
               </Text>
             </TouchableOpacity>
