@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, signToken, type AuthedRequest } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
+import { sendOtp, verifyOtp } from "../lib/otp.js";
 
 const router = Router();
 
@@ -48,6 +49,7 @@ const registerSchema = z.object({
     .string()
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
   password: z.string().min(8).max(72),
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 const loginSchema = z.object({
@@ -80,11 +82,16 @@ router.post("/register", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
-  const { name, phone, password } = parsed.data;
+  const { name, phone, password, otp } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
     return res.status(409).json({ error: "An account with this phone number already exists" });
+  }
+
+  const verified = await verifyOtp(phone, otp);
+  if (!verified) {
+    return res.status(400).json({ error: "Invalid or expired verification code" });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -133,6 +140,62 @@ router.post("/login", loginLimiter, async (req, res) => {
   });
 });
 
+const emailOtpSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+});
+
+router.post("/email/send-otp", async (req, res) => {
+  const parsed = emailOtpSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Enter a valid email address" });
+  }
+  const email = parsed.data.email.toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return res.status(404).json({ error: "No account found with this email" });
+  }
+  try {
+    await sendOtp(email);
+    return res.json({ sent: true });
+  } catch (e: any) {
+    return res.status(500).json({ error: "Could not send the code: " + (e.message ?? "unknown error") });
+  }
+});
+
+const emailLoginSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
+router.post("/email/login", async (req, res) => {
+  const parsed = emailLoginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Enter a valid email and 6-digit code" });
+  }
+  const email = parsed.data.email.toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return res.status(404).json({ error: "No account found with this email" });
+  }
+  const verified = await verifyOtp(email, parsed.data.otp);
+  if (!verified) {
+    return res.status(400).json({ error: "Invalid or expired code" });
+  }
+  return res.json({
+    token: signToken({ userId: user.id }),
+    user: {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      usernameChangedAt: user.usernameChangedAt,
+      phone: user.phone,
+      email: user.email,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
+    },
+  });
+});
+
 router.get("/me", requireAuth, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: (req as AuthedRequest).userId },
@@ -152,6 +215,7 @@ const updateMeSchema = z.object({
     .optional(),
   bio: z.string().max(200).optional(),
   avatarUrl: z.string().url().max(500).optional(),
+  email: z.string().email().optional().or(z.literal("")),
 });
 
 router.patch("/me", requireAuth, async (req, res) => {
@@ -160,7 +224,14 @@ router.patch("/me", requireAuth, async (req, res) => {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
   const userId = (req as AuthedRequest).userId;
-  const { name, username, bio, avatarUrl } = parsed.data;
+  const { name, username, bio, avatarUrl, email } = parsed.data;
+
+  if (email !== undefined && email !== "") {
+    const taken = await prisma.user.findUnique({ where: { email } });
+    if (taken && taken.id !== userId) {
+      return res.status(409).json({ error: "That email is already linked to another account" });
+    }
+  }
 
   let usernameChangedAt: Date | undefined;
   if (username !== undefined) {
@@ -197,6 +268,7 @@ router.patch("/me", requireAuth, async (req, res) => {
       ...(usernameChangedAt !== undefined ? { usernameChangedAt } : {}),
       ...(bio !== undefined ? { bio: bio || null } : {}),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || null } : {}),
+      ...(email !== undefined ? { email: email || null } : {}),
     },
     select: userSelect,
   });

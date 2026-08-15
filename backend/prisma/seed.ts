@@ -15,15 +15,15 @@ async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
 
   const users = [
-    { name: "Aarav Sharma", username: "aarav_sharma", phone: "9876500001", bio: "Building things. Bengaluru." },
-    { name: "Priya Patel", username: "priya_patel", phone: "9876500002", bio: "Chai lover | Ahmedabad" },
-    { name: "Rohan Verma", username: "rohan_verma", phone: "9876500003", bio: "Startup founder. Mumbai." },
+    { name: "Aarav Sharma", username: "aarav_sharma", phone: "9876500001", email: "aarav@thesocialbook.dev", bio: "Building things. Bengaluru." },
+    { name: "Priya Patel", username: "priya_patel", phone: "9876500002", email: "priya@thesocialbook.dev", bio: "Chai lover | Ahmedabad" },
+    { name: "Rohan Verma", username: "rohan_verma", phone: "9876500003", email: "rohan@thesocialbook.dev", bio: "Startup founder. Mumbai." },
   ];
 
   for (const u of users) {
     await prisma.user.upsert({
       where: { phone: u.phone },
-      update: { username: u.username },
+      update: { username: u.username, email: u.email },
       create: { ...u, passwordHash },
     });
   }

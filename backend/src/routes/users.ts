@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { notify } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 
 const router = Router();
@@ -55,6 +56,8 @@ router.post("/:id/follow", requireAuth, async (req, res) => {
     create: { followerId: me, followingId: targetId },
     update: {},
   });
+
+  await notify(targetId, me, "follow");
 
   const user = await prisma.user.findUnique({
     where: { id: targetId },

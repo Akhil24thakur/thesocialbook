@@ -1,20 +1,25 @@
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function key(ip: string, phone?: string) {
-  return phone ? `p:${phone}` : `ip:${ip}`;
-}
-
 export function rateLimit(options: {
   windowMs: number;
   max: number;
   message: string;
 }) {
+  const attempts = new Map<string, { count: number; resetAt: number }>();
+
   return (req: any, res: any, next: any) => {
     const now = Date.now();
     const ip = req.ip ?? req.socket?.remoteAddress ?? "unknown";
-    const phone = typeof req.body?.phone === "string" ? req.body.phone : undefined;
+    const identifier =
+      typeof req.body?.phone === "string"
+        ? req.body.phone
+        : typeof req.body?.target === "string"
+        ? req.body.target
+        : typeof req.body?.email === "string"
+        ? req.body.email
+        : undefined;
 
-    for (const k of [key(ip, phone), key(ip)]) {
+    const keysToCheck = identifier ? [`id:${identifier}`, `ip:${ip}`] : [`ip:${ip}`];
+
+    for (const k of keysToCheck) {
       const entry = attempts.get(k);
       if (!entry || entry.resetAt <= now) {
         attempts.set(k, { count: 1, resetAt: now + options.windowMs });
@@ -22,10 +27,11 @@ export function rateLimit(options: {
       }
       entry.count += 1;
       if (entry.count > options.max) {
-        const waitMin = Math.ceil((entry.resetAt - now) / 60000);
+        const waitSec = Math.ceil((entry.resetAt - now) / 1000);
+        const waitText = waitSec > 60 ? `${Math.ceil(waitSec / 60)} min` : `${waitSec} sec`;
         return res
           .status(429)
-          .json({ error: `${options.message} Try again in ${waitMin} min.` });
+          .json({ error: `${options.message} Try again in ${waitText}.` });
       }
     }
     next();
