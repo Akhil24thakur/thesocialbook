@@ -16,7 +16,7 @@ function supabase() {
     process.env.SUPABASE_SECRET_KEY ||
     process.env.SUPABASE_KEY;
   if (!url || !key) {
-    throw new Error("Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_KEY)");
+    throw new Error("Supabase is not configured. Set SUPABASE_URL and one of: SUPABASE_SERVICE_KEY, SUPABASE_SECRET_KEY, or SUPABASE_KEY");
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }
