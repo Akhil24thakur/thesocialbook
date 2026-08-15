@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import nodemailer from "nodemailer";
 import { prisma } from "./prisma.js";
 
 export const OTP_TTL_MS = 10 * 60 * 1000;
@@ -9,62 +8,49 @@ function generateCode() {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
-let transporter: nodemailer.Transporter | null = null;
+async function sendViaMsg91(phone: string, code: string) {
+  const authKey = process.env.MSG91_AUTH_KEY;
+  const templateId = process.env.MSG91_TEMPLATE_ID;
+  const senderId = process.env.MSG91_SENDER_ID;
 
-function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) return null;
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host,
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: { user, pass },
-    });
-  }
-  return transporter;
-}
-
-async function sendEmail(to: string, code: string) {
-  const t = getTransporter();
-  if (!t) {
-    console.log(`[OTP] email delivery not configured (SMTP_* env). Code for ${to}: ${code}`);
+  if (!authKey || !templateId || !senderId) {
+    console.log(`[OTP] MSG91 not configured. Auth key present: ${!!authKey}, Template ID present: ${!!templateId}, Sender ID present: ${!!senderId}`);
+    // Fallback: log the code for development
+    console.log(`[OTP] Code for ${phone}: ${code}`);
     return;
   }
-  await t.sendMail({
-    from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
-    to,
-    subject: "Your TheSocialBook verification code",
-    text: `Your verification code is ${code}. It expires in 10 minutes.`,
-  });
+
+  try {
+    // MSG91 OTP API endpoint
+    const url = `https://control.msg91.com/api/v2/sms`;
+    const body = `authkey=${authKey}&sender=${senderId}&message=${encodeURIComponent(`Your TheSocialBook verification code is ${code}. It expires in 10 minutes.`)}&route=4&numbers=${encodeURIComponent(phone)}`;
+
+    const https = require("https");
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + "?" + body,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    };
+
+    const req = https.request(options, (res: any, chunk: any) => {
+      let data = "";
+      res.on("data", (chunk: any) => (data += chunk));
+      res.on("end", () => {
+        console.log(`[OTP] MSG91 response: ${data}`);
+      });
+    });
+    req.end();
+  } catch (error) {
+    console.error(`[OTP] MSG91 send failed:`, error);
+  }
 }
 
 async function sendSms(phone: string, code: string) {
-  const key = process.env.SMS_API_KEY;
-  const url = process.env.SMS_API_URL;
-  if (key && url) {
-    // Indian OTP providers typically use URL with {phone} and {code} placeholders
-    // and Bearer auth. Example format: https://api.msg91.com/api/v2/sms?key={key}&phone={phone}&text={code}
-    const body = url
-      .replace("{phone}", encodeURIComponent(phone))
-      .replace("{code}", code);
-    const res = await fetch(body, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-    });
-    if (!res.ok) {
-      console.error(`[OTP] SMS send failed (${res.status}): ${res.statusText}`);
-    }
-    return;
-  }
-  // Fallback: log OTP code for development/testing when no SMS provider is configured
-  console.log(`[OTP] SMS provider not configured. Code for ${phone}: ${code}`);
-  // In production, ensure SMS_API_KEY and SMS_API_URL are set with a valid provider
+  await sendViaMsg91(phone, code);
 }
 
 export async function sendOtp(target: string) {
@@ -72,11 +58,7 @@ export async function sendOtp(target: string) {
   await prisma.otpCode.create({
     data: { target, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
   });
-  if (target.startsWith("+") || /^\d{10}$/.test(target)) {
-    await sendSms(target, code);
-  } else {
-    await sendEmail(target, code);
-  }
+  await sendSms(target, code);
   return { sent: true, ...(process.env.NODE_ENV !== "production" ? { devCode: code } : {}) };
 }
 

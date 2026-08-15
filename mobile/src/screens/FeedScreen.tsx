@@ -5,6 +5,8 @@ import {
   RefreshControl,
   StyleSheet,
   View,
+  TouchableOpacity,
+  Text,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { api } from "../api";
@@ -20,7 +22,7 @@ import { colors } from "../theme";
 import type { Post, StoryItem } from "../types";
 
 export default function FeedScreen() {
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [storyItems, setStoryItems] = useState<StoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export default function FeedScreen() {
 
   const header = useMemo(
     () => (
-      <View>
+      <View style={styles.headerContainer}>
         <StoriesStrip
           groups={friendGroups}
           myStoryGroup={myStoryGroup}
@@ -132,6 +134,11 @@ export default function FeedScreen() {
           onDeleteStory={onDeleteStory}
         />
         <FeedTabs active={tab} onChange={setTab} />
+        <View style={styles.logoutMenu}>
+          <TouchableOpacity onPress={() => logout()}>
+            <Text style={styles.logoutBtn}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     ),
     [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, tab]
@@ -177,5 +184,22 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     paddingBottom: 28,
+  },
+  headerContainer: {
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  logoutMenu: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  logoutBtn: {
+    padding: 8,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 20,
+    color: colors.primary,
+    fontSize: 12,
   },
 });
