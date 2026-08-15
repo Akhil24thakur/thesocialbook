@@ -28,7 +28,7 @@ router.get("/", requireAuth, async (req, res) => {
 router.get("/unread-count", requireAuth, async (req, res) => {
   const userId = (req as AuthedRequest).userId;
   const count = await prisma.notification.count({ where: { userId, read: false } });
-  return res.json({ count });
+  return res.json({ unreadCount: count });
 });
 
 router.patch("/read", requireAuth, async (req, res) => {
