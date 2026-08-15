@@ -53,8 +53,12 @@ const registerSchema = z.object({
 });
 
 const loginSchema = z.object({
-  phone: z.string(),
+  phone: z.string().optional(),
+  username: z.string().optional(),
   password: z.string(),
+}).refine((data) => data.phone || data.username, {
+  message: "Phone number or username is required",
+  path: ["identifier"],
 });
 
 function slugify(name: string) {
@@ -117,13 +121,19 @@ router.post("/register", async (req, res) => {
 router.post("/login", loginLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid input" });
+    return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
-  const { phone, password } = parsed.data;
+  const { phone, username, password } = parsed.data;
 
-  const user = await prisma.user.findUnique({ where: { phone } });
+  let user;
+  if (phone) {
+    user = await prisma.user.findUnique({ where: { phone } });
+  } else if (username) {
+    user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } });
+  }
+
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    return res.status(401).json({ error: "Invalid phone number or password" });
+    return res.status(401).json({ error: "Invalid credentials" });
   }
 
   return res.json({

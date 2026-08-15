@@ -39,8 +39,8 @@ router.get("/feed", requireAuth, async (req, res) => {
 });
 
 const createPostSchema = z.object({
-  content: z.string().max(5000).optional(),
-  imageUrl: z.string().url().max(1000).optional().or(z.literal("")),
+  content: z.string().max(5000).optional().nullable(),
+  imageUrl: z.string().url().max(1000).optional().nullable().or(z.literal("")),
 });
 
 router.post("/", requireAuth, async (req, res) => {

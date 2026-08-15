@@ -10,7 +10,7 @@ interface AuthContextValue {
   user: ApiUser | null;
   token: string | null;
   loading: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string, isPhone?: boolean) => Promise<void>;
   register: (name: string, phone: string, password: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: ApiUser | null) => void;
@@ -66,8 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (phone: string, password: string) => {
-    const res = await api.login({ phone, password });
+  const login = async (identifier: string, password: string, isPhone = true) => {
+    const res = await api.login(
+      isPhone ? { phone: identifier, password } : { username: identifier, password }
+    );
     await persist(res.token, res.user);
   };
 

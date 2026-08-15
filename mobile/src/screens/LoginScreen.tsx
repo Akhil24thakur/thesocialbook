@@ -14,12 +14,13 @@ import { useAuth } from "../auth/AuthContext";
 import Icon from "../components/Icon";
 import { brandGradient, colors } from "../theme";
 
-type Mode = "phone" | "email" | "emailOtp";
+type Mode = "phone" | "username" | "email" | "emailOtp";
 
 export default function LoginScreen({ navigation }: any) {
   const { login, emailSendOtp, emailLogin } = useAuth();
   const [mode, setMode] = useState<Mode>("phone");
   const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -39,7 +40,27 @@ export default function LoginScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await login(phone, password);
+      await login(phone, password, true);
+    } catch (e: any) {
+      setError(e.message ?? "Login failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitUsername = async () => {
+    setError("");
+    if (!username.trim()) {
+      setError("Enter your username");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    setBusy(true);
+    try {
+      await login(username, password, false);
     } catch (e: any) {
       setError(e.message ?? "Login failed");
     } finally {
@@ -89,6 +110,7 @@ export default function LoginScreen({ navigation }: any) {
   const goBackToPhone = () => {
     if (mode === "emailOtp") setMode("email");
     else if (mode === "email") setMode("phone");
+    else if (mode === "username") setMode("phone");
     else navigation.navigate("Signup");
   };
 
@@ -124,6 +146,44 @@ export default function LoginScreen({ navigation }: any) {
                   maxLength={10}
                   value={phone}
                   onChangeText={setPhone}
+                />
+              </View>
+              <View style={styles.inputWrap}>
+                <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {mode === "username" && (
+            <>
+              <View style={styles.inputWrap}>
+                <Icon name="person-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Username"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="none"
+                  value={username}
+                  onChangeText={setUsername}
                 />
               </View>
               <View style={styles.inputWrap}>
@@ -201,7 +261,7 @@ export default function LoginScreen({ navigation }: any) {
           <TouchableOpacity
             style={styles.button}
             onPress={
-              mode === "phone" ? submitPhone : mode === "email" ? sendEmailOtp : submitEmailOtp
+              mode === "phone" ? submitPhone : mode === "username" ? submitUsername : mode === "email" ? sendEmailOtp : submitEmailOtp
             }
             disabled={busy}
             activeOpacity={0.85}
@@ -218,6 +278,8 @@ export default function LoginScreen({ navigation }: any) {
                 <Text style={styles.buttonText}>
                   {mode === "phone"
                     ? "Log In"
+                    : mode === "username"
+                    ? "Log In"
                     : mode === "email"
                     ? "Send Code"
                     : "Verify & Log In"}
@@ -228,6 +290,11 @@ export default function LoginScreen({ navigation }: any) {
 
           {mode === "phone" && (
             <>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("username")}>
+                <Text style={styles.linkText}>
+                  Log in with username instead
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("email")}>
                 <Text style={styles.linkText}>
                   Log in with email instead
@@ -242,6 +309,12 @@ export default function LoginScreen({ navigation }: any) {
           )}
 
           {(mode === "email" || mode === "emailOtp") && (
+            <TouchableOpacity style={styles.linkBtn} onPress={goBackToPhone}>
+              <Text style={styles.linkText}>Back to phone login</Text>
+            </TouchableOpacity>
+          )}
+
+          {mode === "username" && (
             <TouchableOpacity style={styles.linkBtn} onPress={goBackToPhone}>
               <Text style={styles.linkText}>Back to phone login</Text>
             </TouchableOpacity>
