@@ -12,7 +12,7 @@ export interface AuthedRequest extends Request {
 }
 
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
