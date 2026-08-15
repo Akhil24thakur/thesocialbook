@@ -3,8 +3,15 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, signToken, type AuthedRequest } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 const router = Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many login attempts.",
+});
 
 const USERNAME_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 const userSelect = {
@@ -40,7 +47,7 @@ const registerSchema = z.object({
   phone: z
     .string()
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
-  password: z.string().min(6).max(72),
+  password: z.string().min(8).max(72),
 });
 
 const loginSchema = z.object({
@@ -100,7 +107,7 @@ router.post("/register", async (req, res) => {
   });
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid input" });

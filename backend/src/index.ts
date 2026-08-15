@@ -2,6 +2,11 @@ import { app } from "./app.js";
 import { prisma } from "./lib/prisma.js";
 import { STORY_TTL_MS } from "./routes/stories.js";
 
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET is not set. Set it in the environment (never commit it).");
+  process.exit(1);
+}
+
 const PORT = Number(process.env.PORT ?? 4000);
 
 app.listen(PORT, "0.0.0.0", () => {
