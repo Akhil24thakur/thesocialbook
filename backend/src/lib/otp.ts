@@ -45,16 +45,26 @@ async function sendSms(phone: string, code: string) {
   const key = process.env.SMS_API_KEY;
   const url = process.env.SMS_API_URL;
   if (key && url) {
+    // Indian OTP providers typically use URL with {phone} and {code} placeholders
+    // and Bearer auth. Example format: https://api.msg91.com/api/v2/sms?key={key}&phone={phone}&text={code}
     const body = url
       .replace("{phone}", encodeURIComponent(phone))
       .replace("{code}", code);
     const res = await fetch(body, {
-      headers: { Authorization: `Bearer ${key}` },
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
     });
-    if (!res.ok) console.error(`[OTP] SMS send failed (${res.status})`);
+    if (!res.ok) {
+      console.error(`[OTP] SMS send failed (${res.status}): ${res.statusText}`);
+    }
     return;
   }
+  // Fallback: log OTP code for development/testing when no SMS provider is configured
   console.log(`[OTP] SMS provider not configured. Code for ${phone}: ${code}`);
+  // In production, ensure SMS_API_KEY and SMS_API_URL are set with a valid provider
 }
 
 export async function sendOtp(target: string) {
