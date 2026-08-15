@@ -17,6 +17,9 @@
     "start": "cd backend && npx tsx src/index.ts"
   },
   "allowScripts": {
-    "@expo/ngrok-bin": true
+    "@expo/ngrok-bin": true,
+    "@expo/prebuild-config": true,
+    "expo-modules-autolinking": true,
+    "expo-notifications": true
   }
 }

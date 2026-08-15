@@ -1,6 +1,6 @@
 import { File } from "expo-file-system";
 import { API_URL } from "./config";
-import type { ApiUser, Comment, Post, StoryItem } from "./types";
+import type { ApiUser, Comment, Post, StoryItem, Notification } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -59,14 +59,14 @@ export async function uploadImage(token: string, uri: string): Promise<string> {
 }
 
 export const api = {
-  register: (body: { name: string; phone: string; password: string }) =>
+  register: (body: { name: string; phone: string; password: string; otp: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/register", null, { method: "POST", body }),
   login: (body: { phone: string; password: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/login", null, { method: "POST", body }),
   me: (token: string) => request<{ user: ApiUser }>("/api/auth/me", token),
   updateMe: (
     token: string,
-    body: { name?: string; username?: string; bio?: string; avatarUrl?: string | null }
+    body: { name?: string; username?: string; bio?: string; avatarUrl?: string | null; email?: string | null }
   ) => request<{ user: ApiUser }>("/api/auth/me", token, { method: "PATCH", body }),
   feed: (token: string) => request<{ posts: Post[] }>("/api/posts/feed", token),
   createPost: (token: string, body: { content: string; imageUrl?: string }) =>
@@ -94,4 +94,18 @@ export const api = {
     request<{ story: StoryItem }>("/api/stories", token, { method: "POST", body: { imageUrl } }),
   deleteStory: (token: string, id: number) =>
     request<{ ok: boolean }>(`/api/stories/${id}`, token, { method: "DELETE" }),
+  sendOtp: (target: string) =>
+    request<{ sent: boolean }>("/api/otp/send", null, { method: "POST", body: { target } }),
+  verifyOtp: (target: string, code: string) =>
+    request<{ ok: boolean }>("/api/otp/verify", null, { method: "POST", body: { target, code } }),
+  emailSendOtp: (email: string) =>
+    request<{ sent: boolean }>("/api/auth/email/send-otp", null, { method: "POST", body: { email } }),
+  emailLogin: (email: string, otp: string) =>
+    request<{ token: string; user: ApiUser }>("/api/auth/email/login", null, { method: "POST", body: { email, otp } }),
+  notifications: (token: string) => request<{ notifications: Notification[] }>("/api/notifications", token),
+  notificationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/notifications/unread-count", token),
+  notificationsMarkRead: (token: string) =>
+    request<{ ok: boolean }>("/api/notifications/read", token, { method: "PATCH" }),
+  registerDeviceToken: (token: string, deviceToken: string) =>
+    request<{ ok: boolean }>("/api/notifications/device-token", token, { method: "POST", body: { token: deviceToken } }),
 };
