@@ -20,4 +20,8 @@ setInterval(() => {
       if (r.count > 0) console.log(`Cleaned up ${r.count} expired stories`);
     })
     .catch(() => {});
+
+  prisma.otpCode
+    .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+    .catch(() => {});
 }, 60 * 60 * 1000);

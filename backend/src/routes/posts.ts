@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { notify } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 
 const router = Router();
@@ -89,6 +90,7 @@ router.post("/:id/like", requireAuth, async (req, res) => {
     return res.json({ liked: false });
   }
   await prisma.like.create({ data: { userId, postId } });
+  await notify(post.authorId, userId, "like", postId);
   return res.json({ liked: true });
 });
 
@@ -129,6 +131,7 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
       author: { select: { id: true, name: true, username: true, avatarUrl: true } },
     },
   });
+  await notify(post.authorId, (req as AuthedRequest).userId, "comment", postId);
   return res.status(201).json({ comment });
 });
 
