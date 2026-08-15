@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  username     String    @unique
+  usernameChangedAt DateTime?
+  phone        String    @unique
+  email        String?   @unique
+  passwordHash String
+  bio          String?
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  posts        Post[]
+  stories      Story[]
+  likes        Like[]
+  comments     Comment[]
+  following    Follow[] @relation("following")
+  followers    Follow[] @relation("followers")
+
+  @@index([createdAt])
+}
+
+model Follow {
+  id          Int   @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  follower    User  @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User  @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Story {
+  id        Int      @id @default(autoincrement())
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  createdAt DateTime @default(now())
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Post {
+  id        Int       @id @default(autoincrement())
+  authorId  Int
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  imageUrl  String?
+  createdAt DateTime  @default(now())
+  likes     Like[]
+  comments  Comment[]
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Like {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  postId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
