@@ -1,0 +1,19 @@
+{
+  "name": "thesocialbook",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TheSocialBook - a social network for India. Monorepo: backend (Node/Express/Prisma) + mobile (Expo React Native).",
+  "workspaces": [
+    "backend",
+    "mobile"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:mobile": "npm run start --workspace mobile",
+    "db:migrate": "npm run db:migrate --workspace backend",
+    "db:seed": "npm run db:seed --workspace backend"
+  },
+  "allowScripts": {
+    "@expo/ngrok-bin": true
+  }
+}
