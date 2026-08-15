@@ -95,11 +95,11 @@ export const api = {
   deleteStory: (token: string, id: number) =>
     request<{ ok: boolean }>(`/api/stories/${id}`, token, { method: "DELETE" }),
   sendOtp: (target: string) =>
-    request<{ sent: boolean }>("/api/otp/send", null, { method: "POST", body: { target } }),
+    request<{ sent: boolean; devCode?: string }>("/api/otp/send", null, { method: "POST", body: { target } }),
   verifyOtp: (target: string, code: string) =>
     request<{ ok: boolean }>("/api/otp/verify", null, { method: "POST", body: { target, code } }),
   emailSendOtp: (email: string) =>
-    request<{ sent: boolean }>("/api/auth/email/send-otp", null, { method: "POST", body: { email } }),
+    request<{ sent: boolean; devCode?: string }>("/api/auth/email/send-otp", null, { method: "POST", body: { email } }),
   emailLogin: (email: string, otp: string) =>
     request<{ token: string; user: ApiUser }>("/api/auth/email/login", null, { method: "POST", body: { email, otp } }),
   notifications: (token: string) => request<{ notifications: Notification[] }>("/api/notifications", token),

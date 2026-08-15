@@ -55,7 +55,13 @@ export default function LoginScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await emailSendOtp(email);
+      const devCode = await emailSendOtp(email);
+      if (devCode) {
+        setOtp(devCode);
+        setMode("emailOtp");
+        setTimeout(() => submitEmailOtp(), 300);
+        return;
+      }
       setMode("emailOtp");
     } catch (e: any) {
       setError(e.message ?? "Failed to send code");

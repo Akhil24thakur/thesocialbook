@@ -14,9 +14,9 @@ interface AuthContextValue {
   register: (name: string, phone: string, password: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: ApiUser | null) => void;
-  sendOtp: (target: string) => Promise<void>;
+  sendOtp: (target: string) => Promise<string | undefined>;
   verifyOtp: (target: string, code: string) => Promise<boolean>;
-  emailSendOtp: (email: string) => Promise<void>;
+  emailSendOtp: (email: string) => Promise<string | undefined>;
   emailLogin: (email: string, otp: string) => Promise<void>;
 }
 
@@ -82,8 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const sendOtp = async (target: string) => {
-    await api.sendOtp(target);
+  const sendOtp = async (target: string): Promise<string | undefined> => {
+    const res = await api.sendOtp(target);
+    return res.devCode ?? undefined;
   };
 
   const verifyOtp = async (target: string, code: string) => {
@@ -91,8 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return res.ok;
   };
 
-  const emailSendOtp = async (email: string) => {
-    await api.emailSendOtp(email);
+  const emailSendOtp = async (email: string): Promise<string | undefined> => {
+    const res = await api.emailSendOtp(email);
+    return res.devCode ?? undefined;
   };
 
   const emailLogin = async (email: string, otp: string) => {

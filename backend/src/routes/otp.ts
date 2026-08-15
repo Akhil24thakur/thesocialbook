@@ -30,8 +30,8 @@ router.post("/send", sendLimiter, async (req, res) => {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
   try {
-    await sendOtp(parsed.data.target);
-    return res.json({ sent: true });
+    const result = await sendOtp(parsed.data.target);
+    return res.json(result);
   } catch (e: any) {
     return res.status(500).json({ error: "Could not send the code: " + (e.message ?? "unknown error") });
   }

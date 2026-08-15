@@ -44,7 +44,14 @@ export default function SignupScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await sendOtp(phone);
+      const devCode = await sendOtp(phone);
+      if (devCode) {
+        setOtp(devCode);
+        setOtpSent(true);
+        setStep("otp");
+        setTimeout(() => submit(), 300);
+        return;
+      }
       setOtpSent(true);
       setStep("otp");
     } catch (e: any) {
