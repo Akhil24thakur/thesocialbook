@@ -1,56 +1,49 @@
-import React, { useCallback, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
-import Icon from "../components/Icon";
+import Icon, { type IconName } from "../components/Icon";
 import { colors, formatTime } from "../theme";
-import type { Post } from "../types";
-
-const UPDATES = [
-  {
-    icon: "sparkles-outline",
-    title: "New Home experience",
-    body: "We redesigned your feed with stories, tabs and a fresh look.",
-    time: "2d ago",
-  },
-  {
-    icon: "camera-outline",
-    title: "Photo sharing is live",
-    body: "You can now add photos to your posts.",
-    time: "5d ago",
-  },
-  {
-    icon: "people-outline",
-    title: "Groups & Messages",
-    body: "New tabs to help you connect with friends.",
-    time: "1w ago",
-  },
-];
-
-type Item =
-  | { type: "post"; post: Post }
-  | { type: "update"; icon: string; title: string; body: string; time: string };
+import type { Notification } from "../types";
 
 export default function NotificationsScreen() {
-  const { token, user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const { token } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(
-    async (refresh = false) => {
-      if (!token) return;
-      refresh && setRefreshing(true);
-      try {
-        const res = await api.feed(token);
-        setPosts(res.posts);
-      } catch {} finally {
-        setRefreshing(false);
-      }
-    },
-    [token]
-  );
+  const load = useCallback(async (refresh = false) => {
+    if (!token) return;
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const [notifsRes, unreadRes] = await Promise.all([
+        api.notifications(token),
+        api.notificationsUnreadCount(token),
+      ]);
+      setNotifications(notifsRes.notifications);
+      setUnreadCount(unreadRes.unreadCount);
+    } catch {
+      // silent fail
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  }, [token]);
+
+  const markAllRead = useCallback(async () => {
+    if (!token) return;
+    try {
+      await api.notificationsMarkRead(token);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch {
+      // silent fail
+    }
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,49 +51,88 @@ export default function NotificationsScreen() {
     }, [load])
   );
 
-  const friends = posts.filter((p) => p.author.id !== user?.id).slice(0, 8);
+  const renderItem = ({ item }: { item: Notification }) => {
+    const typeIcons: Record<string, IconName> = {
+      like: "heart-outline",
+      comment: "chatbox-ellipses-outline",
+      follow: "person-add-outline",
+    };
+    const typeColors: Record<string, string> = {
+      like: colors.danger,
+      comment: colors.primary,
+      follow: colors.green,
+    };
 
-  const items: Item[] = [
-    ...friends.map((p) => ({ type: "post" as const, post: p })),
-    ...UPDATES.map((u) => ({ type: "update" as const, ...u })),
-  ];
+    return (
+      <TouchableOpacity
+        style={[
+          styles.row,
+          !item.read && styles.unread,
+        ]}
+        onPress={() => {
+          // TODO: Navigate to post/user
+        }}
+      >
+        <View style={styles.iconWrap}>
+          <View
+            style={[
+              styles.iconBg,
+              { backgroundColor: typeColors[item.type] + "20" },
+            ]}
+          >
+            <Icon
+              name={typeIcons[item.type]}
+              size={20}
+              color={typeColors[item.type]}
+            />
+          </View>
+          {!item.read && <View style={styles.unreadDot} />}
+        </View>
+        <View style={styles.rowBody}>
+          <Text style={styles.rowTitle}>
+            <Text style={styles.strong}>{item.actor.name}</Text>{" "}
+            {item.type === "like"
+              ? "liked your post"
+              : item.type === "comment"
+              ? "commented on your post"
+              : "started following you"}
+          </Text>
+          {item.post && (
+            <Text style={styles.rowPreview} numberOfLines={2}>
+              {item.post.content ?? "Shared a photo"}
+            </Text>
+          )}
+          <Text style={styles.time}>{formatTime(item.createdAt)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
+      {unreadCount > 0 && (
+        <TouchableOpacity style={styles.markReadBtn} onPress={markAllRead}>
+          <Text style={styles.markReadText}>Mark all as read</Text>
+        </TouchableOpacity>
+      )}
       <FlatList
-        data={items}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={({ item }) =>
-          item.type === "post" ? (
-            <View style={styles.row}>
-              <Avatar name={item.post.author.name} size={44} />
-              <View style={styles.rowBody}>
-                <Text style={styles.rowTitle}>
-                  <Text style={styles.strong}>{item.post.author.name}</Text> posted
-                </Text>
-                <Text style={styles.rowPreview} numberOfLines={2}>
-                  {item.post.content || "Shared a photo"}
-                </Text>
-              </View>
-              <Text style={styles.time}>{formatTime(item.post.createdAt)}</Text>
-            </View>
-          ) : (
-            <View style={styles.row}>
-              <View style={styles.updateIcon}>
-                <Icon name={item.icon as any} size={20} color={colors.primary} />
-              </View>
-              <View style={styles.rowBody}>
-                <Text style={styles.rowTitle}>{item.title}</Text>
-                <Text style={styles.rowPreview} numberOfLines={2}>
-                  {item.body}
-                </Text>
-              </View>
-              <Text style={styles.time}>{item.time}</Text>
-            </View>
-          )
-        }
+        data={notifications}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load(true)}
+            tintColor={colors.primary}
+          />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -108,10 +140,10 @@ export default function NotificationsScreen() {
               <Icon name="notifications-off-outline" size={32} color={colors.textSecondary} />
             </View>
             <Text style={styles.emptyTitle}>No notifications yet</Text>
-            <Text style={styles.emptySub}>New posts from friends will show up here.</Text>
+            <Text style={styles.emptySub}>Likes, comments, and follows will appear here.</Text>
           </View>
         }
-        contentContainerStyle={items.length === 0 ? styles.emptyList : styles.list}
+        contentContainerStyle={styles.list}
       />
     </View>
   );
@@ -125,21 +157,60 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
   },
-  emptyList: {
-    flexGrow: 1,
+  loading: {
+    flex: 1,
     justifyContent: "center",
+    alignItems: "center",
+  },
+  markReadBtn: {
+    padding: 12,
+    alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  markReadText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
   },
   row: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 12,
     marginBottom: 10,
     gap: 12,
   },
+  unread: {
+    backgroundColor: colors.primaryLight,
+  },
+  iconWrap: {
+    position: "relative",
+    width: 44,
+    height: 44,
+  },
+  iconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadDot: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.card,
+  },
   rowBody: {
     flex: 1,
+    minWidth: 0,
   },
   rowTitle: {
     fontSize: 14,
@@ -156,15 +227,7 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 12,
     color: colors.textSecondary,
-    alignSelf: "flex-start",
-  },
-  updateIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
+    marginTop: 4,
   },
   empty: {
     alignItems: "center",

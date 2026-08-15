@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../api";
 import { storage } from "../storage";
+import * as Notifications from "expo-notifications";
 import type { ApiUser } from "../types";
 
 const TOKEN_KEY = "thesocialbook_token";
@@ -10,9 +11,13 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (phone: string, password: string) => Promise<void>;
-  register: (name: string, phone: string, password: string) => Promise<void>;
+  register: (name: string, phone: string, password: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: ApiUser | null) => void;
+  sendOtp: (target: string) => Promise<void>;
+  verifyOtp: (target: string, code: string) => Promise<boolean>;
+  emailSendOtp: (email: string) => Promise<void>;
+  emailLogin: (email: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -30,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { user: me } = await api.me(stored);
           setToken(stored);
           setUser(me);
+          await registerPushToken(stored);
         }
       } catch {
         await storage.deleteItem(TOKEN_KEY);
@@ -43,6 +49,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.setItem(TOKEN_KEY, newToken);
     setToken(newToken);
     setUser(newUser);
+    await registerPushToken(newToken);
+  };
+
+  const registerPushToken = async (authToken: string) => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        if (newStatus !== "granted") return;
+      }
+      const deviceToken = (await Notifications.getExpoPushTokenAsync()).data;
+      await api.registerDeviceToken(authToken, deviceToken);
+    } catch {
+      // Silent fail - push notifications are best effort
+    }
   };
 
   const login = async (phone: string, password: string) => {
@@ -50,8 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persist(res.token, res.user);
   };
 
-  const register = async (name: string, phone: string, password: string) => {
-    const res = await api.register({ name, phone, password });
+  const register = async (name: string, phone: string, password: string, otp: string) => {
+    const res = await api.register({ name, phone, password, otp });
     await persist(res.token, res.user);
   };
 
@@ -61,8 +82,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const sendOtp = async (target: string) => {
+    await api.sendOtp(target);
+  };
+
+  const verifyOtp = async (target: string, code: string) => {
+    const res = await api.verifyOtp(target, code);
+    return res.ok;
+  };
+
+  const emailSendOtp = async (email: string) => {
+    await api.emailSendOtp(email);
+  };
+
+  const emailLogin = async (email: string, otp: string) => {
+    const res = await api.emailLogin(email, otp);
+    await persist(res.token, res.user);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, setUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        setUser,
+        sendOtp,
+        verifyOtp,
+        emailSendOtp,
+        emailLogin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

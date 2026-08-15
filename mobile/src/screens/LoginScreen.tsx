@@ -14,22 +14,27 @@ import { useAuth } from "../auth/AuthContext";
 import Icon from "../components/Icon";
 import { brandGradient, colors } from "../theme";
 
+type Mode = "phone" | "email" | "emailOtp";
+
 export default function LoginScreen({ navigation }: any) {
-  const { login } = useAuth();
+  const { login, emailSendOtp, emailLogin } = useAuth();
+  const [mode, setMode] = useState<Mode>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = async () => {
+  const submitPhone = async () => {
     setError("");
     if (!/^[6-9]\d{9}$/.test(phone)) {
       setError("Enter a valid 10-digit Indian mobile number");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
     setBusy(true);
@@ -40,6 +45,45 @@ export default function LoginScreen({ navigation }: any) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const sendEmailOtp = async () => {
+    setError("");
+    if (!email.includes("@")) {
+      setError("Enter a valid email address");
+      return;
+    }
+    setBusy(true);
+    try {
+      await emailSendOtp(email);
+      setMode("emailOtp");
+    } catch (e: any) {
+      setError(e.message ?? "Failed to send code");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitEmailOtp = async () => {
+    setError("");
+    if (!/^\d{6}$/.test(otp)) {
+      setError("Enter the 6-digit code");
+      return;
+    }
+    setBusy(true);
+    try {
+      await emailLogin(email, otp);
+    } catch (e: any) {
+      setError(e.message ?? "Login failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const goBackToPhone = () => {
+    if (mode === "emailOtp") setMode("email");
+    else if (mode === "email") setMode("phone");
+    else navigation.navigate("Signup");
   };
 
   return (
@@ -62,42 +106,100 @@ export default function LoginScreen({ navigation }: any) {
         </View>
 
         <View style={styles.form}>
-          <View style={styles.inputWrap}>
-            <Icon name="call-outline" size={18} color={colors.textSecondary} />
-            <TextInput
-              style={styles.input}
-              placeholder="Mobile number (10 digits)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
-              maxLength={10}
-              value={phone}
-              onChangeText={setPhone}
-            />
-          </View>
-          <View style={styles.inputWrap}>
-            <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword((v) => !v)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-            >
-              <Icon
-                name={showPassword ? "eye-off-outline" : "eye-outline"}
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
+          {mode === "phone" && (
+            <>
+              <View style={styles.inputWrap}>
+                <Icon name="call-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Mobile number (10 digits)"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={phone}
+                  onChangeText={setPhone}
+                />
+              </View>
+              <View style={styles.inputWrap}>
+                <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {mode === "email" && (
+            <>
+              <Text style={styles.modeTitle}>Log in with Email</Text>
+              <View style={styles.inputWrap}>
+                <Icon name="mail-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email address"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+            </>
+          )}
+
+          {mode === "emailOtp" && (
+            <>
+              <Text style={styles.modeTitle}>Enter Code</Text>
+              <Text style={styles.otpInfo}>We sent a 6-digit code to <Text style={styles.strong}>{email}</Text></Text>
+              <View style={styles.otpWrap}>
+                {[...Array(6)].map((_, i) => (
+                  <TextInput
+                    key={i}
+                    style={styles.otpBox}
+                    maxLength={1}
+                    keyboardType="number-pad"
+                    textAlign="center"
+                    value={otp[i] ?? ""}
+                    onChangeText={(t) => {
+                      const next = otp.slice(0, i) + t + otp.slice(i + 1);
+                      setOtp(next);
+                      if (next.length === 6) submitEmailOtp();
+                    }}
+                    autoFocus={i === 0}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity style={styles.resendBtn} onPress={sendEmailOtp} disabled={busy}>
+                <Text style={styles.resendText}>Resend Code</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
           {!!error && <Text style={styles.error}>{error}</Text>}
-          <TouchableOpacity style={styles.button} onPress={submit} disabled={busy} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={
+              mode === "phone" ? submitPhone : mode === "email" ? sendEmailOtp : submitEmailOtp
+            }
+            disabled={busy}
+            activeOpacity={0.85}
+          >
             <LinearGradient
               colors={brandGradient}
               start={{ x: 0, y: 0 }}
@@ -107,15 +209,37 @@ export default function LoginScreen({ navigation }: any) {
               {busy ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.buttonText}>Log In</Text>
+                <Text style={styles.buttonText}>
+                  {mode === "phone"
+                    ? "Log In"
+                    : mode === "email"
+                    ? "Send Code"
+                    : "Verify & Log In"}
+                </Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Signup")}>
-            <Text style={styles.linkText}>
-              New to TheSocialBook? <Text style={styles.linkStrong}>Create an account</Text>
-            </Text>
-          </TouchableOpacity>
+
+          {mode === "phone" && (
+            <>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("email")}>
+                <Text style={styles.linkText}>
+                  Log in with email instead
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Signup")}>
+                <Text style={styles.linkText}>
+                  New to TheSocialBook? <Text style={styles.linkStrong}>Create an account</Text>
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {(mode === "email" || mode === "emailOtp") && (
+            <TouchableOpacity style={styles.linkBtn} onPress={goBackToPhone}>
+              <Text style={styles.linkText}>Back to phone login</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -197,10 +321,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
   },
+  modeTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  otpInfo: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  strong: {
+    fontWeight: "700",
+    color: colors.text,
+  },
+  otpWrap: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  otpBox: {
+    width: 44,
+    height: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  resendBtn: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  resendText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   error: {
     color: colors.danger,
     fontSize: 13,
     marginBottom: 10,
+    textAlign: "center",
   },
   button: {
     borderRadius: 10,
@@ -218,7 +385,7 @@ const styles = StyleSheet.create({
   },
   linkBtn: {
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 12,
   },
   linkText: {
     color: colors.textSecondary,

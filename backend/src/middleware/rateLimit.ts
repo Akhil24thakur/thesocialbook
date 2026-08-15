@@ -1,10 +1,17 @@
+const attempts = new Map<string, { count: number; resetAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of attempts) {
+    if (v.resetAt <= now) attempts.delete(k);
+  }
+}, 10 * 60 * 1000).unref();
+
 export function rateLimit(options: {
   windowMs: number;
   max: number;
   message: string;
 }) {
-  const attempts = new Map<string, { count: number; resetAt: number }>();
-
   return (req: any, res: any, next: any) => {
     const now = Date.now();
     const ip = req.ip ?? req.socket?.remoteAddress ?? "unknown";
@@ -37,10 +44,3 @@ export function rateLimit(options: {
     next();
   };
 }
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of attempts) {
-    if (v.resetAt <= now) attempts.delete(k);
-  }
-}, 10 * 60 * 1000).unref();

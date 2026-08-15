@@ -16,6 +16,7 @@
     "expo-image-manipulator": "^57.0.10",
     "expo-image-picker": "^57.0.10",
     "expo-linear-gradient": "~57.0.1",
+    "expo-notifications": "~57.0.11",
     "expo-secure-store": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
@@ -36,5 +37,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "expo-modules-autolinking": true,
+    "expo-notifications": true
+  }
 }

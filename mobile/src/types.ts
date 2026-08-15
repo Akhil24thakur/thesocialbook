@@ -4,6 +4,7 @@ export interface ApiUser {
   username?: string;
   usernameChangedAt?: string | null;
   phone: string;
+  email?: string | null;
   bio: string | null;
   avatarUrl: string | null;
   createdAt?: string;
@@ -43,4 +44,13 @@ export interface StoryItem {
   imageUrl: string;
   createdAt: string;
   author: PostAuthor;
+}
+
+export interface Notification {
+  id: number;
+  type: "like" | "comment" | "follow";
+  read: boolean;
+  createdAt: string;
+  actor: PostAuthor;
+  post?: { id: number; content: string | null; imageUrl: string | null };
 }
