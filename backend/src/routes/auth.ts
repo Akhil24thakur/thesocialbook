@@ -155,8 +155,8 @@ router.post("/email/send-otp", async (req, res) => {
     return res.status(404).json({ error: "No account found with this email" });
   }
   try {
-    await sendOtp(email);
-    return res.json({ sent: true });
+    const result = await sendOtp(email);
+    return res.json(result);
   } catch (e: any) {
     return res.status(500).json({ error: "Could not send the code: " + (e.message ?? "unknown error") });
   }

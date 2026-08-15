@@ -67,7 +67,7 @@ export async function sendOtp(target: string) {
   } else {
     await sendEmail(target, code);
   }
-  return { sent: true };
+  return { sent: true, ...(process.env.NODE_ENV !== "production" ? { devCode: code } : {}) };
 }
 
 export async function verifyOtp(target: string, code: string): Promise<boolean> {
