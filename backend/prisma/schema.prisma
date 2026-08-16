@@ -79,15 +79,19 @@ model Like {
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   postId    Int
   authorId  Int
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  Int?
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("commentReplies")
   content   String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([postId])
+  @@index([parentId])
 }
 
 model Notification {

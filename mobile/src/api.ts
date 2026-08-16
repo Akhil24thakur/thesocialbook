@@ -125,10 +125,10 @@ export const api = {
     request<{ liked: boolean }>(`/api/posts/${id}/like`, token, { method: "POST" }),
   comments: (token: string, id: number) =>
     request<{ comments: Comment[] }>(`/api/posts/${id}/comments`, token),
-  addComment: (token: string, id: number, content: string) =>
+  addComment: (token: string, id: number, content: string, parentId?: number) =>
     request<{ comment: Comment }>(`/api/posts/${id}/comments`, token, {
       method: "POST",
-      body: { content },
+      body: { content, parentId: parentId ?? null },
     }),
   user: (token: string, id: number) => request<{ user: ApiUser }>(`/api/users/${id}`, token),
   userPosts: (token: string, id: number) =>

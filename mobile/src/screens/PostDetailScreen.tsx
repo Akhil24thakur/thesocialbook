@@ -26,7 +26,9 @@ export default function PostDetailScreen({ route }: any) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [sending, setSending] = useState(false);
+  const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList<Comment>>(null);
   const scrollToBottom = useRef(false);
   const [kb, setKb] = useState(0);
@@ -51,7 +53,8 @@ export default function PostDetailScreen({ route }: any) {
     try {
       const res = await api.comments(token, postId);
       setComments(res.comments);
-      setPost((prev) => (prev ? { ...prev, commentCount: res.comments.length } : prev));
+      const total = res.comments.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0);
+      setPost((prev) => (prev ? { ...prev, commentCount: total } : prev));
     } finally {
       setLoading(false);
     }
@@ -75,11 +78,22 @@ export default function PostDetailScreen({ route }: any) {
     if (!token || !content || sending) return;
     setSending(true);
     try {
-      const res = await api.addComment(token, postId, content);
-      setComments((c) => [...c, res.comment]);
+      const res = await api.addComment(token, postId, content, replyTo?.id);
+      if (replyTo) {
+        setComments((list) =>
+          list.map((c) =>
+            c.id === replyTo.id
+              ? { ...c, replies: [...(c.replies ?? []), res.comment] }
+              : c
+          )
+        );
+      } else {
+        setComments((c) => [...c, res.comment]);
+      }
       setPost((p) => (p ? { ...p, commentCount: p.commentCount + 1 } : p));
       scrollToBottom.current = true;
       setDraft("");
+      setReplyTo(null);
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "Could not add comment");
     } finally {
@@ -142,20 +156,63 @@ export default function PostDetailScreen({ route }: any) {
                 </Text>
               </TouchableOpacity>
               <View style={styles.divider} />
-              <Text style={styles.commentsTitle}>{comments.length} comments</Text>
+              <Text style={styles.commentsTitle}>
+                {comments.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0)} comments
+              </Text>
             </View>
           ) : null
         }
         renderItem={({ item }) => (
-          <View style={styles.comment}>
-            <Avatar name={item.author.name} size={32} />
-            <View style={styles.commentBody}>
-              <View style={styles.commentBubble}>
-                <Text style={styles.commentName}>{item.author.name}</Text>
-                <Text style={styles.commentText}>{item.content}</Text>
+          <View>
+            <View style={styles.comment}>
+              <Avatar name={item.author.name} size={32} />
+              <View style={styles.commentBody}>
+                <View style={styles.commentBubble}>
+                  <Text style={styles.commentName}>{item.author.name}</Text>
+                  <Text style={styles.commentText}>{item.content}</Text>
+                </View>
+                <View style={styles.commentMeta}>
+                  <Text style={styles.commentTime}>{formatTime(item.createdAt)}</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setReplyTo(item);
+                      setDraft("");
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    <Text style={styles.replyLink}>Reply</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <Text style={styles.commentTime}>{formatTime(item.createdAt)}</Text>
             </View>
+            {(item.replies ?? []).map((r) => (
+              <View key={r.id} style={styles.reply}>
+                <Avatar name={r.author.name} size={28} />
+                <View style={styles.commentBody}>
+                  <View style={styles.replyBubble}>
+                    <Text style={styles.commentName}>
+                      {r.author.name}
+                      {r.author.id === item.author.id && (
+                        <Text style={styles.opTag}> · OP</Text>
+                      )}
+                    </Text>
+                    <Text style={styles.commentText}>{r.content}</Text>
+                  </View>
+                  <View style={styles.commentMeta}>
+                    <Text style={styles.commentTime}>{formatTime(r.createdAt)}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setReplyTo(r);
+                        setDraft("");
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      <Text style={styles.replyLink}>Reply</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
           </View>
         )}
         contentContainerStyle={styles.list}
@@ -164,15 +221,25 @@ export default function PostDetailScreen({ route }: any) {
 
       <View style={[styles.composer, kb > 0 && { paddingBottom: kb + 28 }]}>
         <Avatar name={user?.name ?? "?"} size={34} />
-        <TextInput
-          style={styles.input}
-          placeholder="Write a comment…"
-          placeholderTextColor={colors.textSecondary}
-          value={draft}
-          onChangeText={setDraft}
-          multiline
-          maxLength={1000}
-        />
+        <View style={styles.composerBody}>
+          {replyTo && (
+            <TouchableOpacity style={styles.replyChip} onPress={() => setReplyTo(null)}>
+              <Text style={styles.replyChipText} numberOfLines={1}>
+                Replying to {replyTo.author.name} · <Text style={styles.replyChipX}>cancel</Text>
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            placeholder={replyTo ? "Write a reply…" : "Write a comment…"}
+            placeholderTextColor={colors.textSecondary}
+            value={draft}
+            onChangeText={setDraft}
+            multiline
+            maxLength={1000}
+          />
+        </View>
         <TouchableOpacity onPress={send} disabled={!draft.trim() || sending}>
           {sending ? (
             <ActivityIndicator size="small" color={colors.primary} />
@@ -284,6 +351,58 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
     marginLeft: 4,
+  },
+  commentMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  replyLink: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    marginTop: 4,
+    marginLeft: 10,
+  },
+  reply: {
+    flexDirection: "row",
+    marginBottom: 14,
+    marginLeft: 40,
+    paddingLeft: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.border,
+  },
+  replyBubble: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderTopLeftRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  opTag: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  composerBody: {
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  replyChip: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.primaryLight,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  replyChipText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  replyChipX: {
+    color: colors.textSecondary,
+    fontWeight: "700",
   },
   composer: {
     flexDirection: "row",

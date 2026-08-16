@@ -11,6 +11,10 @@ const MESSAGES = {
     title: "TheSocialBook",
     body: `${actorName} commented on your post`,
   }),
+  reply: (actorName: string) => ({
+    title: "TheSocialBook",
+    body: `${actorName} replied to your comment`,
+  }),
   follow: (actorName: string) => ({
     title: "TheSocialBook",
     body: `${actorName} started following you`,

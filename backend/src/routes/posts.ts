@@ -94,15 +94,24 @@ router.post("/:id/like", requireAuth, async (req, res) => {
   return res.json({ liked: true });
 });
 
+const commentSelect = {
+  id: true,
+  content: true,
+  createdAt: true,
+  parentId: true,
+  author: { select: { id: true, name: true, username: true, avatarUrl: true } },
+} as const;
+
 router.get("/:id/comments", requireAuth, async (req, res) => {
   const postId = Number(req.params.id);
   const comments = await prisma.comment.findMany({
-    where: { postId },
+    where: { postId, parentId: null },
     select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      author: { select: { id: true, name: true, username: true, avatarUrl: true } },
+      ...commentSelect,
+      replies: {
+        select: commentSelect,
+        orderBy: { createdAt: "asc" },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -111,6 +120,7 @@ router.get("/:id/comments", requireAuth, async (req, res) => {
 
 const createCommentSchema = z.object({
   content: z.string().min(1).max(1000),
+  parentId: z.number().int().positive().nullable().optional(),
 });
 
 router.post("/:id/comments", requireAuth, async (req, res) => {
@@ -122,16 +132,22 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post) return res.status(404).json({ error: "Post not found" });
 
+  const parentId = parsed.data.parentId ?? null;
+  let parentAuthorId: number | null = null;
+  if (parentId) {
+    const parent = await prisma.comment.findFirst({ where: { id: parentId, postId } });
+    if (!parent) return res.status(404).json({ error: "Comment you are replying to not found" });
+    parentAuthorId = parent.authorId;
+  }
+
   const comment = await prisma.comment.create({
-    data: { content: parsed.data.content, postId, authorId: (req as AuthedRequest).userId },
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      author: { select: { id: true, name: true, username: true, avatarUrl: true } },
-    },
+    data: { content: parsed.data.content, postId, parentId, authorId: (req as AuthedRequest).userId },
+    select: commentSelect,
   });
   await notify(post.authorId, (req as AuthedRequest).userId, "comment", postId);
+  if (parentAuthorId && parentAuthorId !== post.authorId) {
+    await notify(parentAuthorId, (req as AuthedRequest).userId, "reply", postId);
+  }
   return res.status(201).json({ comment });
 });
 

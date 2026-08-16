@@ -36,7 +36,9 @@ export interface Comment {
   id: number;
   content: string;
   createdAt: string;
+  parentId: number | null;
   author: PostAuthor;
+  replies?: Comment[];
 }
 
 export interface StoryItem {
@@ -48,7 +50,7 @@ export interface StoryItem {
 
 export interface Notification {
   id: number;
-  type: "like" | "comment" | "follow";
+  type: "like" | "comment" | "reply" | "follow";
   read: boolean;
   createdAt: string;
   actor: PostAuthor;
