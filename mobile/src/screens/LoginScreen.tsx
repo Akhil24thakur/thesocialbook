@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +13,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../auth/AuthContext";
+import BrandLogo from "../components/BrandLogo";
 import Icon from "../components/Icon";
 import { brandGradient, colors } from "../theme";
 
@@ -27,6 +30,18 @@ export default function LoginScreen({ navigation }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const compact = kbHeight > 0;
 
   const submitPhone = async () => {
     setError("");
@@ -118,14 +133,18 @@ export default function LoginScreen({ navigation }: any) {
     <LinearGradient colors={[colors.primaryLight, colors.background]} style={styles.container}>
       <KeyboardAvoidingView
         style={styles.inner}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
       >
-        <View style={styles.brand}>
-          <View style={styles.logoMark}>
-            <Icon name="book" size={34} color={colors.white} />
-          </View>
-          <Text style={styles.logo}>TheSocialBook</Text>
-          <Text style={styles.tagline}>India's own social network</Text>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+        <View style={[styles.brand, compact && styles.brandCompact]}>
+          <BrandLogo size={compact ? 46 : 76} />
+          <Text style={[styles.logo, compact && styles.logoCompact]}>TheSocialBook</Text>
+          <Text style={[styles.tagline, compact && styles.taglineCompact]}>India's own social network</Text>
           <View style={styles.tricolor}>
             <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
             <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
@@ -320,6 +339,7 @@ export default function LoginScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -332,36 +352,38 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: "center",
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: "center",
     padding: 24,
   },
   brand: {
     alignItems: "center",
     marginBottom: 28,
   },
-  logoMark: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+  brandCompact: {
+    marginBottom: 10,
   },
   logo: {
     fontSize: 30,
     fontWeight: "800",
     color: colors.primaryDark,
     letterSpacing: 0.2,
+    marginTop: 8,
+  },
+  logoCompact: {
+    fontSize: 22,
+    marginTop: 4,
   },
   tagline: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 6,
+  },
+  taglineCompact: {
+    fontSize: 12,
+    marginTop: 2,
   },
   tricolor: {
     flexDirection: "row",
