@@ -17,16 +17,14 @@ import BrandLogo from "../components/BrandLogo";
 import Icon from "../components/Icon";
 import { brandGradient, colors } from "../theme";
 
-type Mode = "phone" | "username" | "email" | "emailOtp";
+type Mode = "phone" | "username";
 
 export default function LoginScreen({ navigation }: any) {
-  const { login, emailSendOtp, emailLogin } = useAuth();
+  const { login } = useAuth();
   const [mode, setMode] = useState<Mode>("phone");
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -81,52 +79,6 @@ export default function LoginScreen({ navigation }: any) {
     } finally {
       setBusy(false);
     }
-  };
-
-  const sendEmailOtp = async () => {
-    setError("");
-    if (!email.includes("@")) {
-      setError("Enter a valid email address");
-      return;
-    }
-    setBusy(true);
-    try {
-      const devCode = await emailSendOtp(email);
-      if (devCode) {
-        setOtp(devCode);
-        setMode("emailOtp");
-        setTimeout(() => submitEmailOtp(), 300);
-        return;
-      }
-      setMode("emailOtp");
-    } catch (e: any) {
-      setError(e.message ?? "Failed to send code");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitEmailOtp = async () => {
-    setError("");
-    if (!/^\d{6}$/.test(otp)) {
-      setError("Enter the 6-digit code");
-      return;
-    }
-    setBusy(true);
-    try {
-      await emailLogin(email, otp);
-    } catch (e: any) {
-      setError(e.message ?? "Login failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const goBackToPhone = () => {
-    if (mode === "emailOtp") setMode("email");
-    else if (mode === "email") setMode("phone");
-    else if (mode === "username") setMode("phone");
-    else navigation.navigate("Signup");
   };
 
   return (
@@ -230,58 +182,10 @@ export default function LoginScreen({ navigation }: any) {
             </>
           )}
 
-          {mode === "email" && (
-            <>
-              <Text style={styles.modeTitle}>Log in with Email</Text>
-              <View style={styles.inputWrap}>
-                <Icon name="mail-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={email}
-                  onChangeText={setEmail}
-                />
-              </View>
-            </>
-          )}
-
-          {mode === "emailOtp" && (
-            <>
-              <Text style={styles.modeTitle}>Enter Code</Text>
-              <Text style={styles.otpInfo}>We sent a 6-digit code to <Text style={styles.strong}>{email}</Text></Text>
-              <View style={styles.otpWrap}>
-                {[...Array(6)].map((_, i) => (
-                  <TextInput
-                    key={i}
-                    style={styles.otpBox}
-                    maxLength={1}
-                    keyboardType="number-pad"
-                    textAlign="center"
-                    value={otp[i] ?? ""}
-                    onChangeText={(t) => {
-                      const next = otp.slice(0, i) + t + otp.slice(i + 1);
-                      setOtp(next);
-                      if (next.length === 6) submitEmailOtp();
-                    }}
-                    autoFocus={i === 0}
-                  />
-                ))}
-              </View>
-              <TouchableOpacity style={styles.resendBtn} onPress={sendEmailOtp} disabled={busy}>
-                <Text style={styles.resendText}>Resend Code</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
           {!!error && <Text style={styles.error}>{error}</Text>}
           <TouchableOpacity
             style={styles.button}
-            onPress={
-              mode === "phone" ? submitPhone : mode === "username" ? submitUsername : mode === "email" ? sendEmailOtp : submitEmailOtp
-            }
+            onPress={mode === "phone" ? submitPhone : submitUsername}
             disabled={busy}
             activeOpacity={0.85}
           >
@@ -294,15 +198,7 @@ export default function LoginScreen({ navigation }: any) {
               {busy ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.buttonText}>
-                  {mode === "phone"
-                    ? "Log In"
-                    : mode === "username"
-                    ? "Log In"
-                    : mode === "email"
-                    ? "Send Code"
-                    : "Verify & Log In"}
-                </Text>
+                <Text style={styles.buttonText}>Log In</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -314,9 +210,9 @@ export default function LoginScreen({ navigation }: any) {
                   Log in with username instead
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("email")}>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
                 <Text style={styles.linkText}>
-                  Log in with email instead
+                  Forgot password?
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Signup")}>
@@ -327,16 +223,17 @@ export default function LoginScreen({ navigation }: any) {
             </>
           )}
 
-          {(mode === "email" || mode === "emailOtp") && (
-            <TouchableOpacity style={styles.linkBtn} onPress={goBackToPhone}>
-              <Text style={styles.linkText}>Back to phone login</Text>
-            </TouchableOpacity>
-          )}
-
           {mode === "username" && (
-            <TouchableOpacity style={styles.linkBtn} onPress={goBackToPhone}>
-              <Text style={styles.linkText}>Back to phone login</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
+                <Text style={styles.linkText}>
+                  Forgot password?
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("phone")}>
+                <Text style={styles.linkText}>Back to phone login</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
         </ScrollView>
@@ -421,48 +318,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: colors.text,
-  },
-  modeTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  otpInfo: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  strong: {
-    fontWeight: "700",
-    color: colors.text,
-  },
-  otpWrap: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  otpBox: {
-    width: 44,
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.text,
-    backgroundColor: colors.background,
-  },
-  resendBtn: {
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  resendText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: "600",
   },
   error: {
     color: colors.danger,

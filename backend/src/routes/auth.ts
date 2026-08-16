@@ -49,7 +49,6 @@ const registerSchema = z.object({
     .string()
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
   password: z.string().min(8).max(72),
-  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 const loginSchema = z.object({
@@ -86,16 +85,11 @@ router.post("/register", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
-  const { name, phone, password, otp } = parsed.data;
+  const { name, phone, password } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
     return res.status(409).json({ error: "An account with this phone number already exists" });
-  }
-
-  const verified = await verifyOtp(phone, otp);
-  if (!verified) {
-    return res.status(400).json({ error: "Invalid or expired verification code" });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -144,62 +138,6 @@ router.post("/login", loginLimiter, async (req, res) => {
       username: user.username,
       usernameChangedAt: user.usernameChangedAt,
       phone: user.phone,
-      bio: user.bio,
-      avatarUrl: user.avatarUrl,
-    },
-  });
-});
-
-const emailOtpSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
-});
-
-router.post("/email/send-otp", async (req, res) => {
-  const parsed = emailOtpSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Enter a valid email address" });
-  }
-  const email = parsed.data.email.toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return res.status(404).json({ error: "No account found with this email" });
-  }
-  try {
-    const result = await sendOtp(email);
-    return res.json(result);
-  } catch (e: any) {
-    return res.status(500).json({ error: "Could not send the code: " + (e.message ?? "unknown error") });
-  }
-});
-
-const emailLoginSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
-});
-
-router.post("/email/login", async (req, res) => {
-  const parsed = emailLoginSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Enter a valid email and 6-digit code" });
-  }
-  const email = parsed.data.email.toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return res.status(404).json({ error: "No account found with this email" });
-  }
-  const verified = await verifyOtp(email, parsed.data.otp);
-  if (!verified) {
-    return res.status(400).json({ error: "Invalid or expired code" });
-  }
-  return res.json({
-    token: signToken({ userId: user.id }),
-    user: {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      usernameChangedAt: user.usernameChangedAt,
-      phone: user.phone,
-      email: user.email,
       bio: user.bio,
       avatarUrl: user.avatarUrl,
     },
@@ -283,6 +221,87 @@ router.patch("/me", requireAuth, async (req, res) => {
     select: userSelect,
   });
   return res.json({ user: withCounts(user) });
+});
+
+const forgotPasswordSchema = z.object({
+  phone: z
+    .string()
+    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 1,
+  message: "Too many attempts. Please wait.",
+});
+
+router.post("/forgot-password", forgotLimiter, async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Enter a valid 10-digit Indian mobile number" });
+  }
+  const { phone } = parsed.data;
+  const user = await prisma.user.findUnique({ where: { phone } });
+  if (!user) {
+    return res.status(404).json({ error: "No account found with this phone number" });
+  }
+  try {
+    const result = await sendOtp(phone);
+    return res.json(result);
+  } catch (e: any) {
+    return res.status(500).json({ error: "Could not send the code: " + (e.message ?? "unknown error") });
+  }
+});
+
+const resetPasswordSchema = z.object({
+  phone: z
+    .string()
+    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").max(72),
+});
+
+router.post("/reset-password", async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+  }
+  const { phone, otp, newPassword } = parsed.data;
+  const user = await prisma.user.findUnique({ where: { phone } });
+  if (!user) {
+    return res.status(404).json({ error: "No account found with this phone number" });
+  }
+  const verified = await verifyOtp(phone, otp);
+  if (!verified) {
+    return res.status(400).json({ error: "Invalid or expired code" });
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+  return res.json({ ok: true });
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").max(72),
+});
+
+router.patch("/password", requireAuth, async (req, res) => {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+  }
+  const userId = (req as AuthedRequest).userId;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  const { currentPassword, newPassword } = parsed.data;
+  if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+    return res.status(401).json({ error: "Current password is incorrect" });
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  return res.json({ ok: true });
 });
 
 export default router;

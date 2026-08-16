@@ -19,6 +19,8 @@ import PostDetailScreen from "./src/screens/PostDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
 import EditProfileScreen from "./src/screens/EditProfileScreen";
+import ChangePasswordScreen from "./src/screens/ChangePasswordScreen";
+import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import MessagesScreen from "./src/screens/MessagesScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
@@ -58,6 +60,7 @@ function HomeTabs() {
     { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTab("Messages") },
     { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
     { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
+    { label: "Change Password", icon: "key-outline", action: () => navigation.navigate("ChangePassword") },
     { label: "Logout", icon: "log-out-outline", danger: true, action: confirmLogout },
   ];
 
@@ -197,6 +200,8 @@ function RootNavigator() {
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: "Post" }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Change Password" }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
           <Stack.Screen name="Stories" component={StoriesScreen} options={{ title: "Stories" }} />
         </>

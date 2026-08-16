@@ -77,7 +77,7 @@ export async function uploadImage(token: string, uri: string): Promise<string> {
 }
 
 export const api = {
-  register: (body: { name: string; phone: string; password: string; otp?: string }) =>
+  register: (body: { name: string; phone: string; password: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/register", null, { method: "POST", body }),
   login: (body: { phone?: string; username?: string; password: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/login", null, { method: "POST", body }),
@@ -112,14 +112,21 @@ export const api = {
     request<{ story: StoryItem }>("/api/stories", token, { method: "POST", body: { imageUrl } }),
   deleteStory: (token: string, id: number) =>
     request<{ ok: boolean }>(`/api/stories/${id}`, token, { method: "DELETE" }),
-  sendOtp: (target: string) =>
-    request<{ sent: boolean; devCode?: string }>("/api/otp/send", null, { method: "POST", body: { target } }),
-  verifyOtp: (target: string, code: string) =>
-    request<{ ok: boolean }>("/api/otp/verify", null, { method: "POST", body: { target, code } }),
-  emailSendOtp: (email: string) =>
-    request<{ sent: boolean; devCode?: string }>("/api/auth/email/send-otp", null, { method: "POST", body: { email } }),
-  emailLogin: (email: string, otp: string) =>
-    request<{ token: string; user: ApiUser }>("/api/auth/email/login", null, { method: "POST", body: { email, otp } }),
+  changePassword: (token: string, currentPassword: string, newPassword: string) =>
+    request<{ ok: boolean }>("/api/auth/password", token, {
+      method: "PATCH",
+      body: { currentPassword, newPassword },
+    }),
+  forgotPassword: (phone: string) =>
+    request<{ sent: boolean; devCode?: string }>("/api/auth/forgot-password", null, {
+      method: "POST",
+      body: { phone },
+    }),
+  resetPassword: (phone: string, otp: string, newPassword: string) =>
+    request<{ ok: boolean }>("/api/auth/reset-password", null, {
+      method: "POST",
+      body: { phone, otp, newPassword },
+    }),
   notifications: (token: string) => request<{ notifications: Notification[] }>("/api/notifications", token),
   notificationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/notifications/unread-count", token),
   notificationsMarkRead: (token: string) =>

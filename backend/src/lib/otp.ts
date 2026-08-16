@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 import { prisma } from "./prisma.js";
 
 export const OTP_TTL_MS = 10 * 60 * 1000;
