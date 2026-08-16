@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import { api } from "../api";
 import { storage } from "../storage";
-import * as Notifications from "expo-notifications";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import type { ApiUser } from "../types";
 
 const TOKEN_KEY = "thesocialbook_token";
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 interface AuthContextValue {
   user: ApiUser | null;
@@ -53,7 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const registerPushToken = async (authToken: string) => {
+    if (isExpoGo || Platform.OS === "web") return;
     try {
+      const Notifications = require("expo-notifications") as typeof import("expo-notifications");
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== "granted") {
         const { status: newStatus } = await Notifications.requestPermissionsAsync();
