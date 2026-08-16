@@ -11,19 +11,31 @@ export class ApiError extends Error {
   }
 }
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 async function request<T>(
   path: string,
   token: string | null,
   options: { method?: string; body?: unknown } = {}
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: options.method ?? "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    });
+  } catch {
+    throw new ApiError(0, "Network error. Check your connection.");
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
@@ -65,7 +77,7 @@ export async function uploadImage(token: string, uri: string): Promise<string> {
 }
 
 export const api = {
-  register: (body: { name: string; phone: string; password: string; otp: string }) =>
+  register: (body: { name: string; phone: string; password: string; otp?: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/register", null, { method: "POST", body }),
   login: (body: { phone?: string; username?: string; password: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/login", null, { method: "POST", body }),

@@ -6,6 +6,7 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import type { ApiUser } from "../types";
 
 const TOKEN_KEY = "thesocialbook_token";
+const USER_KEY = "thesocialbook_user";
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
@@ -14,7 +15,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (identifier: string, password: string, isPhone?: boolean) => Promise<void>;
-  register: (name: string, phone: string, password: string, otp: string) => Promise<void>;
+  register: (name: string, phone: string, password: string, otp?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: ApiUser | null) => void;
   sendOtp: (target: string) => Promise<string | undefined>;
@@ -34,15 +35,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const stored = await storage.getItem(TOKEN_KEY);
-        if (stored) {
+        if (!stored) {
+          setLoading(false);
+          return;
+        }
+        const cached = await storage.getItem(USER_KEY);
+        if (cached) {
+          try {
+            const cachedUser = JSON.parse(cached) as ApiUser;
+            setToken(stored);
+            setUser(cachedUser);
+            setLoading(false);
+          } catch {
+            setLoading(false);
+          }
+        }
+        try {
           const { user: me } = await api.me(stored);
           setToken(stored);
           setUser(me);
+          await storage.setItem(USER_KEY, JSON.stringify(me));
           await registerPushToken(stored);
+        } catch (e: any) {
+          if (e?.status === 401) {
+            await storage.deleteItem(TOKEN_KEY);
+            await storage.deleteItem(USER_KEY);
+            setToken(null);
+            setUser(null);
+          }
         }
+        setLoading(false);
       } catch {
-        await storage.deleteItem(TOKEN_KEY);
-      } finally {
         setLoading(false);
       }
     })();
@@ -50,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const persist = async (newToken: string, newUser: ApiUser) => {
     await storage.setItem(TOKEN_KEY, newToken);
+    await storage.setItem(USER_KEY, JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
     await registerPushToken(newToken);
@@ -78,13 +102,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persist(res.token, res.user);
   };
 
-  const register = async (name: string, phone: string, password: string, otp: string) => {
+  const register = async (name: string, phone: string, password: string, otp?: string) => {
     const res = await api.register({ name, phone, password, otp });
     await persist(res.token, res.user);
   };
 
   const logout = async () => {
     await storage.deleteItem(TOKEN_KEY);
+    await storage.deleteItem(USER_KEY);
     setToken(null);
     setUser(null);
   };
