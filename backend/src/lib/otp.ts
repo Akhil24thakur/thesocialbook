@@ -59,7 +59,8 @@ export async function sendOtp(target: string) {
     data: { target, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
   });
   await sendSms(target, code);
-  return { sent: true, ...(process.env.NODE_ENV !== "production" ? { devCode: code } : {}) };
+  const devMode = process.env.NODE_ENV !== "production" || process.env.OTP_DEV_MODE === "true";
+  return { sent: true, ...(devMode ? { devCode: code } : {}) };
 }
 
 export async function verifyOtp(target: string, code: string): Promise<boolean> {
