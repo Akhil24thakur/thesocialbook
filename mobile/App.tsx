@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
@@ -35,6 +35,7 @@ function HomeTabs() {
   const [createOpen, setCreateOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigation = useNavigation<any>();
+  const { logout } = useAuth();
 
   const goTab = (tab: string) => navigation.navigate("Home", { screen: tab });
 
@@ -44,13 +45,21 @@ function HomeTabs() {
     else navigation.navigate("CreatePost", { prefill: "Going live now!" });
   };
 
-  const MENU_ITEMS = [
+  const confirmLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Logout", style: "destructive", onPress: () => logout() },
+    ]);
+  };
+
+  const MENU_ITEMS: { label: string; icon: string; action: () => void; danger?: boolean }[] = [
     { label: "My Profile", icon: "person-outline", action: () => goTab("Profile") },
     { label: "Stories", icon: "albums-outline", action: () => navigation.navigate("Stories") },
     { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTab("Messages") },
     { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
     { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
-  ] as const;
+    { label: "Logout", icon: "log-out-outline", danger: true, action: confirmLogout },
+  ];
 
   const CreateButton = useCallback(
     (props: any) => (
@@ -145,9 +154,9 @@ function HomeTabs() {
                 }}
               >
                 <View style={styles.menuIcon}>
-                  <Icon name={m.icon as any} size={20} color={colors.primary} />
+                  <Icon name={m.icon as any} size={20} color={m.danger ? colors.danger : colors.primary} />
                 </View>
-                <Text style={styles.menuLabel}>{m.label}</Text>
+                <Text style={[styles.menuLabel, m.danger && styles.menuDanger]}>{m.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -292,5 +301,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: colors.text,
+  },
+  menuDanger: {
+    color: colors.danger,
   },
 });
