@@ -15,13 +15,9 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (identifier: string, password: string, isPhone?: boolean) => Promise<void>;
-  register: (name: string, phone: string, password: string, otp?: string) => Promise<void>;
+  register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: ApiUser | null) => void;
-  sendOtp: (target: string) => Promise<string | undefined>;
-  verifyOtp: (target: string, code: string) => Promise<boolean>;
-  emailSendOtp: (email: string) => Promise<string | undefined>;
-  emailLogin: (email: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -102,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persist(res.token, res.user);
   };
 
-  const register = async (name: string, phone: string, password: string, otp?: string) => {
-    const res = await api.register({ name, phone, password, otp });
+  const register = async (name: string, phone: string, password: string) => {
+    const res = await api.register({ name, phone, password });
     await persist(res.token, res.user);
   };
 
@@ -112,26 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.deleteItem(USER_KEY);
     setToken(null);
     setUser(null);
-  };
-
-  const sendOtp = async (target: string): Promise<string | undefined> => {
-    const res = await api.sendOtp(target);
-    return res.devCode ?? undefined;
-  };
-
-  const verifyOtp = async (target: string, code: string) => {
-    const res = await api.verifyOtp(target, code);
-    return res.ok;
-  };
-
-  const emailSendOtp = async (email: string): Promise<string | undefined> => {
-    const res = await api.emailSendOtp(email);
-    return res.devCode ?? undefined;
-  };
-
-  const emailLogin = async (email: string, otp: string) => {
-    const res = await api.emailLogin(email, otp);
-    await persist(res.token, res.user);
   };
 
   return (
@@ -144,10 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         setUser,
-        sendOtp,
-        verifyOtp,
-        emailSendOtp,
-        emailLogin,
       }}
     >
       {children}

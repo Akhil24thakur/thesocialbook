@@ -6,7 +6,6 @@ import userRoutes from "./routes/users.js";
 import storyRoutes from "./routes/stories.js";
 import notificationRoutes from "./routes/notifications.js";
 import uploadRoutes from "./routes/upload.js";
-import otpRoutes from "./routes/otp.js";
 
 export const app = express();
 
@@ -22,7 +21,6 @@ app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/otp", otpRoutes);
 app.use("/api/upload", uploadRoutes);
 
 app.use((_req, res) => {
