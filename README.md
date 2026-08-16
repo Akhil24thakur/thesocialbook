@@ -1,15 +1,16 @@
 # TheSocialBook
 
-A social network built in India, for India — Facebook-style app with phone-based signup (10-digit Indian mobile number + OTP verification), email login, real-time notifications, stories, and photo sharing.
+A social network built in India, for India — Facebook-style app with phone-based signup (10-digit Indian mobile number), password login, password reset via phone, real-time notifications, stories, and photo sharing.
 
 ## 📱 Download App
 
-[![Download APK](https://img.shields.io/badge/APK%20v1.2.1-Download-d73a49?style=for-the-badge&logo=android)](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
+[![Download APK](https://img.shields.io/badge/APK%20v1.2.2-Download-d73a49?style=for-the-badge&logo=android)](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
 
 **[Get the Latest APK →](https://github.com/Akhil24thakur/thesocialbook/releases/latest)**
 
-- ✅ Phone signup with OTP verification
-- ✅ Email login with OTP  
+- ✅ Phone/username + password login
+- ✅ Forgot password via phone verification
+- ✅ Change password in the app menu
 - ✅ Posts, likes, comments, follow
 - ✅ Real-time notifications (likes, comments, follows)
 - ✅ Stories with 24-hour expiry
