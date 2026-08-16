@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
@@ -28,6 +28,48 @@ import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
 
 const Stack = createNativeStackNavigator();
+
+const RELEASES_URL = "https://api.github.com/repos/Akhil24thakur/thesocialbook/releases/latest";
+const RELEASES_PAGE = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";
+
+function isNewerVersion(latest: string, current: string) {
+  const a = latest.split(".").map(Number);
+  const b = current.split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
+async function checkForUpdates() {
+  try {
+    const current = Constants.expoConfig?.version;
+    if (!current) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(RELEASES_URL, { signal: controller.signal });
+      if (!res.ok) return;
+      const release = await res.json();
+      const latest = String(release.tag_name ?? "").replace(/^v/, "");
+      if (!latest || !isNewerVersion(latest, current)) return;
+      Alert.alert(
+        "Update Available",
+        `A new version of TheSocialBook is available (v${latest}). Update now for the best experience.`,
+        [
+          { text: "Later", style: "cancel" },
+          { text: "Update", onPress: () => Linking.openURL(RELEASES_PAGE) },
+        ]
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    // Silent - update check is best effort
+  }
+}
 const Tab = createBottomTabNavigator();
 
 function CreatePlaceholder() {
@@ -214,6 +256,10 @@ function RootNavigator() {
 
 export default function App() {
   const [fontsLoaded] = useFonts({ Caveat_700Bold });
+
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
 
   if (!fontsLoaded) {
     return (
