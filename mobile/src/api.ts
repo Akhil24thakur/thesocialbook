@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
-import { Platform } from "react-native";
+import { Image, Platform } from "react-native";
+import * as ImageManipulator from "expo-image-manipulator";
 import { API_URL } from "./config";
 import type { ApiUser, Comment, Post, StoryItem, Notification } from "./types";
 
@@ -48,13 +49,42 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+const MAX_IMAGE_DIMENSION = 1600;
+const IMAGE_COMPRESS_QUALITY = 0.8;
+
+async function optimizeImage(uri: string): Promise<string> {
+  try {
+    const dims = await new Promise<{ width: number; height: number }>((resolve, reject) =>
+      Image.getSize(uri, (width, height) => resolve({ width, height }), reject)
+    );
+    const largest = Math.max(dims.width, dims.height);
+    const actions: ImageManipulator.Action[] = [];
+    if (largest > MAX_IMAGE_DIMENSION) {
+      actions.push({
+        resize:
+          dims.width >= dims.height
+            ? { width: MAX_IMAGE_DIMENSION }
+            : { height: MAX_IMAGE_DIMENSION },
+      });
+    }
+    const result = await ImageManipulator.manipulateAsync(uri, actions, {
+      compress: IMAGE_COMPRESS_QUALITY,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
+    return result.uri;
+  } catch {
+    return uri;
+  }
+}
+
 export async function uploadImage(token: string, uri: string): Promise<string> {
+  const optimized = await optimizeImage(uri);
   const form = new FormData();
   if (Platform.OS === "web") {
-    const blob = await (await fetch(uri)).blob();
+    const blob = await (await fetch(optimized)).blob();
     form.append("image", blob, "image.jpg");
   } else {
-    const file = new File(uri);
+    const file = new File(optimized);
     form.append("image", file);
   }
   const res = await fetch(`${API_URL}/api/upload`, {
