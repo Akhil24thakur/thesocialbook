@@ -11,38 +11,40 @@ function generateCode() {
 async function sendViaMsg91(phone: string, code: string) {
   const authKey = process.env.MSG91_AUTH_KEY;
   const templateId = process.env.MSG91_TEMPLATE_ID;
-  const senderId = process.env.MSG91_SENDER_ID;
 
-  if (!authKey || !templateId || !senderId) {
-    console.log(`[OTP] MSG91 not configured. Auth key present: ${!!authKey}, Template ID present: ${!!templateId}, Sender ID present: ${!!senderId}`);
-    // Fallback: log the code for development
+  if (!authKey || !templateId) {
+    console.log(`[OTP] MSG91 not configured. Auth key present: ${!!authKey}, Template ID present: ${!!templateId}`);
     console.log(`[OTP] Code for ${phone}: ${code}`);
     return;
   }
 
-  try {
-    // MSG91 OTP API endpoint
-    const url = `https://control.msg91.com/api/v2/sms`;
-    const body = `authkey=${authKey}&sender=${senderId}&message=${encodeURIComponent(`Your TheSocialBook verification code is ${code}. It expires in 10 minutes.`)}&route=4&numbers=${encodeURIComponent(phone)}`;
+  const mobile = "91" + phone.replace(/^\+/, "").replace(/^0/, "");
 
+  try {
+    const params = new URLSearchParams({
+      authkey: authKey,
+      template_id: templateId,
+      mobile,
+      otp: code,
+      otp_expiry: "10",
+    });
+    const parsedUrl = new URL("https://control.msg91.com/api/v5/otp?" + params.toString());
     const https = require("https");
-    const parsedUrl = new URL(url);
     const options = {
       hostname: parsedUrl.hostname,
-      path: parsedUrl.pathname + "?" + body,
+      path: parsedUrl.pathname + parsedUrl.search,
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers: { "Content-Type": "application/json" },
     };
 
-    const req = https.request(options, (res: any, chunk: any) => {
+    const req = https.request(options, (res: any) => {
       let data = "";
       res.on("data", (chunk: any) => (data += chunk));
       res.on("end", () => {
-        console.log(`[OTP] MSG91 response: ${data}`);
+        console.log(`[OTP] MSG91 response (${res.statusCode}): ${data}`);
       });
     });
+    req.on("error", (e: any) => console.error("[OTP] MSG91 request error:", e.message));
     req.end();
   } catch (error) {
     console.error(`[OTP] MSG91 send failed:`, error);
@@ -58,7 +60,11 @@ export async function sendOtp(target: string) {
   await prisma.otpCode.create({
     data: { target, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
   });
-  await sendSms(target, code);
+  if (/^[6-9]\d{9}$/.test(target)) {
+    await sendSms(target, code);
+  } else {
+    console.log(`[OTP] Email delivery not configured. Code for ${target}: ${code}`);
+  }
   const devMode = process.env.NODE_ENV !== "production" || process.env.OTP_DEV_MODE === "true";
   return { sent: true, ...(devMode ? { devCode: code } : {}) };
 }
