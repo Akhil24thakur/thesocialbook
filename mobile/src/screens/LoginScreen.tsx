@@ -17,13 +17,14 @@ import BrandLogo from "../components/BrandLogo";
 import Icon from "../components/Icon";
 import { brandGradient, colors } from "../theme";
 
-type Mode = "phone" | "username";
+type Mode = "phone" | "username" | "email";
 
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
   const [mode, setMode] = useState<Mode>("phone");
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +54,7 @@ export default function LoginScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await login(phone, password, true);
+      await login(phone, password, "phone");
     } catch (e: any) {
       setError(e.message ?? "Login failed");
     } finally {
@@ -73,7 +74,27 @@ export default function LoginScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await login(username, password, false);
+      await login(username, password, "username");
+    } catch (e: any) {
+      setError(e.message ?? "Login failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitEmail = async () => {
+    setError("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Enter a valid email address");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    setBusy(true);
+    try {
+      await login(email.trim().toLowerCase(), password, "email");
     } catch (e: any) {
       setError(e.message ?? "Login failed");
     } finally {
@@ -182,10 +203,50 @@ export default function LoginScreen({ navigation }: any) {
             </>
           )}
 
+          {mode === "email" && (
+            <>
+              <View style={styles.inputWrap}>
+                <Icon name="mail-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email address"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+              <View style={styles.inputWrap}>
+                <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
           {!!error && <Text style={styles.error}>{error}</Text>}
           <TouchableOpacity
             style={styles.button}
-            onPress={mode === "phone" ? submitPhone : submitUsername}
+            onPress={mode === "phone" ? submitPhone : mode === "username" ? submitUsername : submitEmail}
             disabled={busy}
             activeOpacity={0.85}
           >
@@ -205,6 +266,11 @@ export default function LoginScreen({ navigation }: any) {
 
           {mode === "phone" && (
             <>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("email")}>
+                <Text style={styles.linkText}>
+                  Log in with email instead
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("username")}>
                 <Text style={styles.linkText}>
                   Log in with username instead
@@ -223,7 +289,7 @@ export default function LoginScreen({ navigation }: any) {
             </>
           )}
 
-          {mode === "username" && (
+          {(mode === "username" || mode === "email") && (
             <>
               <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
                 <Text style={styles.linkText}>

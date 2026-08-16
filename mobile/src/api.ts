@@ -107,9 +107,9 @@ export async function uploadImage(token: string, uri: string): Promise<string> {
 }
 
 export const api = {
-  register: (body: { name: string; phone: string; password: string }) =>
+  register: (body: { name: string; password: string; phone?: string; email?: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/register", null, { method: "POST", body }),
-  login: (body: { phone?: string; username?: string; password: string }) =>
+  login: (body: { phone?: string; username?: string; email?: string; password: string }) =>
     request<{ token: string; user: ApiUser }>("/api/auth/login", null, { method: "POST", body }),
   me: (token: string) => request<{ user: ApiUser }>("/api/auth/me", token),
   updateMe: (

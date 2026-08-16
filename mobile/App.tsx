@@ -19,6 +19,7 @@ import PostDetailScreen from "./src/screens/PostDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
 import EditProfileScreen from "./src/screens/EditProfileScreen";
+import Constants from "expo-constants";
 import ChangePasswordScreen from "./src/screens/ChangePasswordScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import MessagesScreen from "./src/screens/MessagesScreen";
@@ -147,6 +148,7 @@ function HomeTabs() {
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <View style={styles.menuSheet}>
             <Text style={styles.menuTitle}>TheSocialBook</Text>
+            <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "1.2.4"}</Text>
             {MENU_ITEMS.map((m) => (
               <TouchableOpacity
                 key={m.label}
@@ -285,8 +287,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 2,
     fontFamily: "Caveat_700Bold",
+  },
+  menuVersion: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginBottom: 12,
   },
   menuItem: {
     flexDirection: "row",
