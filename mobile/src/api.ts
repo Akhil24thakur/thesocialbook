@@ -1,4 +1,5 @@
 import { File } from "expo-file-system";
+import { Platform } from "react-native";
 import { API_URL } from "./config";
 import type { ApiUser, Comment, Post, StoryItem, Notification } from "./types";
 
@@ -36,9 +37,14 @@ async function request<T>(
 }
 
 export async function uploadImage(token: string, uri: string): Promise<string> {
-  const file = new File(uri);
   const form = new FormData();
-  form.append("image", file);
+  if (Platform.OS === "web") {
+    const blob = await (await fetch(uri)).blob();
+    form.append("image", blob, "image.jpg");
+  } else {
+    const file = new File(uri);
+    form.append("image", file);
+  }
   const res = await fetch(`${API_URL}/api/upload`, {
     method: "POST",
     headers: {
