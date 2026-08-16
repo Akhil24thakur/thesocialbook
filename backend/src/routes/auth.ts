@@ -21,6 +21,7 @@ const userSelect = {
   username: true,
   usernameChangedAt: true,
   phone: true,
+  email: true,
   bio: true,
   avatarUrl: true,
   createdAt: true,
@@ -34,6 +35,7 @@ function withCounts(user: any) {
     username: user.username,
     usernameChangedAt: user.usernameChangedAt,
     phone: user.phone,
+    email: user.email,
     bio: user.bio,
     avatarUrl: user.avatarUrl,
     createdAt: user.createdAt,
@@ -43,22 +45,32 @@ function withCounts(user: any) {
   };
 }
 
-const registerSchema = z.object({
-  name: z.string().min(2).max(60),
-  phone: z
-    .string()
-    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
-  password: z.string().min(8).max(72),
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2).max(60),
+    phone: z
+      .string()
+      .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number")
+      .optional(),
+    email: z.string().email("Enter a valid email address").optional(),
+    password: z.string().min(8).max(72),
+  })
+  .refine((d) => d.phone || d.email, {
+    message: "Enter a phone number or email",
+    path: ["identifier"],
+  });
 
-const loginSchema = z.object({
-  phone: z.string().optional(),
-  username: z.string().optional(),
-  password: z.string(),
-}).refine((data) => data.phone || data.username, {
-  message: "Phone number or username is required",
-  path: ["identifier"],
-});
+const loginSchema = z
+  .object({
+    phone: z.string().optional(),
+    username: z.string().optional(),
+    email: z.string().optional(),
+    password: z.string(),
+  })
+  .refine((data) => data.phone || data.username || data.email, {
+    message: "Phone number, email or username is required",
+    path: ["identifier"],
+  });
 
 function slugify(name: string) {
   return (
@@ -85,18 +97,32 @@ router.post("/register", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
-  const { name, phone, password } = parsed.data;
+  const { name, phone, email, password } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) {
-    return res.status(409).json({ error: "An account with this phone number already exists" });
+  if (phone) {
+    const existing = await prisma.user.findUnique({ where: { phone } });
+    if (existing) {
+      return res.status(409).json({ error: "An account with this phone number already exists" });
+    }
+  }
+  if (email) {
+    const normalized = email.toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { email: normalized } });
+    if (existing) {
+      return res.status(409).json({ error: "An account with this email already exists" });
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
   const username = await uniqueUsername(name);
-  const user = await prisma.user.create({
-    data: { name, username, phone, passwordHash },
-  });
+  const createData: any = {
+    name,
+    username,
+    passwordHash,
+  };
+  if (phone) createData.phone = phone;
+  if (email) createData.email = email.toLowerCase();
+  const user = await prisma.user.create({ data: createData });
 
   return res.status(201).json({
     token: signToken({ userId: user.id }),
@@ -117,11 +143,13 @@ router.post("/login", loginLimiter, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
   }
-  const { phone, username, password } = parsed.data;
+  const { phone, username, email, password } = parsed.data;
 
   let user;
   if (phone) {
     user = await prisma.user.findUnique({ where: { phone } });
+  } else if (email) {
+    user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   } else if (username) {
     user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } });
   }

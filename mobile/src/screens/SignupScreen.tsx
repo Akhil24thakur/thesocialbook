@@ -19,8 +19,10 @@ import { brandGradient, colors } from "../theme";
 
 export default function SignupScreen({ navigation }: any) {
   const { register } = useAuth();
+  const [mode, setMode] = useState<"phone" | "email">("phone");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -44,8 +46,12 @@ export default function SignupScreen({ navigation }: any) {
       setError("Please enter your full name");
       return;
     }
-    if (!/^[6-9]\d{9}$/.test(phone)) {
+    if (mode === "phone" && !/^[6-9]\d{9}$/.test(phone)) {
       setError("Enter a valid 10-digit Indian mobile number");
+      return;
+    }
+    if (mode === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Enter a valid email address");
       return;
     }
     if (password.length < 8) {
@@ -54,7 +60,11 @@ export default function SignupScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await register(name.trim(), phone, password);
+      await register(
+        name.trim(),
+        password,
+        mode === "phone" ? { phone } : { email: email.trim().toLowerCase() }
+      );
     } catch (e: any) {
       setError(e.message ?? "Signup failed");
     } finally {
@@ -82,6 +92,21 @@ export default function SignupScreen({ navigation }: any) {
           </View>
 
           <View style={styles.form}>
+            <View style={styles.modeRow}>
+              <TouchableOpacity
+                style={[styles.modeBtn, mode === "phone" && styles.modeBtnActive]}
+                onPress={() => setMode("phone")}
+              >
+                <Text style={[styles.modeText, mode === "phone" && styles.modeTextActive]}>Phone</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modeBtn, mode === "email" && styles.modeBtnActive]}
+                onPress={() => setMode("email")}
+              >
+                <Text style={[styles.modeText, mode === "email" && styles.modeTextActive]}>Email</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.inputWrap}>
               <Icon name="person-outline" size={18} color={colors.textSecondary} />
               <TextInput
@@ -92,18 +117,38 @@ export default function SignupScreen({ navigation }: any) {
                 onChangeText={setName}
               />
             </View>
-            <View style={styles.inputWrap}>
-              <Icon name="call-outline" size={18} color={colors.textSecondary} />
-              <TextInput
-                style={styles.input}
-                placeholder="Mobile number (10 digits)"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="phone-pad"
-                maxLength={10}
-                value={phone}
-                onChangeText={setPhone}
-              />
-            </View>
+
+            {mode === "phone" && (
+              <View style={styles.inputWrap}>
+                <Icon name="call-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Mobile number (10 digits)"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={phone}
+                  onChangeText={setPhone}
+                />
+              </View>
+            )}
+
+            {mode === "email" && (
+              <View style={styles.inputWrap}>
+                <Icon name="mail-outline" size={18} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email address"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+            )}
+
             <View style={styles.inputWrap}>
               <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
               <TextInput
@@ -222,6 +267,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
     backgroundColor: colors.background,
+  },
+  modeRow: {
+    flexDirection: "row",
+    marginBottom: 14,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 4,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modeBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  modeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  modeTextActive: {
+    color: colors.white,
   },
   input: {
     flex: 1,

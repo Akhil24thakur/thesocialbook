@@ -14,8 +14,8 @@ interface AuthContextValue {
   user: ApiUser | null;
   token: string | null;
   loading: boolean;
-  login: (identifier: string, password: string, isPhone?: boolean) => Promise<void>;
-  register: (name: string, phone: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string, mode?: "phone" | "username" | "email") => Promise<void>;
+  register: (name: string, password: string, contact: { phone?: string; email?: string }) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: ApiUser | null) => void;
 }
@@ -91,15 +91,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (identifier: string, password: string, isPhone = true) => {
+  const login = async (
+    identifier: string,
+    password: string,
+    mode: "phone" | "username" | "email" = "phone"
+  ) => {
     const res = await api.login(
-      isPhone ? { phone: identifier, password } : { username: identifier, password }
+      mode === "phone"
+        ? { phone: identifier, password }
+        : mode === "email"
+        ? { email: identifier, password }
+        : { username: identifier, password }
     );
     await persist(res.token, res.user);
   };
 
-  const register = async (name: string, phone: string, password: string) => {
-    const res = await api.register({ name, phone, password });
+  const register = async (
+    name: string,
+    password: string,
+    contact: { phone?: string; email?: string }
+  ) => {
+    const res = await api.register({ name, password, ...contact });
     await persist(res.token, res.user);
   };
 

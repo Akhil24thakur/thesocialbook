@@ -12,7 +12,7 @@ model User {
   name         String
   username     String    @unique
   usernameChangedAt DateTime?
-  phone        String    @unique
+  phone        String?   @unique
   email        String?   @unique
   passwordHash String
   bio          String?
