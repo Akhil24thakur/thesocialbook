@@ -55,11 +55,13 @@ export default function NotificationsScreen() {
     const typeIcons: Record<string, IconName> = {
       like: "heart-outline",
       comment: "chatbox-ellipses-outline",
+      reply: "arrow-undo-outline",
       follow: "person-add-outline",
     };
     const typeColors: Record<string, string> = {
       like: colors.danger,
       comment: colors.primary,
+      reply: colors.primary,
       follow: colors.green,
     };
 
@@ -95,6 +97,8 @@ export default function NotificationsScreen() {
               ? "liked your post"
               : item.type === "comment"
               ? "commented on your post"
+              : item.type === "reply"
+              ? "replied to your comment"
               : "started following you"}
           </Text>
           {item.post && (
