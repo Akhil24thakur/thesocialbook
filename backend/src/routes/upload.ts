@@ -46,7 +46,14 @@ router.post("/", upload.single("image"), async (req, res) => {
     return res.status(201).json({ url: data.publicUrl, filename });
   } catch (e: any) {
     console.error("upload failed:", e.message ?? e);
-    return res.status(500).json({ error: "Upload failed: " + (e.message ?? "unknown error") });
+    if (e?.cause?.message) console.error("upload cause:", e.cause.message);
+    const url = process.env.SUPABASE_URL ?? "(missing)";
+    const hasKey = !!(process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY);
+    const hint =
+      url === "(missing)"
+        ? " SUPABASE_URL is not set on this server."
+        : ` SUPABASE_URL=${url} keySet=${hasKey}`;
+    return res.status(500).json({ error: "Upload failed: " + (e.message ?? "unknown error") + hint });
   }
 });
 
