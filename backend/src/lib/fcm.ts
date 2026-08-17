@@ -67,7 +67,7 @@ export async function sendPush(
         });
         if (dead.length) await deleteTokens(dead);
       } else {
-        await deleteTokens(fcmTokens);
+        // No FCM credentials configured yet - skip silently
       }
     } catch (e: any) {
       if (String(e?.errorInfo?.code ?? "").includes("registration-token-not-registered")) {
