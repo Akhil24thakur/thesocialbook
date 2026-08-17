@@ -15,6 +15,7 @@ import Icon from "./Icon";
 import ImageLightbox from "./ImageLightbox";
 import ShareSheet from "./ShareSheet";
 import ConfirmDialog from "./ConfirmDialog";
+import MenuSheet from "./MenuSheet";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { colors, formatCount, formatTime } from "../theme";
@@ -38,6 +39,8 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
   const [lightbox, setLightbox] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const onImageLoad = (e: any) => {
     const w = e.nativeEvent?.width ?? e.nativeEvent?.source?.width;
@@ -49,17 +52,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
   };
 
   const postMenu = () => {
-    const isOwn = user?.id === post.author.id;
-    const opts = isOwn
-      ? [
-          { text: "Delete post", style: "destructive" as const, onPress: confirmDelete },
-          { text: "Cancel", style: "cancel" as const },
-        ]
-      : [
-          { text: "Report", style: "destructive" as const, onPress: () => Alert.alert("Thanks", "We'll review this post.") },
-          { text: "Cancel", style: "cancel" as const },
-        ];
-    Alert.alert(post.author.name, undefined, opts);
+    setMenuOpen(true);
   };
 
   const confirmDelete = () => {
@@ -193,6 +186,30 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         loading={deleting}
         onConfirm={doDelete}
         onClose={() => setDeleteOpen(false)}
+      />
+
+      <MenuSheet
+        visible={menuOpen}
+        title={post.author.name}
+        options={
+          user?.id === post.author.id
+            ? [{ label: "Delete post", icon: "trash-outline", danger: true, onPress: confirmDelete }]
+            : [{ label: "Report", icon: "flag-outline", danger: true, onPress: () => setReportOpen(true) }]
+        }
+        onClose={() => setMenuOpen(false)}
+      />
+
+      <ConfirmDialog
+        visible={reportOpen}
+        title="Report post?"
+        message="We'll review this post and take action if it breaks our community guidelines."
+        confirmLabel="Report"
+        icon="flag-outline"
+        onConfirm={() => {
+          setReportOpen(false);
+          Alert.alert("Thanks", "We'll review this post.");
+        }}
+        onClose={() => setReportOpen(false)}
       />
 
       <ImageLightbox
