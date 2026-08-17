@@ -17,10 +17,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thesocialbook.app"
+      "bundleIdentifier": "com.thesocialbook.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.thesocialbook.app",
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
