@@ -42,3 +42,11 @@ yarn-error.*
 
 # Firebase config (written by CI from GOOGLE_SERVICES_JSON secret)
 google-services.json
+
+credentials.json
+credentials/
+*.jks
+
+credentials.json
+credentials/
+*.jks
