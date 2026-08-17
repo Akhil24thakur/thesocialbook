@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { File, Paths } from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
 import { AuthProvider, useAuth } from "./src/auth/AuthContext";
+import { api } from "./src/api";
 import CreateMenu from "./src/components/CreateMenu";
 import Icon from "./src/components/Icon";
 import TopAppBar from "./src/components/home/TopAppBar";
@@ -112,8 +113,29 @@ function CreatePlaceholder() {
 function HomeTabs() {
   const [createOpen, setCreateOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigation = useNavigation<any>();
-  const { logout } = useAuth();
+  const { logout, token } = useAuth();
+
+  const refreshUnread = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await api.notificationsUnreadCount(token);
+      setUnreadCount(res.unreadCount ?? 0);
+    } catch {
+      // Silent - bell badge is best effort
+    }
+  }, [token]);
+
+  useEffect(() => {
+    const unsub = navigation.addListener("focus", () => refreshUnread());
+    refreshUnread();
+    const interval = setInterval(refreshUnread, 45000);
+    return () => {
+      unsub();
+      clearInterval(interval);
+    };
+  }, [navigation, refreshUnread]);
 
   const goTab = (tab: string) => navigation.navigate("Home", { screen: tab });
 
@@ -182,6 +204,7 @@ function HomeTabs() {
                 onMenu={() => setMenuOpen(true)}
                 onNotify={() => navigation.navigate("Notifications")}
                 onNewPost={() => navigation.navigate("CreatePost", {})}
+                unreadCount={unreadCount}
               />
             ),
             tabBarLabel: "Home",

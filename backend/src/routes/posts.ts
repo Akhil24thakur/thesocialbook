@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
-import { notify } from "../lib/notify.js";
+import { notify, notifyAll } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 
 const router = Router();
@@ -133,6 +133,7 @@ router.post("/", requireAuth, async (req, res) => {
     },
     select: postSelect,
   });
+  notifyAll((req as AuthedRequest).userId, post.id).catch(() => {});
   return res.status(201).json({ post });
 });
 

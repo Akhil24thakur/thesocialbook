@@ -8,10 +8,12 @@ export default function TopAppBar({
   onMenu,
   onNotify,
   onNewPost,
+  unreadCount = 0,
 }: {
   onMenu: () => void;
   onNotify: () => void;
   onNewPost: () => void;
+  unreadCount?: number;
 }) {
   const insets = useSafeAreaInsets();
   return (
@@ -46,7 +48,7 @@ export default function TopAppBar({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Icon name="notifications-outline" size={24} color={colors.text} />
-        <View style={styles.badge} />
+        <View style={[styles.badge, { backgroundColor: unreadCount > 0 ? colors.danger : colors.text }]} />
       </TouchableOpacity>
     </View>
   );
@@ -92,7 +94,6 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 4.5,
-    backgroundColor: colors.danger,
     borderWidth: 1.5,
     borderColor: colors.card,
   },
