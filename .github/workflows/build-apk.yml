@@ -34,23 +34,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: node ${{ github.workspace }}/.github/scripts/configure-signing.mjs
 
-      - name: Debug autolinking
-        working-directory: mobile
-        run: |
-          echo "--- gradle.properties inlineModules ---"
-          grep -c "inlineModules" android/gradle.properties || echo "NOT PRESENT"
-          echo "--- mirror with [] ---"
-          node --no-warnings --eval "require('expo/bin/autolinking')" expo-modules-autolinking mirror-kotlin-inline-modules --kotlin-files-mirror-directory "$PWD/android/src/main/java/inline/modules" --inline-modules-list-directory "$PWD/android/build/inline/modules" --watched-directories-serialized "[]" 2>&1 | tail -c 300
-          echo "--- search ---"
-          npx expo-modules-autolinking search --platform android --json | head -c 300
-          echo ""
-          echo "--- resolve ---"
-          npx expo-modules-autolinking resolve --platform android --json >/dev/null
-          echo "autolinking OK"
-
       - name: Build release APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease --stacktrace --info 2>&1 | tail -n 400
+        run: ./gradlew assembleRelease
 
       - name: Upload keystore credentials (first run only)
         if: ${{ env.HAS_KEYSTORE == 'false' }}
