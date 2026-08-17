@@ -30,12 +30,85 @@ function serialize(post: any, userId: number) {
 
 router.get("/feed", requireAuth, async (req, res) => {
   const userId = (req as AuthedRequest).userId;
-  const posts = await prisma.post.findMany({
-    select: { ...postSelect, likes: { select: { userId: true }, where: { userId } } },
-    orderBy: { createdAt: "desc" },
-    take: 50,
+  const seed = Number(req.query.seed) || Math.floor(Math.random() * 2147483647);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const ranked = await prisma.$queryRawUnsafe<
+    Array<{
+      id: number;
+      content: string;
+      imageUrl: string | null;
+      createdAt: Date;
+      authorId: number;
+      likeCount: number;
+      commentCount: number;
+    }>
+  >(
+    `SELECT p.id, p.content, p."imageUrl", p."createdAt", p."authorId",
+            (SELECT COUNT(*)::int FROM "Like" l WHERE l."postId" = p.id) AS "likeCount",
+            (SELECT COUNT(*)::int FROM "Comment" c WHERE c."postId" = p.id) AS "commentCount"
+     FROM "Post" p
+     ORDER BY
+       (CASE WHEN NOT EXISTS (SELECT 1 FROM "PostView" pv WHERE pv."postId" = p.id AND pv."userId" = $1) THEN 1000 ELSE 0 END
+        + GREATEST(0.0, 60.0 * (1.0 - EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 1209600))
+        + LEAST(1.0, LN(1.0
+            + (SELECT COUNT(*) FROM "Like" l WHERE l."postId" = p.id)
+            + (SELECT COUNT(*) FROM "Comment" c WHERE c."postId" = p.id)) / 4.0) * 20
+        + (MOD(p.id::bigint * 1103515245 + $2::bigint * 104729, 233280)::float / 233280) * 15) DESC,
+       p.id DESC
+     LIMIT $3 OFFSET $4`,
+    userId,
+    seed,
+    limit,
+    offset
+  );
+
+  const total = await prisma.post.count();
+
+  let posts: any[] = [];
+  if (ranked.length) {
+    const authorIds = [...new Set(ranked.map((p) => p.authorId))];
+    const postIds = ranked.map((p) => p.id);
+    const [authors, likes] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: authorIds } },
+        select: { id: true, name: true, username: true, avatarUrl: true },
+      }),
+      prisma.like.findMany({ where: { postId: { in: postIds }, userId } }),
+    ]);
+    const authorMap = new Map(authors.map((a) => [a.id, a]));
+    const likedSet = new Set(likes.map((l) => l.postId));
+    posts = ranked.map((p) => ({
+      id: p.id,
+      content: p.content,
+      imageUrl: p.imageUrl,
+      createdAt: p.createdAt,
+      author: authorMap.get(p.authorId),
+      likeCount: p.likeCount,
+      commentCount: p.commentCount,
+      likedByMe: likedSet.has(p.id),
+    }));
+  }
+  return res.json({ posts, total, seed });
+});
+
+const seenSchema = z.object({
+  postIds: z.array(z.number().int().positive()).max(100),
+});
+
+router.post("/seen", requireAuth, async (req, res) => {
+  const userId = (req as AuthedRequest).userId;
+  const parsed = seenSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "postIds must be an array of post ids" });
+  }
+  const ids = [...new Set(parsed.data.postIds)];
+  await prisma.postView.createMany({
+    data: ids.map((postId) => ({ userId, postId })),
+    skipDuplicates: true,
   });
-  return res.json({ posts: posts.map((p) => serialize(p, userId)) });
+  return res.json({ ok: true });
 });
 
 const createPostSchema = z.object({

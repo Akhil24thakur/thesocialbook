@@ -22,6 +22,7 @@ model User {
   stories      Story[]
   likes        Like[]
   comments     Comment[]
+  postViews    PostView[]
   following    Follow[] @relation("following")
   followers    Follow[] @relation("followers")
   notifications Notification[] @relation("notifications")
@@ -62,6 +63,7 @@ model Post {
   createdAt DateTime  @default(now())
   likes     Like[]
   comments  Comment[]
+  postViews PostView[]
   notifications Notification[]
 
   @@index([authorId])
@@ -92,6 +94,18 @@ model Comment {
 
   @@index([postId])
   @@index([parentId])
+}
+
+model PostView {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  postId Int
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  seenAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([userId, seenAt])
 }
 
 model Notification {
