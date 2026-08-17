@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 
 const APP_DIR = "android/app";
 const KEYSTORE = `${APP_DIR}/keystore.jks`;
-const ALIAS = "thesocialbook";
+const ALIAS = process.env.KEY_ALIAS || "thesocialbook";
 
 let storePassword = process.env.KEYSTORE_PASSWORD;
 let keyPassword = process.env.KEY_PASSWORD;
