@@ -11,6 +11,7 @@ interface Props {
   icon?: IconName;
   destructive?: boolean;
   loading?: boolean;
+  hideCancel?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -23,6 +24,7 @@ export default function ConfirmDialog({
   icon = "alert-circle-outline",
   destructive,
   loading,
+  hideCancel,
   onConfirm,
   onClose,
 }: Props) {
@@ -36,9 +38,11 @@ export default function ConfirmDialog({
           <Text style={styles.title}>{title}</Text>
           {!!message && <Text style={styles.message}>{message}</Text>}
           <View style={styles.row}>
-            <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={onClose} disabled={loading} activeOpacity={0.7}>
-              <Text style={styles.btnGhostText}>Cancel</Text>
-            </TouchableOpacity>
+            {!hideCancel && (
+              <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={onClose} disabled={loading} activeOpacity={0.7}>
+                <Text style={styles.btnGhostText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.btn, destructive ? styles.btnDanger : styles.btnPrimary]}
               onPress={onConfirm}

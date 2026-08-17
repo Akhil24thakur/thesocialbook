@@ -42,6 +42,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [thanksOpen, setThanksOpen] = useState(false);
 
   const onImageLoad = (e: any) => {
     const w = e.nativeEvent?.width ?? e.nativeEvent?.source?.width;
@@ -208,9 +209,20 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         icon="flag-outline"
         onConfirm={() => {
           setReportOpen(false);
-          Alert.alert("Thanks", "We'll review this post.");
+          setThanksOpen(true);
         }}
         onClose={() => setReportOpen(false)}
+      />
+
+      <ConfirmDialog
+        visible={thanksOpen}
+        title="Thanks!"
+        message="We've received your report. Our team will review this post."
+        confirmLabel="OK"
+        icon="checkmark-circle-outline"
+        hideCancel
+        onConfirm={() => setThanksOpen(false)}
+        onClose={() => setThanksOpen(false)}
       />
 
       <ImageLightbox
