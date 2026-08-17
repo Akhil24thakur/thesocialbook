@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -22,15 +23,69 @@ import { colors } from "../theme";
 export default function CreatePostScreen({ navigation, route }: any) {
   const { token, user } = useAuth();
   const [content, setContent] = useState(route?.params?.prefill ?? "");
+  const [selection, setSelection] = useState<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
   const [photo, setPhoto] = useState<{ uri: string } | null>(null);
   const [ratio, setRatio] = useState<number | null>(null);
   const [imgH, setImgH] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
   const photoRequested = route?.params?.withPhoto === true;
 
   const canPost = (content.trim().length > 0 || !!photo) && !busy && !uploading;
+
+  const wrap = (open: string, close: string) => {
+    const start = selection?.start ?? content.length;
+    const end = selection?.end ?? start;
+    if (end < start) {
+      // normalize reverse selection
+      const t = start;
+      selection.start = end;
+      selection.end = t;
+    }
+    const s = Math.min(start, end);
+    const e = Math.max(start, end);
+    const sel = content.slice(s, e);
+    const next = content.slice(0, s) + open + sel + close + content.slice(e);
+    setContent(next);
+    const pos = s + open.length + sel.length + close.length;
+    setSelection({ start: pos, end: pos });
+  };
+
+  const openLinkDialog = () => {
+    const start = selection?.start ?? content.length;
+    const end = selection?.end ?? start;
+    const s = Math.min(start, end);
+    const e = Math.max(start, end);
+    const sel = content.slice(s, e);
+    setLinkUrl(sel.trim().startsWith("http") ? sel.trim() : "");
+    setLinkOpen(true);
+  };
+
+  const insertLink = () => {
+    const url = linkUrl.trim().replace(/^https?:\/\//i, "");
+    if (!url) {
+      setLinkOpen(false);
+      return;
+    }
+    const start = selection?.start ?? content.length;
+    const end = selection?.end ?? start;
+    const s = Math.min(start, end);
+    const e = Math.max(start, end);
+    const sel = content.slice(s, e).trim() || url;
+    const token = `[${sel}](https://${url})`;
+    const next = content.slice(0, s) + token + content.slice(e);
+    setContent(next);
+    const pos = s + token.length;
+    setSelection({ start: pos, end: pos });
+    setLinkOpen(false);
+    setLinkUrl("");
+  };
 
   const pickPhoto = async () => {
     if (!token) return;
@@ -127,7 +182,76 @@ export default function CreatePostScreen({ navigation, route }: any) {
           maxLength={5000}
           value={content}
           onChangeText={setContent}
+          onSelectionChange={(e) =>
+            setSelection({
+              start: e.nativeEvent.selection.start,
+              end: e.nativeEvent.selection.end,
+            })
+          }
         />
+
+        <View style={styles.toolbar}>
+          <TouchableOpacity
+            style={styles.toolBtn}
+            onPress={() => wrap("**", "**")}
+            accessibilityLabel="Bold"
+          >
+            <Text style={[styles.toolText, styles.toolBold]}>B</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.toolBtn}
+            onPress={() => wrap("*", "*")}
+            accessibilityLabel="Italic"
+          >
+            <Text style={[styles.toolText, styles.toolItalic]}>I</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.toolBtn}
+            onPress={() => wrap("_", "_")}
+            accessibilityLabel="Underline"
+          >
+            <Text style={[styles.toolText, styles.toolUnderline]}>U</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.toolBtn}
+            onPress={openLinkDialog}
+            accessibilityLabel="Add link"
+          >
+            <Icon name="link-outline" size={19} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <Modal
+          visible={linkOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setLinkOpen(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Add Link</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="https://example.com"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                value={linkUrl}
+                onChangeText={setLinkUrl}
+                autoFocus
+              />
+              <View style={styles.modalBtns}>
+                <TouchableOpacity style={styles.modalBtn} onPress={() => setLinkOpen(false)}>
+                  <Text style={styles.modalCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalBtn} onPress={insertLink}>
+                  <Text style={styles.modalOk}>Insert</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {photo && (
           <View style={styles.photoWrap} onLayout={onWrapLayout}>
@@ -226,6 +350,82 @@ const styles = StyleSheet.create({
     minHeight: 90,
     maxHeight: 240,
     textAlignVertical: "top",
+  },
+  toolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 8,
+  },
+  toolBtn: {
+    width: 38,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toolText: {
+    fontSize: 17,
+    color: colors.text,
+  },
+  toolBold: {
+    fontWeight: "700",
+  },
+  toolItalic: {
+    fontStyle: "italic",
+  },
+  toolUnderline: {
+    textDecorationLine: "underline",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCard: {
+    width: "84%",
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 18,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 12,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  modalBtns: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 6,
+    marginTop: 14,
+  },
+  modalBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  modalCancel: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  modalOk: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.primary,
   },
   photoWrap: {
     marginTop: 10,

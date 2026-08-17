@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon, { type IconName } from "../components/Icon";
 import { colors, formatTime } from "../theme";
+import { setPendingPush } from "../pushBadge";
 import type { Notification } from "../types";
 
 export default function NotificationsScreen() {
@@ -16,6 +17,7 @@ export default function NotificationsScreen() {
 
   const load = useCallback(async (refresh = false) => {
     if (!token) return;
+    setPendingPush(false);
     if (refresh) setRefreshing(true);
     else setLoading(true);
     try {

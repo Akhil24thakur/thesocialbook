@@ -29,6 +29,7 @@ import MessagesScreen from "./src/screens/MessagesScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
+import { setPendingPush, usePendingPush } from "./src/pushBadge";
 
 const Stack = createNativeStackNavigator();
 
@@ -50,6 +51,8 @@ if (Platform.OS === "android") {
     vibrationPattern: [0, 250, 250, 250],
   }).catch(() => {});
 }
+
+Notifications.addNotificationReceivedListener(() => setPendingPush(true));
 
 const RELEASES_URL = "https://api.github.com/repos/Akhil24thakur/thesocialbook/releases/latest";
 const RELEASES_PAGE = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";
@@ -114,6 +117,7 @@ function HomeTabs() {
   const [createOpen, setCreateOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const pendingPush = usePendingPush();
   const navigation = useNavigation<any>();
   const { logout, token } = useAuth();
 
@@ -136,6 +140,8 @@ function HomeTabs() {
       clearInterval(interval);
     };
   }, [navigation, refreshUnread]);
+
+  const dotUnread = pendingPush || unreadCount > 0;
 
   const goTab = (tab: string) => navigation.navigate("Home", { screen: tab });
 
@@ -204,7 +210,7 @@ function HomeTabs() {
                 onMenu={() => setMenuOpen(true)}
                 onNotify={() => navigation.navigate("Notifications")}
                 onNewPost={() => navigation.navigate("CreatePost", {})}
-                unreadCount={unreadCount}
+                unreadCount={dotUnread ? 1 : 0}
               />
             ),
             tabBarLabel: "Home",

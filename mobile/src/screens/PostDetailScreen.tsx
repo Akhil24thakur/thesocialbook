@@ -15,6 +15,7 @@ import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
+import RichText from "../components/RichText";
 import { colors, formatCount, formatTime } from "../theme";
 import type { Comment, Post } from "../types";
 
@@ -140,7 +141,7 @@ export default function PostDetailScreen({ route }: any) {
                   <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
                 </View>
               </View>
-              <Text style={styles.content}>{post.content}</Text>
+              <RichText style={styles.content}>{post.content}</RichText>
               <TouchableOpacity style={styles.likeBtn} onPress={toggleLike}>
                 <Icon
                   name={post.likedByMe ? "heart" : "heart-outline"}
@@ -170,7 +171,7 @@ export default function PostDetailScreen({ route }: any) {
               <View style={styles.commentBody}>
                 <View style={styles.commentBubble}>
                   <Text style={styles.commentName}>{item.author.name}</Text>
-                  <Text style={styles.commentText}>{item.content}</Text>
+                  <RichText style={styles.commentText}>{item.content}</RichText>
                 </View>
                 <View style={styles.commentMeta}>
                   <Text style={styles.commentTime}>{formatTime(item.createdAt)}</Text>
@@ -197,7 +198,7 @@ export default function PostDetailScreen({ route }: any) {
                         <Text style={styles.opTag}> · OP</Text>
                       )}
                     </Text>
-                    <Text style={styles.commentText}>{r.content}</Text>
+                    <RichText style={styles.commentText}>{r.content}</RichText>
                   </View>
                   <View style={styles.commentMeta}>
                     <Text style={styles.commentTime}>{formatTime(r.createdAt)}</Text>
