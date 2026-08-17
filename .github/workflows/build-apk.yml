@@ -37,6 +37,10 @@ jobs:
       - name: Debug autolinking
         working-directory: mobile
         run: |
+          echo "--- gradle.properties inlineModules ---"
+          grep -c "inlineModules" android/gradle.properties || echo "NOT PRESENT"
+          echo "--- mirror with [] ---"
+          node --no-warnings --eval "require('expo/bin/autolinking')" expo-modules-autolinking mirror-kotlin-inline-modules --kotlin-files-mirror-directory "$PWD/android/src/main/java/inline/modules" --inline-modules-list-directory "$PWD/android/build/inline/modules" --watched-directories-serialized "[]" 2>&1 | tail -c 300
           echo "--- search ---"
           npx expo-modules-autolinking search --platform android --json | head -c 300
           echo ""
