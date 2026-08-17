@@ -14,6 +14,7 @@ import Avatar from "./Avatar";
 import Icon from "./Icon";
 import ImageLightbox from "./ImageLightbox";
 import ShareSheet from "./ShareSheet";
+import ConfirmDialog from "./ConfirmDialog";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { colors, formatCount, formatTime } from "../theme";
@@ -35,6 +36,8 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
   const [imgH, setImgH] = useState<number | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const onImageLoad = (e: any) => {
     const w = e.nativeEvent?.width ?? e.nativeEvent?.source?.width;
@@ -60,22 +63,22 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
   };
 
   const confirmDelete = () => {
-    Alert.alert("Delete post?", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (!token) return;
-          try {
-            await api.deletePost(token, post.id);
-            onChanged();
-          } catch (e: any) {
-            Alert.alert("Error", e.message ?? "Could not delete post");
-          }
-        },
-      },
-    ]);
+    setDeleteOpen(true);
+  };
+
+  const doDelete = async () => {
+    if (!token) return;
+    setDeleting(true);
+    try {
+      await api.deletePost(token, post.id);
+      setDeleteOpen(false);
+      onChanged();
+    } catch (e: any) {
+      Alert.alert("Error", e.message ?? "Could not delete post");
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const onShare = async () => {
@@ -178,6 +181,18 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         onClose={() => setShareOpen(false)}
         postId={post.id}
         content={post.content}
+      />
+
+      <ConfirmDialog
+        visible={deleteOpen}
+        title="Delete post?"
+        message="This post and everything linked to it will be permanently removed. This cannot be undone."
+        confirmLabel="Delete"
+        icon="trash-outline"
+        destructive
+        loading={deleting}
+        onConfirm={doDelete}
+        onClose={() => setDeleteOpen(false)}
       />
 
       <ImageLightbox

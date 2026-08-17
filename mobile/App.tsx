@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
@@ -7,6 +7,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { File, Paths } from "expo-file-system";
+import * as IntentLauncher from "expo-intent-launcher";
 import { AuthProvider, useAuth } from "./src/auth/AuthContext";
 import CreateMenu from "./src/components/CreateMenu";
 import Icon from "./src/components/Icon";
@@ -62,7 +64,19 @@ function isNewerVersion(latest: string, current: string) {
   return false;
 }
 
-async function checkForUpdates() {
+interface UpdateInfo {
+  version: string;
+  notes: string;
+  apkUrl: string | null;
+}
+
+interface DownloadState {
+  phase: "downloading" | "installing" | "error";
+  progress: number;
+  message?: string;
+}
+
+async function checkForUpdates(setUpdate: (u: UpdateInfo | null) => void) {
   try {
     const current = Constants.expoConfig?.version;
     if (!current) return;
@@ -74,14 +88,14 @@ async function checkForUpdates() {
       const release = await res.json();
       const latest = String(release.tag_name ?? "").replace(/^v/, "");
       if (!latest || !isNewerVersion(latest, current)) return;
-      Alert.alert(
-        "Update Available",
-        `A new version of TheSocialBook is available (v${latest}). Update now for the best experience.`,
-        [
-          { text: "Later", style: "cancel" },
-          { text: "Update", onPress: () => Linking.openURL(RELEASES_PAGE) },
-        ]
+      const apk = (release.assets ?? []).find(
+        (a: any) => typeof a.name === "string" && a.name.endsWith(".apk")
       );
+      setUpdate({
+        version: latest,
+        notes: String(release.body ?? ""),
+        apkUrl: apk?.browser_download_url ?? null,
+      });
     } finally {
       clearTimeout(timer);
     }
@@ -275,10 +289,60 @@ function RootNavigator() {
 
 export default function App() {
   const [fontsLoaded] = useFonts({ Caveat_700Bold });
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [dl, setDl] = useState<DownloadState | null>(null);
 
   useEffect(() => {
-    checkForUpdates();
+    checkForUpdates(setUpdate);
   }, []);
+
+  const closeUpdate = () => {
+    if (dl?.phase === "downloading") return;
+    setUpdate(null);
+    setDl(null);
+  };
+
+  const startUpdate = async () => {
+    if (!update) return;
+    if (Platform.OS !== "android" || !update.apkUrl) {
+      Linking.openURL(RELEASES_PAGE);
+      return;
+    }
+    setDl({ phase: "downloading", progress: 0 });
+    const dest = new File(Paths.cache, "thesocialbook-update.apk");
+    try {
+      if (dest.exists) dest.delete();
+      const task = File.createDownloadTask(update.apkUrl, dest, {
+        onProgress: ({ bytesWritten, totalBytes }) => {
+          if (totalBytes > 0) {
+            setDl({ phase: "downloading", progress: Math.min(1, bytesWritten / totalBytes) });
+          }
+        },
+      });
+      const file = await task.downloadAsync();
+      if (!file) throw new Error("Download failed");
+      setDl({ phase: "installing", progress: 1 });
+      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+        data: file.contentUri,
+        type: "application/vnd.android.package-archive",
+        flags: 1,
+      });
+      setUpdate(null);
+      setDl(null);
+    } catch (e: any) {
+      setDl({
+        phase: "error",
+        progress: 0,
+        message: e?.message && !String(e.message).includes("[") ? e.message : "Could not download the update. Check your connection and try again.",
+      });
+    }
+  };
+
+  const openInstallSettings = () => {
+    IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.MANAGE_UNKNOWN_APP_SOURCES, {
+      data: "package:com.thesocialbook.app",
+    }).catch(() => Linking.openURL(RELEASES_PAGE));
+  };
 
   if (!fontsLoaded) {
     return (
@@ -298,6 +362,96 @@ export default function App() {
         </NavigationContainer>
         <StatusBar style="auto" />
       </AuthProvider>
+      {update && (
+        <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>
+          <View style={styles.updateOverlay}>
+            <View style={styles.updateCard}>
+              <LinearGradient
+                colors={brandGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.updateHeader}
+              >
+                <View style={styles.updateIconWrap}>
+                  <Icon name="cloud-download-outline" size={30} color={colors.white} />
+                </View>
+                <Text style={styles.updateTitle}>Update Available</Text>
+                <View style={styles.updatePill}>
+                  <Text style={styles.updatePillText}>v{update.version}</Text>
+                </View>
+              </LinearGradient>
+
+              {dl?.phase === "downloading" ? (
+                <View style={styles.updateBody}>
+                  <Text style={styles.updateStatus}>Downloading update…</Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${Math.max(4, Math.round(dl.progress * 100))}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.updatePct}>{Math.round(dl.progress * 100)}%</Text>
+                </View>
+              ) : dl?.phase === "installing" ? (
+                <View style={styles.updateBody}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.updateStatus}>Opening installer…</Text>
+                </View>
+              ) : dl?.phase === "error" ? (
+                <View style={styles.updateBody}>
+                  <Text style={styles.updateError}>{dl.message}</Text>
+                  <View style={styles.updateRow}>
+                    <TouchableOpacity
+                      style={[styles.updateBtn, styles.updateBtnGhost]}
+                      onPress={openInstallSettings}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.updateBtnGhostText}>Allow installs</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.updateBtn, styles.updateBtnPrimary]}
+                      onPress={startUpdate}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.updateBtnText}>Retry</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <ScrollView style={styles.updateNotes} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.updateNotesText}>
+                      {update.notes.trim()
+                        ? update.notes.trim()
+                        : `A new version of TheSocialBook is available. Update now for the best experience.`}
+                    </Text>
+                  </ScrollView>
+                  <View style={styles.updateRow}>
+                    <TouchableOpacity
+                      style={[styles.updateBtn, styles.updateBtnGhost]}
+                      onPress={closeUpdate}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.updateBtnGhostText}>Later</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.updateBtn, styles.updateBtnPrimary]}
+                      onPress={startUpdate}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.updateBtnText}>
+                        {Platform.OS === "android" ? "Update Now" : "Go to Release"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaProvider>
   );
 }
@@ -381,5 +535,130 @@ const styles = StyleSheet.create({
   },
   menuDanger: {
     color: colors.danger,
+  },
+  updateOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(23,32,51,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 28,
+  },
+  updateCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.card,
+    borderRadius: 28,
+    overflow: "hidden",
+    shadowColor: "#172033",
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  updateHeader: {
+    alignItems: "center",
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  updateIconWrap: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  updateTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  updatePill: {
+    marginTop: 8,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+  },
+  updatePillText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  updateBody: {
+    alignItems: "center",
+    padding: 22,
+    gap: 12,
+    minHeight: 110,
+    justifyContent: "center",
+  },
+  updateStatus: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  updateError: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.danger,
+    textAlign: "center",
+  },
+  progressTrack: {
+    width: "100%",
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.border,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  updatePct: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  updateNotes: {
+    maxHeight: 150,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+  },
+  updateNotesText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+  },
+  updateRow: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 22,
+  },
+  updateBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  updateBtnGhost: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  updateBtnGhostText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  updateBtnPrimary: {
+    backgroundColor: colors.primary,
+  },
+  updateBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.white,
   },
 });
