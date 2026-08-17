@@ -33,19 +33,14 @@ if (process.env.KEYSTORE_B64) {
 
 const gradlePropsPath = "android/gradle.properties";
 const gradleProps = readFileSync(gradlePropsPath, "utf8");
+let propsToAppend = "";
 if (!gradleProps.includes("expo.inlineModules.watchedDirectories")) {
-  writeFileSync(
-    gradlePropsPath,
-    `\nexpo.inlineModules.watchedDirectories=[]\n`,
-    { encoding: "utf8", flag: "a" }
-  );
+  propsToAppend += "\nexpo.inlineModules.watchedDirectories=[]\n";
   console.log("added expo.inlineModules.watchedDirectories to gradle.properties");
 }
-writeFileSync(
-  gradlePropsPath,
-  `RELEASE_STORE_FILE=keystore.jks\nRELEASE_STORE_PASSWORD=${storePassword}\nRELEASE_KEY_ALIAS=${ALIAS}\nRELEASE_KEY_PASSWORD=${keyPassword}\n`,
-  { encoding: "utf8", flag: "a" }
-);
+propsToAppend +=
+  `\nRELEASE_STORE_FILE=keystore.jks\nRELEASE_STORE_PASSWORD=${storePassword}\nRELEASE_KEY_ALIAS=${ALIAS}\nRELEASE_KEY_PASSWORD=${keyPassword}\n`;
+writeFileSync(gradlePropsPath, propsToAppend, { encoding: "utf8", flag: "a" });
 
 const buildGradle = "android/app/build.gradle";
 let gradle = readFileSync(buildGradle, "utf8");
