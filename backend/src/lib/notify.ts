@@ -48,13 +48,14 @@ export async function notify(
 export async function notifyAll(actorId: number, postId: number) {
   try {
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
-    await sendBroadcast(actorId, {
-      title: "TheSocialBook",
-      body: `${actor?.name ?? "Someone"} posted something new`,
-      type: "post",
-      postId,
+    const body = `${actor?.name ?? "Someone"} posted something new`;
+    await sendBroadcast(actorId, { title: "TheSocialBook", body, type: "post", postId });
+    await prisma.notification.createMany({
+      data: (
+        await prisma.user.findMany({ where: { id: { not: actorId } }, select: { id: true } })
+      ).map((u) => ({ userId: u.id, actorId, type: "post", postId })),
     });
   } catch {
-    // Push delivery is best-effort
+    // Push delivery + bell rows are best-effort
   }
 }

@@ -16,6 +16,7 @@ import ImageLightbox from "./ImageLightbox";
 import ShareSheet from "./ShareSheet";
 import ConfirmDialog from "./ConfirmDialog";
 import MenuSheet from "./MenuSheet";
+import RichText from "./RichText";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { colors, formatCount, formatTime } from "../theme";
@@ -112,7 +113,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.content}>{post.content}</Text>
+      <RichText style={styles.content}>{post.content}</RichText>
       {!!post.imageUrl && (
         <TouchableOpacity
           activeOpacity={0.9}
