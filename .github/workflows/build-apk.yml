@@ -19,8 +19,7 @@ jobs:
           java-version: "17"
 
       - name: Install dependencies
-        working-directory: mobile
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Prebuild Android project
         working-directory: mobile
