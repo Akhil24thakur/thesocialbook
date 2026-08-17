@@ -25,10 +25,16 @@ if (process.env.KEYSTORE_B64) {
   );
   writeFileSync(
     "android/keystore-credentials.txt",
-    `ANDROID_KEYSTORE_BASE64=<base64 of android/app/keystore.jks>\nANDROID_KEYSTORE_PASSWORD=${storePassword}\nANDROID_KEY_ALIAS=${ALIAS}\nANDROID_KEY_PASSWORD=${keyPassword}\n`,
+    `ANDROID_KEYSTORE_BASE64=${readFileSync(KEYSTORE).toString("base64")}\nANDROID_KEYSTORE_PASSWORD=${storePassword}\nANDROID_KEY_ALIAS=${ALIAS}\nANDROID_KEY_PASSWORD=${keyPassword}\n`,
     { encoding: "utf8" }
   );
   console.log("generated new keystore");
+} else {
+  writeFileSync(
+    "android/keystore-credentials.txt",
+    `ANDROID_KEYSTORE_BASE64=${process.env.KEYSTORE_B64}\nANDROID_KEYSTORE_PASSWORD=${process.env.KEYSTORE_PASSWORD}\nANDROID_KEY_ALIAS=${process.env.KEY_ALIAS}\nANDROID_KEY_PASSWORD=${process.env.KEY_PASSWORD}\n`,
+    { encoding: "utf8" }
+  );
 }
 
 const gradlePropsPath = "android/gradle.properties";
