@@ -4,7 +4,7 @@ A social network built in India, for India — Facebook-style app with phone-bas
 
 ## 📱 Download App
 
-[![Download APK](https://img.shields.io/badge/APK%20v1.2.9-Download-d73a49?style=for-the-badge&logo=android)](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
+[![Download APK](https://img.shields.io/badge/APK%20v1.3.0-Download-d73a49?style=for-the-badge&logo=android)](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
 
 **[Get the Latest APK →](https://github.com/Akhil24thakur/thesocialbook/releases/latest)**
 
