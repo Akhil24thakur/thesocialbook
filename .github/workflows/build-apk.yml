@@ -40,7 +40,9 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: Upload keystore credentials (first run only)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+        if: ${{ env.HAS_KEYSTORE == 'false' }}
+        env:
+          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: keystore-credentials
