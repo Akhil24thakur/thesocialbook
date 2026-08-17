@@ -5,6 +5,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -106,7 +107,12 @@ export default function CreatePostScreen({ navigation, route }: any) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.body}>
+      <ScrollView
+        style={styles.bodyScroll}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.row}>
           <Avatar name={user?.name ?? "?"} size={40} />
           <Text style={styles.name}>{user?.name}</Text>
@@ -159,7 +165,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
 
         {!!error && <Text style={styles.error}>{error}</Text>}
         <Text style={styles.counter}>{content.length}/5000</Text>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -196,6 +202,9 @@ const styles = StyleSheet.create({
   postBtnDisabled: {
     opacity: 0.4,
   },
+  bodyScroll: {
+    flex: 1,
+  },
   body: {
     padding: 16,
   },
@@ -215,6 +224,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: colors.text,
     minHeight: 90,
+    maxHeight: 240,
     textAlignVertical: "top",
   },
   photoWrap: {

@@ -11,7 +11,6 @@ import type { Notification } from "../types";
 export default function NotificationsScreen() {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -25,23 +24,16 @@ export default function NotificationsScreen() {
         api.notificationsUnreadCount(token),
       ]);
       setNotifications(notifsRes.notifications);
-      setUnreadCount(unreadRes.unreadCount);
+      if (unreadRes.unreadCount > 0) {
+        // Opening the screen marks everything as read, but keep the
+        // current view highlighted so the user sees what was new.
+        api.notificationsMarkRead(token).catch(() => {});
+      }
     } catch {
       // silent fail
     } finally {
       setRefreshing(false);
       setLoading(false);
-    }
-  }, [token]);
-
-  const markAllRead = useCallback(async () => {
-    if (!token) return;
-    try {
-      await api.notificationsMarkRead(token);
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch {
-      // silent fail
     }
   }, [token]);
 
@@ -57,12 +49,21 @@ export default function NotificationsScreen() {
       comment: "chatbox-ellipses-outline",
       reply: "arrow-undo-outline",
       follow: "person-add-outline",
+      post: "megaphone-outline",
     };
     const typeColors: Record<string, string> = {
       like: colors.danger,
       comment: colors.primary,
       reply: colors.primary,
       follow: colors.green,
+      post: colors.amber,
+    };
+    const typeText: Record<string, string> = {
+      like: "liked your post",
+      comment: "commented on your post",
+      reply: "replied to your comment",
+      follow: "started following you",
+      post: "posted something new",
     };
 
     return (
@@ -93,13 +94,7 @@ export default function NotificationsScreen() {
         <View style={styles.rowBody}>
           <Text style={styles.rowTitle}>
             <Text style={styles.strong}>{item.actor.name}</Text>{" "}
-            {item.type === "like"
-              ? "liked your post"
-              : item.type === "comment"
-              ? "commented on your post"
-              : item.type === "reply"
-              ? "replied to your comment"
-              : "started following you"}
+            {typeText[item.type] ?? "posted something new"}
           </Text>
           {item.post && (
             <Text style={styles.rowPreview} numberOfLines={2}>
@@ -122,11 +117,6 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      {unreadCount > 0 && (
-        <TouchableOpacity style={styles.markReadBtn} onPress={markAllRead}>
-          <Text style={styles.markReadText}>Mark all as read</Text>
-        </TouchableOpacity>
-      )}
       <FlatList
         data={notifications}
         keyExtractor={(item) => String(item.id)}
@@ -165,17 +155,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  markReadBtn: {
-    padding: 12,
-    alignItems: "flex-end",
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  markReadText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: "600",
   },
   row: {
     flexDirection: "row",

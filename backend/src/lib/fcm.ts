@@ -31,20 +31,12 @@ async function deleteTokens(tokens: string[]) {
   await prisma.deviceToken.deleteMany({ where: { token: { in: tokens } } });
 }
 
-export async function sendPush(
-  recipientId: number,
+async function sendToTokens(
+  fcmTokens: string[],
+  expoTokens: string[],
   payload: { title: string; body: string; type: string; postId?: number }
 ) {
-  const tokens = await prisma.deviceToken.findMany({
-    where: { userId: recipientId },
-    select: { token: true, type: true },
-  });
-  if (!tokens.length) return;
-
   const data = { type: payload.type, postId: String(payload.postId ?? "") };
-
-  const fcmTokens = tokens.filter((t) => t.type === "fcm").map((t) => t.token);
-  const expoTokens = tokens.filter((t) => t.type !== "fcm").map((t) => t.token);
 
   if (fcmTokens.length) {
     try {
@@ -93,4 +85,36 @@ export async function sendPush(
       // Best effort
     }
   }
+}
+
+export async function sendPush(
+  recipientId: number,
+  payload: { title: string; body: string; type: string; postId?: number }
+) {
+  const tokens = await prisma.deviceToken.findMany({
+    where: { userId: recipientId },
+    select: { token: true, type: true },
+  });
+  if (!tokens.length) return;
+
+  const fcmTokens = tokens.filter((t) => t.type === "fcm").map((t) => t.token);
+  const expoTokens = tokens.filter((t) => t.type !== "fcm").map((t) => t.token);
+  await sendToTokens(fcmTokens, expoTokens, payload);
+}
+
+export async function sendBroadcast(
+  excludeUserId: number,
+  payload: { title: string; body: string; type: string; postId?: number }
+) {
+  const tokens = await prisma.deviceToken.findMany({
+    select: { token: true, type: true, userId: true },
+  });
+  const fcmTokens = tokens
+    .filter((t) => t.type === "fcm" && t.userId !== excludeUserId)
+    .map((t) => t.token);
+  const expoTokens = tokens
+    .filter((t) => t.type !== "fcm" && t.userId !== excludeUserId)
+    .map((t) => t.token);
+  if (!fcmTokens.length && !expoTokens.length) return;
+  await sendToTokens(fcmTokens, expoTokens, payload);
 }

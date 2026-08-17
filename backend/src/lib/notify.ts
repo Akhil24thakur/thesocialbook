@@ -1,5 +1,5 @@
 import { prisma } from "./prisma.js";
-import { sendPush } from "./fcm.js";
+import { sendBroadcast, sendPush } from "./fcm.js";
 
 const MESSAGES = {
   like: (actorName: string) => ({
@@ -40,6 +40,20 @@ export async function notify(
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
     const msg = MESSAGES[type](actor?.name ?? "Someone");
     await sendPush(recipientId, { ...msg, type, postId });
+  } catch {
+    // Push delivery is best-effort
+  }
+}
+
+export async function notifyAll(actorId: number, postId: number) {
+  try {
+    const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
+    await sendBroadcast(actorId, {
+      title: "TheSocialBook",
+      body: `${actor?.name ?? "Someone"} posted something new`,
+      type: "post",
+      postId,
+    });
   } catch {
     // Push delivery is best-effort
   }
