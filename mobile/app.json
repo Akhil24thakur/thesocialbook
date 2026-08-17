@@ -13,6 +13,12 @@
           "photosPermission": "TheSocialBook needs access to your photos so you can share them in posts.",
           "cameraPermission": "TheSocialBook needs camera access so you can take photos for posts."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default"
+        }
       ]
     ],
     "ios": {
@@ -26,6 +32,7 @@
     "android": {
       "package": "com.thesocialbook.app",
       "versionCode": 4,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

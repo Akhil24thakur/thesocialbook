@@ -128,6 +128,7 @@ model DeviceToken {
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
+  type      String   @default("expo")
   createdAt DateTime @default(now())
 }
 

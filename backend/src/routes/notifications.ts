@@ -39,22 +39,23 @@ router.patch("/read", requireAuth, async (req, res) => {
 
 const deviceSchema = z.object({
   token: z.string().min(1).max(500),
+  type: z.enum(["expo", "fcm"]).default("expo"),
 });
 
 router.post("/device-token", requireAuth, async (req, res) => {
   const parsed = deviceSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "A push token is required" });
+    return res.status(400).json({ error: "A valid push token is required" });
   }
   const userId = (req as AuthedRequest).userId;
-  const token = parsed.data.token;
+  const { token, type } = parsed.data;
   const existing = await prisma.deviceToken.findUnique({ where: { token } });
   if (existing) {
     if (existing.userId !== userId) {
       await prisma.deviceToken.update({ where: { id: existing.id }, data: { userId } });
     }
   } else {
-    await prisma.deviceToken.create({ data: { userId, token } });
+    await prisma.deviceToken.create({ data: { userId, token, type } });
   }
   return res.json({ ok: true });
 });

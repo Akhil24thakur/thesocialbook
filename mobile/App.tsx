@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
@@ -28,6 +28,25 @@ import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
 
 const Stack = createNativeStackNavigator();
+
+const Notifications = require("expo-notifications") as typeof import("expo-notifications");
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+if (Platform.OS === "android") {
+  Notifications.setNotificationChannelAsync("default", {
+    name: "Notifications",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+  }).catch(() => {});
+}
 
 const RELEASES_URL = "https://api.github.com/repos/Akhil24thakur/thesocialbook/releases/latest";
 const RELEASES_PAGE = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";

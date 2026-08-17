@@ -176,6 +176,9 @@ export const api = {
   notificationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/notifications/unread-count", token),
   notificationsMarkRead: (token: string) =>
     request<{ ok: boolean }>("/api/notifications/read", token, { method: "PATCH" }),
-  registerDeviceToken: (token: string, deviceToken: string) =>
-    request<{ ok: boolean }>("/api/notifications/device-token", token, { method: "POST", body: { token: deviceToken } }),
+  registerDeviceToken: (token: string, deviceToken: string, type: "expo" | "fcm" = "expo") =>
+    request<{ ok: boolean }>("/api/notifications/device-token", token, {
+      method: "POST",
+      body: { token: deviceToken, type },
+    }),
 };
