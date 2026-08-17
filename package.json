@@ -12,7 +12,7 @@
     "dev:mobile": "npm run start --workspace mobile",
     "db:migrate": "npm run db:migrate --workspace backend",
     "db:seed": "npm run db:seed --workspace backend",
-    "postinstall": "cd backend && npx prisma generate",
+    "postinstall": "npm run --workspace backend prisma:generate",
     "prestart": "cd backend && npx prisma migrate deploy",
     "start": "cd backend && npx tsx src/index.ts"
   },
