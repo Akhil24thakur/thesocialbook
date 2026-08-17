@@ -79,13 +79,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isExpoGo || Platform.OS === "web") return;
     try {
       const Notifications = require("expo-notifications") as typeof import("expo-notifications");
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "Notifications",
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+        });
+      }
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== "granted") {
         const { status: newStatus } = await Notifications.requestPermissionsAsync();
         if (newStatus !== "granted") return;
       }
-      const deviceToken = (await Notifications.getExpoPushTokenAsync()).data;
-      await api.registerDeviceToken(authToken, deviceToken);
+      if (Platform.OS === "android") {
+        const { data: deviceToken } = await Notifications.getDevicePushTokenAsync();
+        await api.registerDeviceToken(authToken, deviceToken, "fcm");
+      } else {
+        const { data: expoToken } = await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId,
+        });
+        await api.registerDeviceToken(authToken, expoToken, "expo");
+      }
     } catch {
       // Silent fail - push notifications are best effort
     }
