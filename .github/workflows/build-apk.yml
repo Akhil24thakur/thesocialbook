@@ -34,6 +34,16 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: node ${{ github.workspace }}/.github/scripts/configure-signing.mjs
 
+      - name: Debug autolinking
+        working-directory: mobile
+        run: |
+          echo "--- search ---"
+          npx expo-modules-autolinking search --platform android --json | head -c 300
+          echo ""
+          echo "--- resolve ---"
+          npx expo-modules-autolinking resolve --platform android --json >/dev/null
+          echo "autolinking OK"
+
       - name: Build release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --stacktrace
