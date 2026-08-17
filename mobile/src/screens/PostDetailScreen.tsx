@@ -71,7 +71,8 @@ export default function PostDetailScreen({ route }: any) {
   React.useEffect(() => {
     load();
     loadPost();
-  }, [load, loadPost]);
+    if (token) api.markSeen(token, [postId]).catch(() => {});
+  }, [load, loadPost, token, postId]);
 
   const send = async () => {
     const content = draft.trim();

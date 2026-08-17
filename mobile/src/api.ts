@@ -17,13 +17,20 @@ const REQUEST_TIMEOUT_MS = 15000;
 async function request<T>(
   path: string,
   token: string | null,
-  options: { method?: string; body?: unknown } = {}
+  options: { method?: string; body?: unknown; params?: Record<string, string | number | undefined> } = {}
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    const query = options.params
+      ? "?" +
+        Object.entries(options.params)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+          .join("&")
+      : "";
+    res = await fetch(`${API_URL}${path}${query}`, {
       method: options.method ?? "GET",
       headers: {
         "Content-Type": "application/json",
@@ -116,7 +123,15 @@ export const api = {
     token: string,
     body: { name?: string; username?: string; bio?: string; avatarUrl?: string | null; email?: string | null }
   ) => request<{ user: ApiUser }>("/api/auth/me", token, { method: "PATCH", body }),
-  feed: (token: string) => request<{ posts: Post[] }>("/api/posts/feed", token),
+  feed: (token: string, params?: { seed?: number; offset?: number; limit?: number }) =>
+    request<{ posts: Post[]; total: number; seed: number }>(`/api/posts/feed`, token, {
+      params,
+    }),
+  markSeen: (token: string, postIds: number[]) =>
+    request<{ ok: boolean }>(`/api/posts/seen`, token, {
+      method: "POST",
+      body: { postIds },
+    }),
   createPost: (token: string, body: { content: string; imageUrl?: string }) =>
     request<{ post: Post }>("/api/posts", token, { method: "POST", body }),
   deletePost: (token: string, id: number) =>

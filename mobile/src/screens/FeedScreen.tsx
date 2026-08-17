@@ -1,11 +1,13 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
   View,
   Text,
+  type ViewToken,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { api } from "../api";
@@ -20,6 +22,12 @@ import { storyGroupsFromApi } from "../data/stories";
 import { colors } from "../theme";
 import type { Post, StoryItem } from "../types";
 
+const FEED_PAGE_SIZE = 15;
+
+function newSeed() {
+  return Math.floor(Math.random() * 2147483647) + 1;
+}
+
 export default function FeedScreen() {
   const { token, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -28,14 +36,24 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<FeedTab>("foryou");
+  const seedRef = useRef(newSeed());
+  const [hasMore, setHasMore] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const seenRef = useRef(new Set<number>());
+  const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(
     async (refresh = false) => {
       if (!token) return;
       refresh ? setRefreshing(true) : setLoading(true);
       try {
-        const [feedRes, storiesRes] = await Promise.all([api.feed(token), api.stories(token)]);
+        if (refresh) seedRef.current = newSeed();
+        const [feedRes, storiesRes] = await Promise.all([
+          api.feed(token, { seed: seedRef.current, offset: 0, limit: FEED_PAGE_SIZE }),
+          api.stories(token),
+        ]);
         setPosts(feedRes.posts);
+        setHasMore(feedRes.total > feedRes.posts.length);
         setStoryItems(storiesRes.stories);
         setError("");
       } catch (e: any) {
@@ -47,6 +65,57 @@ export default function FeedScreen() {
     },
     [token]
   );
+
+  const loadMore = useCallback(async () => {
+    if (!token || loadingMoreRef.current || !hasMore || loading || refreshing) return;
+    loadingMoreRef.current = true;
+    try {
+      const res = await api.feed(token, {
+        seed: seedRef.current,
+        offset: posts.length,
+        limit: FEED_PAGE_SIZE,
+      });
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...res.posts.filter((p) => !seen.has(p.id))];
+      });
+      setHasMore(posts.length + res.posts.length < res.total);
+    } catch {
+      // silent - next scroll retries
+    } finally {
+      loadingMoreRef.current = false;
+    }
+  }, [token, hasMore, loading, refreshing, posts.length]);
+
+  const flushSeen = useCallback(async () => {
+    if (seenTimerRef.current) {
+      clearTimeout(seenTimerRef.current);
+      seenTimerRef.current = null;
+    }
+    if (!seenRef.current.size || !token) return;
+    const ids = [...seenRef.current];
+    seenRef.current = new Set();
+    try {
+      await api.markSeen(token, ids);
+    } catch {
+      // best effort - will re-report next display
+    }
+  }, [token]);
+
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const newlySeen = viewableItems
+        .map((v) => (v.item as Post).id)
+        .filter((id) => !seenRef.current.has(id));
+      if (!newlySeen.length) return;
+      newlySeen.forEach((id) => seenRef.current.add(id));
+      if (seenTimerRef.current) clearTimeout(seenTimerRef.current);
+      seenTimerRef.current = setTimeout(() => flushSeen(), 1500);
+    },
+    [flushSeen]
+  );
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -162,6 +231,15 @@ export default function FeedScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        ListFooterComponent={
+          loadingMoreRef.current ? (
+            <ActivityIndicator style={styles.footer} color={colors.primary} />
+          ) : null
+        }
         ListEmptyComponent={empty}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -181,5 +259,8 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     padding: 16,
+  },
+  footer: {
+    paddingVertical: 16,
   },
 });
