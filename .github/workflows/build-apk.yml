@@ -36,7 +36,7 @@ jobs:
 
       - name: Build release APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload keystore credentials (first run only)
         if: ${{ env.HAS_KEYSTORE == 'false' }}
