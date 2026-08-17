@@ -72,6 +72,7 @@ interface UpdateInfo {
   version: string;
   notes: string;
   apkUrl: string | null;
+  apkSize?: number;
 }
 
 interface DownloadState {
@@ -99,6 +100,7 @@ async function checkForUpdates(setUpdate: (u: UpdateInfo | null) => void) {
         version: latest,
         notes: String(release.body ?? ""),
         apkUrl: apk?.browser_download_url ?? null,
+        apkSize: typeof apk?.size === "number" ? apk.size : undefined,
       });
     } finally {
       clearTimeout(timer);
@@ -350,12 +352,25 @@ export default function App() {
       });
       const file = await task.downloadAsync();
       if (!file) throw new Error("Download failed");
+      if (update.apkSize && file.size < update.apkSize * 0.98) {
+        throw new Error("Download incomplete - try again");
+      }
       setDl({ phase: "installing", progress: 1 });
-      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: file.contentUri,
-        type: "application/vnd.android.package-archive",
-        flags: 1,
-      });
+      try {
+        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+          data: file.contentUri,
+          type: "application/vnd.android.package-archive",
+          flags: 1,
+        });
+      } catch {
+        setDl({
+          phase: "error",
+          progress: 0,
+          message:
+            "Your phone blocked the automatic install. Tap \"Allow installs\" to enable it, or download the APK manually.",
+        });
+        return;
+      }
       setUpdate(null);
       setDl(null);
     } catch (e: any) {
@@ -438,6 +453,13 @@ export default function App() {
                       activeOpacity={0.7}
                     >
                       <Text style={styles.updateBtnGhostText}>Allow installs</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.updateBtn, styles.updateBtnGhost]}
+                      onPress={() => Linking.openURL(RELEASES_PAGE)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.updateBtnGhostText}>Download APK</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.updateBtn, styles.updateBtnPrimary]}
