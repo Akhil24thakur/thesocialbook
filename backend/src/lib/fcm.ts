@@ -1,11 +1,20 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
+import { readFileSync, existsSync } from "node:fs";
 import { prisma } from "./prisma.js";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
+function getServiceAccount(): string | null {
+  const env = process.env.FCM_SERVICE_ACCOUNT;
+  if (env) return env;
+  const file = process.env.FCM_SERVICE_ACCOUNT_FILE ?? "firebase-service-account.json";
+  if (existsSync(file)) return readFileSync(file, "utf8");
+  return null;
+}
+
 function getFcmApp() {
-  const raw = process.env.FCM_SERVICE_ACCOUNT;
+  const raw = getServiceAccount();
   if (!raw) return null;
   if (!getApps().length) {
     initializeApp({ credential: cert(JSON.parse(raw)) });
