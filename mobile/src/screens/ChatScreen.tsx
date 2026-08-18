@@ -19,6 +19,7 @@ import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { colors, formatTime, isOnline } from "../theme";
 import { decryptMessage, encryptMessage, loadOrCreateKeyPair } from "../crypto";
+import { onWsEvent } from "../ws";
 import type { ChatMessage } from "../types";
 
 const CANNOT_DECRYPT = "\u{1F512} This message cannot be decrypted";
@@ -109,9 +110,15 @@ export default function ChatScreen({ route, navigation }: any) {
     useCallback(() => {
       loadMeta();
       loadMessages();
-      const interval = setInterval(() => loadMessages(true), 5000);
-      return () => clearInterval(interval);
-    }, [loadMeta, loadMessages])
+      const interval = setInterval(() => loadMessages(true), 4000);
+      const msgSub = onWsEvent("message", conversationId, () => loadMessages(true));
+      const readSub = onWsEvent("read", conversationId, () => loadMessages(true));
+      return () => {
+        clearInterval(interval);
+        msgSub();
+        readSub();
+      };
+    }, [loadMeta, loadMessages, conversationId])
   );
 
   useEffect(() => {
@@ -147,11 +154,25 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const renderItem = ({ item }: { item: ChatMessage }) => {
     const mine = item.senderId === meIdRef.current;
+    const pending = mine && item.id > 1000000000000;
+    const read = mine && !!item.readAt;
     return (
       <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
         <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
           <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.body}</Text>
-          <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>{formatTime(item.createdAt)}</Text>
+          <View style={styles.bubbleMeta}>
+            <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
+              {formatTime(item.createdAt)}
+            </Text>
+            {mine &&
+              (pending ? (
+                <Icon name="time-outline" size={13} color="rgba(255,255,255,0.6)" />
+              ) : read ? (
+                <Icon name="checkmark-done" size={14} color={colors.primaryLight} />
+              ) : (
+                <Icon name="checkmark" size={14} color="rgba(255,255,255,0.85)" />
+              ))}
+          </View>
         </View>
       </View>
     );
@@ -305,11 +326,16 @@ const styles = StyleSheet.create({
   bubbleTextMine: {
     color: colors.white,
   },
+  bubbleMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 3,
+    alignSelf: "flex-end",
+  },
   bubbleTime: {
     fontSize: 10,
     color: colors.textSecondary,
-    marginTop: 3,
-    alignSelf: "flex-end",
   },
   bubbleTimeMine: {
     color: "rgba(255,255,255,0.75)",

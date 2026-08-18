@@ -15,6 +15,7 @@ import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { colors, formatTime, isOnline } from "../theme";
 import { decryptMessage, loadOrCreateKeyPair } from "../crypto";
+import { onWsEvent } from "../ws";
 import type { Conversation } from "../types";
 
 const LOCK = "\u{1F512}";
@@ -67,7 +68,13 @@ export default function MessagesScreen() {
     useCallback(() => {
       load();
       const interval = setInterval(() => load(), 30000);
-      return () => clearInterval(interval);
+      const msgSub = onWsEvent("message", null, () => load());
+      const readSub = onWsEvent("read", null, () => load());
+      return () => {
+        clearInterval(interval);
+        msgSub();
+        readSub();
+      };
     }, [load])
   );
 

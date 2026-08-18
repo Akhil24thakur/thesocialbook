@@ -1,5 +1,7 @@
+import { createServer } from "node:http";
 import { app } from "./app.js";
 import { prisma } from "./lib/prisma.js";
+import { initWs } from "./lib/ws.js";
 import { STORY_TTL_MS } from "./routes/stories.js";
 
 if (!process.env.JWT_SECRET) {
@@ -9,7 +11,10 @@ if (!process.env.JWT_SECRET) {
 
 const PORT = Number(process.env.PORT ?? 4000);
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = createServer(app);
+initWs(server);
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`TheSocialBook API running on http://0.0.0.0:${PORT}`);
 });
 

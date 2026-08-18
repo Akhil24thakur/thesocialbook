@@ -32,6 +32,7 @@ import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
 import { loadOrCreateKeyPair } from "./src/crypto";
+import { connectWs, onWsEvent } from "./src/ws";
 
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef<any>();
@@ -169,9 +170,13 @@ function HomeTabs() {
     const unsub = navigation.addListener("focus", () => refreshUnread());
     refreshUnread();
     const interval = setInterval(refreshUnread, 45000);
+    const wsSub = onWsEvent("message", null, refreshUnread);
+    const readSub = onWsEvent("read", null, refreshUnread);
     return () => {
       unsub();
       clearInterval(interval);
+      wsSub();
+      readSub();
     };
   }, [navigation, refreshUnread]);
 
@@ -337,10 +342,14 @@ function RootNavigator() {
       .then((kp) => api.registerPublicKey(token, kp.publicKey).catch(() => {}))
       .catch(() => {});
     registerPushToken(token);
+    connectWs(token);
     const sub = Notifications.addPushTokenListener((t) => {
       if (t?.data) api.registerDeviceToken(token, t.data, "expo").catch(() => {});
     });
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+      connectWs(null);
+    };
   }, [user, token, registerPushToken]);
 
   if (loading) {

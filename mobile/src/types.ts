@@ -67,12 +67,19 @@ export interface ChatMessage {
   body: string;
   senderId: number;
   createdAt: string;
+  readAt?: string | null;
 }
 
 export interface Conversation {
   id: number;
   updatedAt: string;
   other: PostAuthor | null;
-  lastMessage: { id: number; body: string; senderId: number; createdAt: string } | null;
+  lastMessage: {
+    id: number;
+    body: string;
+    senderId: number;
+    createdAt: string;
+    readAt?: string | null;
+  } | null;
   unreadCount: number;
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { notifyMessage } from "../lib/notify.js";
+import { broadcastToConversation } from "../lib/ws.js";
 
 const router = Router();
 
@@ -24,7 +25,13 @@ function serialize(conversation: any, meId: number) {
     updatedAt: conversation.updatedAt,
     other: other?.user ?? null,
     lastMessage: last
-      ? { id: last.id, body: last.body, senderId: last.senderId, createdAt: last.createdAt }
+      ? {
+          id: last.id,
+          body: last.body,
+          senderId: last.senderId,
+          createdAt: last.createdAt,
+          readAt: last.readAt,
+        }
       : null,
     unreadCount: member?.unreadCount ?? 0,
   };
@@ -125,8 +132,20 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
     where: { conversationId: id },
     orderBy: { createdAt: "asc" },
     take: 200,
-    select: { id: true, body: true, senderId: true, createdAt: true },
+    select: { id: true, body: true, senderId: true, createdAt: true, readAt: true },
   });
+
+  const incoming = await prisma.message.findMany({
+    where: { conversationId: id, senderId: { not: meId }, readAt: null },
+    select: { id: true },
+  });
+  if (incoming.length) {
+    await prisma.message.updateMany({
+      where: { id: { in: incoming.map((m) => m.id) } },
+      data: { readAt: new Date() },
+    });
+    broadcastToConversation(id, "read", { messageIds: incoming.map((m) => m.id) });
+  }
 
   await prisma.conversationMember.updateMany({
     where: { conversationId: id, userId: meId, unreadCount: { gt: 0 } },
@@ -151,7 +170,7 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
 
   const message = await prisma.message.create({
     data: { conversationId: id, senderId: meId, body: parsed.data.body },
-    select: { id: true, body: true, senderId: true, createdAt: true },
+    select: { id: true, body: true, senderId: true, createdAt: true, readAt: true },
   });
 
   const otherMember = conversation.members.find((m) => m.userId !== meId);
@@ -170,6 +189,8 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
     });
     await notifyMessage(otherMember.userId, meId, id, parsed.data.body);
   }
+
+  broadcastToConversation(id, "message", { message });
 
   return res.json({ message });
 });
