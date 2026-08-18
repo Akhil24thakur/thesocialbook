@@ -202,4 +202,6 @@ export const api = {
       body: { body },
     }),
   conversationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/conversations/unread-count", token),
+  searchUsers: (token: string, query: string) =>
+    request<{ users: ApiUser[] }>("/api/users/search?q=" + encodeURIComponent(query), token),
 };

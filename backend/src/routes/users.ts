@@ -75,6 +75,31 @@ router.get("/:id", requireAuth, async (req, res) => {
   return res.json({ user: serialize(user) });
 });
 
+router.get("/search", requireAuth, async (req, res) => {
+  const { q } = req.query;
+  if (!q || typeof q !== "string" || q.trim().length === 0) {
+    return res.status(400).json({ error: "Search query required" });
+  }
+  const searchLower = q.trim().toLowerCase();
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { name: { contains: searchLower, mode: "insensitive" } },
+        { username: { contains: searchLower, mode: "insensitive" } },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      avatarUrl: true,
+      isVerified: true,
+    },
+    take: 20,
+  });
+  return res.json({ users: users.map(serialize) });
+});
+
 router.post("/:id/follow", requireAuth, async (req, res) => {
   const me = (req as AuthedRequest).userId;
   const targetId = Number(req.params.id);

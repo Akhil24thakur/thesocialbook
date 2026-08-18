@@ -18,6 +18,7 @@ import TopAppBar from "./src/components/home/TopAppBar";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 import FeedScreen from "./src/screens/FeedScreen";
+import SearchScreen from "./src/screens/SearchScreen";
 import CreatePostScreen from "./src/screens/CreatePostScreen";
 import PostDetailScreen from "./src/screens/PostDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
@@ -288,6 +289,16 @@ function HomeTabs() {
             headerTitle: "My Profile",
             tabBarIcon: ({ focused, color }) => (
               <Icon name={focused ? "person" : "person-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Search"
+          component={SearchScreen}
+          options={{
+            tabBarLabel: "Search",
+            tabBarIcon: ({ focused, color }) => (
+              <Icon name={focused ? "search" : "search"} size={24} color={color} />
             ),
           }}
         />
