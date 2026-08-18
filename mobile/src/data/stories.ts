@@ -17,6 +17,7 @@ export function storyGroupsFromApi(stories: StoryItem[]): StoryGroup[] {
     groups.push({
       name: first.author.name,
       avatarUrl: first.author.avatarUrl,
+      userId: first.author.id,
       stories: list.map((s) => ({
         id: s.id,
         name: first.author.name,
@@ -39,6 +40,7 @@ export function storyGroupsFromPosts(posts: Post[], cap = 9, excludeUserId?: num
     groups.push({
       name: p.author.name,
       avatarUrl: p.author.avatarUrl,
+      userId: p.author.id,
       stories: [
         { name: p.author.name, content: p.content, imageUrl: p.imageUrl, createdAt: p.createdAt },
       ],

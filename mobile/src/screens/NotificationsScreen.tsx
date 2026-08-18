@@ -9,7 +9,7 @@ import { colors, formatTime } from "../theme";
 import { setPendingPush } from "../pushBadge";
 import type { Notification } from "../types";
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen({ navigation }: any) {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,27 +75,41 @@ export default function NotificationsScreen() {
           !item.read && styles.unread,
         ]}
         onPress={() => {
-          // TODO: Navigate to post/user
+          if (item.post) {
+            navigation.navigate("PostDetail", { postId: item.post.id });
+          } else {
+            navigation.navigate("UserProfile", { userId: item.actor.id });
+          }
         }}
       >
-        <View style={styles.iconWrap}>
-          <View
-            style={[
-              styles.iconBg,
-              { backgroundColor: typeColors[item.type] + "20" },
-            ]}
-          >
-            <Icon
-              name={typeIcons[item.type]}
-              size={20}
-              color={typeColors[item.type]}
-            />
+        <TouchableOpacity
+          onPress={() => navigation.navigate("UserProfile", { userId: item.actor.id })}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconWrap}>
+            <View
+              style={[
+                styles.iconBg,
+                { backgroundColor: typeColors[item.type] + "20" },
+              ]}
+            >
+              <Icon
+                name={typeIcons[item.type]}
+                size={20}
+                color={typeColors[item.type]}
+              />
+            </View>
+            {!item.read && <View style={styles.unreadDot} />}
           </View>
-          {!item.read && <View style={styles.unreadDot} />}
-        </View>
+        </TouchableOpacity>
         <View style={styles.rowBody}>
           <Text style={styles.rowTitle}>
-            <Text style={styles.strong}>{item.actor.name}</Text>{" "}
+            <Text
+              style={styles.strong}
+              onPress={() => navigation.navigate("UserProfile", { userId: item.actor.id })}
+            >
+              {item.actor.name}
+            </Text>{" "}
             {typeText[item.type] ?? "posted something new"}
           </Text>
           {item.post && (
