@@ -254,7 +254,7 @@ function HomeTabs() {
                 onMenu={() => setMenuOpen(true)}
                 onNotify={() => navigation.navigate("Notifications")}
                 onNewPost={() => navigation.navigate("CreatePost", {})}
-                unreadCount={dotUnread ? 1 : 0}
+                unreadCount={unreadCount}
               />
             ),
             tabBarLabel: "Home",
