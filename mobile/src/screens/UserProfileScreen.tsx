@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
+import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
 import { colors, isOnline } from "../theme";
 import type { ApiUser, Post } from "../types";
@@ -19,6 +20,7 @@ import type { ApiUser, Post } from "../types";
 export default function UserProfileScreen({ route }: any) {
   const { userId } = route.params;
   const { token, user: me } = useAuth();
+  const navigation = useNavigation<any>();
   const [user, setUser] = useState<ApiUser | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,22 +148,50 @@ export default function UserProfileScreen({ route }: any) {
           </View>
         </View>
         {!isMe && (
-          <TouchableOpacity
-            style={[styles.followBtn, user.followedByMe ? styles.followingBtn : styles.followBtnActive]}
-            onPress={toggleFollow}
-            disabled={followBusy}
-            accessibilityLabel={user.followedByMe ? "Unfollow" : "Follow"}
-          >
-            {followBusy ? (
-              <ActivityIndicator size="small" color={user.followedByMe ? colors.text : colors.white} />
-            ) : (
-              <Text
-                style={[styles.followBtnText, user.followedByMe && styles.followingBtnText]}
+          <View style={styles.actionsRow}>
+            {user.followedByMe && (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.messageBtn]}
+                onPress={async () => {
+                  if (!token) return;
+                  try {
+                    const res = await api.getOrCreateConversation(token, userId);
+                    navigation.navigate("Chat", {
+                      conversationId: res.conversation.id,
+                      name: user.name,
+                      avatarUrl: user.avatarUrl,
+                      otherId: user.id,
+                    });
+                  } catch (e: any) {
+                    Alert.alert("Error", e?.message ?? "Could not start conversation");
+                  }
+                }}
+                accessibilityLabel="Message"
               >
-                {user.followedByMe ? "Following" : "Follow"}
-              </Text>
+                <Icon name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+                <Text style={styles.messageBtnText}>Message</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                user.followedByMe ? styles.followingBtn : styles.followBtnActive,
+              ]}
+              onPress={toggleFollow}
+              disabled={followBusy}
+              accessibilityLabel={user.followedByMe ? "Unfollow" : "Follow"}
+            >
+              {followBusy ? (
+                <ActivityIndicator size="small" color={user.followedByMe ? colors.text : colors.white} />
+              ) : (
+                <Text
+                  style={[styles.followBtnText, user.followedByMe && styles.followingBtnText]}
+                >
+                  {user.followedByMe ? "Following" : "Follow"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -244,11 +274,29 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginLeft: 4,
   },
-  followBtn: {
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
     marginTop: 14,
+  },
+  actionBtn: {
+    flex: 1,
     paddingVertical: 11,
     borderRadius: 24,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  messageBtn: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
+  },
+  messageBtnText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: "700",
   },
   followBtnActive: {
     backgroundColor: colors.primary,

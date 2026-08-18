@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -26,12 +26,14 @@ import Constants from "expo-constants";
 import ChangePasswordScreen from "./src/screens/ChangePasswordScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import MessagesScreen from "./src/screens/MessagesScreen";
+import ChatScreen from "./src/screens/ChatScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
 
 const Stack = createNativeStackNavigator();
+const navigationRef = createNavigationContainerRef<any>();
 
 const Notifications = require("expo-notifications") as typeof import("expo-notifications");
 
@@ -53,6 +55,26 @@ if (Platform.OS === "android") {
 }
 
 Notifications.addNotificationReceivedListener(() => setPendingPush(true));
+
+function PushTapNavigator() {
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
+      const data = resp.notification.request.content.data ?? {};
+      if (!navigationRef.isReady()) return;
+      if (data.type === "message" && data.conversationId) {
+        navigationRef.navigate("Chat", {
+          conversationId: Number(data.conversationId),
+        });
+      } else if (data.type === "post" && data.postId) {
+        navigationRef.navigate("PostDetail", { postId: Number(data.postId) });
+      } else {
+        setPendingPush(true);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+  return null;
+}
 
 const RELEASES_URL = "https://api.github.com/repos/Akhil24thakur/thesocialbook/releases/latest";
 const RELEASES_PAGE = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";
@@ -119,6 +141,7 @@ function HomeTabs() {
   const [createOpen, setCreateOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [chatUnread, setChatUnread] = useState(0);
   const pendingPush = usePendingPush();
   const navigation = useNavigation<any>();
   const { logout, token } = useAuth();
@@ -126,10 +149,14 @@ function HomeTabs() {
   const refreshUnread = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await api.notificationsUnreadCount(token);
-      setUnreadCount(res.unreadCount ?? 0);
+      const [notifRes, chatRes] = await Promise.all([
+        api.notificationsUnreadCount(token),
+        api.conversationsUnreadCount(token),
+      ]);
+      setUnreadCount(notifRes.unreadCount ?? 0);
+      setChatUnread(chatRes.unreadCount ?? 0);
     } catch {
-      // Silent - bell badge is best effort
+      // Silent - badges are best effort
     }
   }, [token]);
 
@@ -233,6 +260,8 @@ function HomeTabs() {
           name="Messages"
           component={MessagesScreen}
           options={{
+            tabBarBadge: chatUnread > 0 ? (chatUnread > 99 ? "99+" : chatUnread) : undefined,
+            tabBarBadgeStyle: styles.tabBadge,
             tabBarIcon: ({ focused, color }) => (
               <Icon name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={24} color={color} />
             ),
@@ -319,6 +348,7 @@ function RootNavigator() {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
           <Stack.Screen name="Stories" component={StoriesScreen} options={{ title: "Stories" }} />
+          <Stack.Screen name="Chat" component={ChatScreen} options={{ title: "Chat" }} />
         </>
       )}
     </Stack.Navigator>
@@ -408,10 +438,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <RootNavigator />
         </NavigationContainer>
         <StatusBar style="auto" />
+        <PushTapNavigator />
       </AuthProvider>
       {update && (
         <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>
@@ -525,6 +556,10 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     backgroundColor: colors.card,
+  },
+  tabBadge: {
+    backgroundColor: colors.primary,
+    fontSize: 10,
   },
   createSlot: {
     flex: 1,

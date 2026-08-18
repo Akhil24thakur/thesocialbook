@@ -34,9 +34,13 @@ async function deleteTokens(tokens: string[]) {
 async function sendToTokens(
   fcmTokens: string[],
   expoTokens: string[],
-  payload: { title: string; body: string; type: string; postId?: number }
+  payload: { title: string; body: string; type: string; postId?: number; conversationId?: number }
 ) {
-  const data = { type: payload.type, postId: String(payload.postId ?? "") };
+  const data = {
+    type: payload.type,
+    postId: String(payload.postId ?? ""),
+    conversationId: String(payload.conversationId ?? ""),
+  };
 
   if (fcmTokens.length) {
     try {
@@ -89,7 +93,7 @@ async function sendToTokens(
 
 export async function sendPush(
   recipientId: number,
-  payload: { title: string; body: string; type: string; postId?: number }
+  payload: { title: string; body: string; type: string; postId?: number; conversationId?: number }
 ) {
   const tokens = await prisma.deviceToken.findMany({
     where: { userId: recipientId },
@@ -104,7 +108,7 @@ export async function sendPush(
 
 export async function sendBroadcast(
   excludeUserId: number,
-  payload: { title: string; body: string; type: string; postId?: number }
+  payload: { title: string; body: string; type: string; postId?: number; conversationId?: number }
 ) {
   const tokens = await prisma.deviceToken.findMany({
     select: { token: true, type: true, userId: true },

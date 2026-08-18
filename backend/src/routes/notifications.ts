@@ -12,6 +12,8 @@ const notificationSelect = {
   createdAt: true,
   actor: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
   post: { select: { id: true, content: true, imageUrl: true } },
+  conversation: { select: { id: true } },
+  messageBody: true,
 } as const;
 
 router.get("/", requireAuth, async (req, res) => {

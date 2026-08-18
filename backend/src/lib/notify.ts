@@ -20,6 +20,42 @@ const MESSAGES = {
   }),
 } as const;
 
+export async function notifyMessage(
+  recipientId: number,
+  actorId: number,
+  conversationId: number,
+  messageBody: string
+) {
+  if (recipientId === actorId) return;
+
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: recipientId,
+        actorId,
+        type: "message",
+        conversationId,
+        messageBody,
+      },
+    });
+  } catch {
+    return;
+  }
+
+  try {
+    const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
+    const name = actor?.name ?? "Someone";
+    await sendPush(recipientId, {
+      title: name,
+      body: messageBody,
+      type: "message",
+      conversationId,
+    });
+  } catch {
+    // Push delivery is best-effort
+  }
+}
+
 export async function notify(
   recipientId: number,
   actorId: number,

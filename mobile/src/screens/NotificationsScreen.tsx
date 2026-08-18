@@ -52,6 +52,7 @@ export default function NotificationsScreen({ navigation }: any) {
       reply: "arrow-undo-outline",
       follow: "person-add-outline",
       post: "megaphone-outline",
+      message: "chatbubble-ellipses-outline",
     };
     const typeColors: Record<string, string> = {
       like: colors.danger,
@@ -59,6 +60,7 @@ export default function NotificationsScreen({ navigation }: any) {
       reply: colors.primary,
       follow: colors.green,
       post: colors.amber,
+      message: colors.primary,
     };
     const typeText: Record<string, string> = {
       like: "liked your post",
@@ -66,7 +68,10 @@ export default function NotificationsScreen({ navigation }: any) {
       reply: "replied to your comment",
       follow: "started following you",
       post: "posted something new",
+      message: "sent you a message",
     };
+
+    const isMessage = item.type === "message";
 
     return (
       <TouchableOpacity
@@ -75,7 +80,14 @@ export default function NotificationsScreen({ navigation }: any) {
           !item.read && styles.unread,
         ]}
         onPress={() => {
-          if (item.post) {
+          if (item.conversation) {
+            navigation.navigate("Chat", {
+              conversationId: item.conversation.id,
+              name: item.actor.name,
+              avatarUrl: item.actor.avatarUrl,
+              otherId: item.actor.id,
+            });
+          } else if (item.post) {
             navigation.navigate("PostDetail", { postId: item.post.id });
           } else {
             navigation.navigate("UserProfile", { userId: item.actor.id });
@@ -112,12 +124,35 @@ export default function NotificationsScreen({ navigation }: any) {
             </Text>{" "}
             {typeText[item.type] ?? "posted something new"}
           </Text>
-          {item.post && (
+          {item.messageBody ? (
             <Text style={styles.rowPreview} numberOfLines={2}>
-              {item.post.content ?? "Shared a photo"}
+              {item.messageBody}
             </Text>
+          ) : (
+            item.post && (
+              <Text style={styles.rowPreview} numberOfLines={2}>
+                {item.post.content ?? "Shared a photo"}
+              </Text>
+            )
           )}
           <Text style={styles.time}>{formatTime(item.createdAt)}</Text>
+          {isMessage && item.conversation && (
+            <TouchableOpacity
+              style={styles.replyBtn}
+              activeOpacity={0.7}
+              onPress={() =>
+                navigation.navigate("Chat", {
+                  conversationId: item.conversation!.id,
+                  name: item.actor.name,
+                  avatarUrl: item.actor.avatarUrl,
+                  otherId: item.actor.id,
+                })
+              }
+            >
+              <Icon name="arrow-undo-outline" size={15} color={colors.white} />
+              <Text style={styles.replyBtnText}>Reply</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -227,6 +262,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  replyBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  replyBtnText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
   empty: {
     alignItems: "center",

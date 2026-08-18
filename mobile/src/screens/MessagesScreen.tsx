@@ -1,18 +1,121 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { api } from "../api";
+import { useAuth } from "../auth/AuthContext";
+import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
-import { colors } from "../theme";
+import { colors, formatTime, isOnline } from "../theme";
+import type { Conversation } from "../types";
 
 export default function MessagesScreen() {
+  const { token } = useAuth();
+  const navigation = useNavigation<any>();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(
+    async (refresh = false) => {
+      if (!token) return;
+      if (refresh) setRefreshing(true);
+      try {
+        const res = await api.conversations(token);
+        setConversations(res.conversations);
+      } catch {
+        // silent fail
+      } finally {
+        setRefreshing(false);
+        setLoading(false);
+      }
+    },
+    [token]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      const interval = setInterval(() => load(), 30000);
+      return () => clearInterval(interval);
+    }, [load])
+  );
+
+  const renderItem = ({ item }: { item: Conversation }) => {
+    const other = item.other;
+    return (
+      <TouchableOpacity
+        style={styles.row}
+        activeOpacity={0.7}
+        onPress={() =>
+          navigation.navigate("Chat", {
+            conversationId: item.id,
+            name: other?.name,
+            avatarUrl: other?.avatarUrl,
+          })
+        }
+      >
+        <View style={styles.avatarWrap}>
+          <Avatar name={other?.name ?? "?"} size={52} imageUrl={other?.avatarUrl} online={isOnline(other?.lastSeenAt)} />
+          {item.unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.unreadCount > 99 ? "99+" : item.unreadCount}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.rowBody}>
+          <Text style={styles.name} numberOfLines={1}>
+            {other?.name ?? "Unknown"}
+          </Text>
+          <Text
+            style={[styles.preview, item.unreadCount > 0 && styles.previewUnread]}
+            numberOfLines={1}
+          >
+            {item.lastMessage?.body ?? "Say hello!"}
+          </Text>
+        </View>
+        <Text style={styles.time}>{item.lastMessage ? formatTime(item.lastMessage.createdAt) : ""}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Icon name="chatbubble-ellipses-outline" size={36} color={colors.primary} />
-      </View>
-      <Text style={styles.title}>No messages yet</Text>
-      <Text style={styles.subtitle}>
-        Start a conversation with a friend and it will show up here.
-      </Text>
+      <FlatList
+        data={conversations}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Icon name="chatbubble-ellipses-outline" size={32} color={colors.textSecondary} />
+            </View>
+            <Text style={styles.emptyTitle}>No messages yet</Text>
+            <Text style={styles.emptySub}>
+              Open a user's profile, tap Message, and the conversation will show up here.
+            </Text>
+          </View>
+        }
+        contentContainerStyle={styles.list}
+      />
     </View>
   );
 }
@@ -21,28 +124,91 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  center: {
+    flex: 1,
+    backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
+  },
+  list: {
+    padding: 16,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+    gap: 12,
+  },
+  avatarWrap: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: colors.card,
+  },
+  badgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  rowBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  name: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.text,
+  },
+  preview: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  previewUnread: {
+    color: colors.text,
+    fontWeight: "600",
+  },
+  time: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    alignSelf: "flex-start",
+  },
+  empty: {
+    alignItems: "center",
     padding: 40,
   },
-  iconCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.primaryLight,
+  emptyIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "#E8EBF1",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  title: {
-    fontSize: 18,
+  emptyTitle: {
+    fontSize: 17,
     fontWeight: "700",
     color: colors.text,
     marginBottom: 6,
   },
-  subtitle: {
+  emptySub: {
     fontSize: 14,
-    lineHeight: 20,
     color: colors.textSecondary,
     textAlign: "center",
   },

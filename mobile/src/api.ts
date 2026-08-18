@@ -2,7 +2,7 @@ import { File } from "expo-file-system";
 import { Image, Platform } from "react-native";
 import * as ImageManipulator from "expo-image-manipulator";
 import { API_URL } from "./config";
-import type { ApiUser, Comment, Post, StoryItem, Notification } from "./types";
+import type { ApiUser, ChatMessage, Comment, Conversation, Post, StoryItem, Notification } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -183,4 +183,21 @@ export const api = {
       method: "POST",
       body: { token: deviceToken, type },
     }),
+  getOrCreateConversation: (token: string, userId: number) =>
+    request<{ conversation: Conversation }>("/api/conversations", token, {
+      method: "POST",
+      body: { userId },
+    }),
+  conversations: (token: string) =>
+    request<{ conversations: Conversation[] }>("/api/conversations", token),
+  conversation: (token: string, id: number) =>
+    request<{ conversation: Conversation }>(`/api/conversations/${id}`, token),
+  conversationMessages: (token: string, id: number) =>
+    request<{ messages: ChatMessage[] }>(`/api/conversations/${id}/messages`, token),
+  sendMessage: (token: string, id: number, body: string) =>
+    request<{ message: ChatMessage }>(`/api/conversations/${id}/messages`, token, {
+      method: "POST",
+      body: { body },
+    }),
+  conversationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/conversations/unread-count", token),
 };

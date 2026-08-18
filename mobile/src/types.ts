@@ -52,9 +52,26 @@ export interface StoryItem {
 
 export interface Notification {
   id: number;
-  type: "like" | "comment" | "reply" | "follow";
+  type: "like" | "comment" | "reply" | "follow" | "message";
   read: boolean;
   createdAt: string;
   actor: PostAuthor;
   post?: { id: number; content: string | null; imageUrl: string | null };
+  conversation?: { id: number } | null;
+  messageBody?: string | null;
+}
+
+export interface ChatMessage {
+  id: number;
+  body: string;
+  senderId: number;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: number;
+  updatedAt: string;
+  other: PostAuthor | null;
+  lastMessage: { id: number; body: string; senderId: number; createdAt: string } | null;
+  unreadCount: number;
 }
