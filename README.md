@@ -28,11 +28,3 @@
   </a>
 </p>
 
----
-
-## ✨ What's New
-
-- 🔄 In-app update support
-- 🔔 Improved notifications
-- ⚡ Performance improvements
-- 🐛 Bug fixes and stability improvements
