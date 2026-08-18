@@ -319,7 +319,7 @@ function HomeTabs() {
   );
 }
 
-const registerPushToken = useCallback(async (token: string) => {
+const registerPushToken = async (token: string) => {
   try {
     await new Promise((resolve) => setTimeout(resolve, 4000));
     const perms = await Notifications.requestPermissionsAsync();
@@ -333,7 +333,7 @@ const registerPushToken = useCallback(async (token: string) => {
   } catch (e) {
     reportCrash("registerPushToken failed", String((e as Error)?.stack ?? e));
   }
-}, []);
+};
 
 function RootNavigator() {
   const { user, token, loading } = useAuth();
