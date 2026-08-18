@@ -1,8 +1,10 @@
 # TheSocialBook
 
-
 ## 📱 Download App
 
-[![Download APK](https://img.shields.io/badge/APK%20v1.3.2-Download-d73a49?style=for-the-badge&logo=android)](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
+[<img src="https://img.shields.io/badge/📱%20DOWNLOAD%20LATEST%20APK-d73a49?style=for-the-badge&logo=android&logoColor=white" width="350">](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
 
-**[Get the Latest APK →](https://github.com/Akhil24thakur/thesocialbook/releases/latest)**
+### 🔄 Latest Version
+**v1.3.5**
+
+[Get the Latest APK →](https://github.com/Akhil24thakur/thesocialbook/releases/latest)
