@@ -175,6 +175,8 @@ export const api = {
   notifications: (token: string) => request<{ notifications: Notification[] }>("/api/notifications", token),
   reportVersion: (token: string, version: string) =>
     request<{ ok: boolean }>("/api/me/version", token, { method: "PUT", body: { version } }),
+  registerPublicKey: (token: string, publicKey: string) =>
+    request<{ ok: boolean }>("/api/me/public-key", token, { method: "PUT", body: { publicKey } }),
   notificationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/notifications/unread-count", token),
   notificationsMarkRead: (token: string) =>
     request<{ ok: boolean }>("/api/notifications/read", token, { method: "PATCH" }),

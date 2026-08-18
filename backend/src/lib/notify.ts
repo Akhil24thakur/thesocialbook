@@ -24,7 +24,7 @@ export async function notifyMessage(
   recipientId: number,
   actorId: number,
   conversationId: number,
-  messageBody: string
+  _messageBody: string
 ) {
   if (recipientId === actorId) return;
 
@@ -35,7 +35,6 @@ export async function notifyMessage(
         actorId,
         type: "message",
         conversationId,
-        messageBody,
       },
     });
   } catch {
@@ -47,7 +46,7 @@ export async function notifyMessage(
     const name = actor?.name ?? "Someone";
     await sendPush(recipientId, {
       title: name,
-      body: messageBody,
+      body: "Sent you a message",
       type: "message",
       conversationId,
     });

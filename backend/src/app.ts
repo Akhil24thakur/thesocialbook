@@ -6,7 +6,7 @@ import userRoutes from "./routes/users.js";
 import storyRoutes from "./routes/stories.js";
 import notificationRoutes from "./routes/notifications.js";
 import conversationRoutes from "./routes/conversations.js";
-import { meVersionHandler } from "./routes/users.js";
+import { meVersionHandler, mePublicKeyHandler } from "./routes/users.js";
 import uploadRoutes from "./routes/upload.js";
 import { requireAuth } from "./middleware/auth.js";
 
@@ -26,6 +26,7 @@ app.use("/api/stories", storyRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.put("/api/me/version", requireAuth, meVersionHandler);
+app.put("/api/me/public-key", requireAuth, mePublicKeyHandler);
 app.use("/api/upload", uploadRoutes);
 
 app.use((_req, res) => {

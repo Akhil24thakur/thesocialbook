@@ -12,6 +12,7 @@ const otherUserSelect = {
   username: true,
   avatarUrl: true,
   lastSeenAt: true,
+  publicKey: true,
 } as const;
 
 function serialize(conversation: any, meId: number) {

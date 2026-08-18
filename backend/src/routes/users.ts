@@ -43,6 +43,20 @@ export const meVersionHandler = async (req: Request, res: Response) => {
   return res.json({ ok: true });
 };
 
+export const mePublicKeyHandler = async (req: Request, res: Response) => {
+  const publicKey = String(req.body?.publicKey ?? "").trim();
+  if (!publicKey || publicKey.length > 200) {
+    return res.status(400).json({ error: "Invalid public key" });
+  }
+  await prisma.user.update({
+    where: { id: (req as AuthedRequest).userId },
+    data: { publicKey },
+  });
+  return res.json({ ok: true });
+};
+
+router.put("/me/public-key", requireAuth, mePublicKeyHandler);
+
 router.put("/me/version", requireAuth, meVersionHandler);
 
 router.get("/:id", requireAuth, async (req, res) => {

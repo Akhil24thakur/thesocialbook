@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,7 +14,10 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { colors, formatTime, isOnline } from "../theme";
+import { decryptMessage, loadOrCreateKeyPair } from "../crypto";
 import type { Conversation } from "../types";
+
+const LOCK = "\u{1F512}";
 
 export default function MessagesScreen() {
   const { token } = useAuth();
@@ -22,6 +25,26 @@ export default function MessagesScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
+
+  useEffect(() => {
+    loadOrCreateKeyPair()
+      .then((kp) => {
+        myKeysRef.current = kp;
+      })
+      .catch(() => {});
+  }, []);
+
+  const previewText = (c: Conversation): string => {
+    const last = c.lastMessage;
+    if (!last) return "Say hello!";
+    if (!last.body.startsWith("enc:v1:")) return last.body;
+    const kp = myKeysRef.current;
+    const theirKey = c.other?.publicKey;
+    if (!kp || !theirKey) return `${LOCK} Encrypted message`;
+    const plain = decryptMessage(last.body, kp.privateKey, theirKey);
+    return plain ?? `${LOCK} Encrypted message`;
+  };
 
   const load = useCallback(
     async (refresh = false) => {
@@ -78,7 +101,7 @@ export default function MessagesScreen() {
             style={[styles.preview, item.unreadCount > 0 && styles.previewUnread]}
             numberOfLines={1}
           >
-            {item.lastMessage?.body ?? "Say hello!"}
+            {previewText(item)}
           </Text>
         </View>
         <Text style={styles.time}>{item.lastMessage ? formatTime(item.lastMessage.createdAt) : ""}</Text>

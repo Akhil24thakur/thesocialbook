@@ -17,13 +17,22 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { colors, formatTime, isOnline } from "../theme";
+import { decryptMessage, encryptMessage, loadOrCreateKeyPair } from "../crypto";
 import type { ChatMessage } from "../types";
+
+const CANNOT_DECRYPT = "\u{1F512} This message cannot be decrypted";
 
 export default function ChatScreen({ route, navigation }: any) {
   const { conversationId, name: initialName, avatarUrl: initialAvatar, otherId: initialOtherId } = route.params ?? {};
   const { token } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [other, setOther] = useState<{ id: number; name: string; avatarUrl: string | null; lastSeenAt?: string | null } | null>(
+  const [other, setOther] = useState<{
+    id: number;
+    name: string;
+    avatarUrl: string | null;
+    lastSeenAt?: string | null;
+    publicKey?: string | null;
+  } | null>(
     initialOtherId || initialName ? { id: initialOtherId ?? 0, name: initialName ?? "", avatarUrl: initialAvatar ?? null } : null
   );
   const [loading, setLoading] = useState(true);
@@ -31,11 +40,17 @@ export default function ChatScreen({ route, navigation }: any) {
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList>(null);
   const meIdRef = useRef<number | null>(null);
+  const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
 
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", () => {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
     });
+    loadOrCreateKeyPair()
+      .then((kp) => {
+        myKeysRef.current = kp;
+      })
+      .catch(() => {});
     return () => show.remove();
   }, []);
 
@@ -47,26 +62,45 @@ export default function ChatScreen({ route, navigation }: any) {
     try {
       const res = await api.conversation(token, conversationId);
       const o = res.conversation.other;
-      if (o) setOther({ id: o.id, name: o.name, avatarUrl: o.avatarUrl, lastSeenAt: o.lastSeenAt });
+      if (o)
+        setOther({
+          id: o.id,
+          name: o.name,
+          avatarUrl: o.avatarUrl,
+          lastSeenAt: o.lastSeenAt,
+          publicKey: o.publicKey,
+        });
       navigation.setOptions({ title: o?.name ?? "Chat" });
     } catch {
       // header already set from params
     }
   }, [token, conversationId, navigation]);
 
+  const decryptMessageBody = useCallback(
+    (raw: string): string => {
+      if (!raw.startsWith("enc:v1:")) return raw;
+      const kp = myKeysRef.current;
+      const theirKey = other?.publicKey;
+      if (!kp || !theirKey) return CANNOT_DECRYPT;
+      const plain = decryptMessage(raw, kp.privateKey, theirKey);
+      return plain ?? CANNOT_DECRYPT;
+    },
+    [other?.publicKey]
+  );
+
   const loadMessages = useCallback(
     async (silent = false) => {
       if (!token) return;
       try {
         const res = await api.conversationMessages(token, conversationId);
-        setMessages(res.messages);
+        setMessages(res.messages.map((m) => ({ ...m, body: decryptMessageBody(m.body) })));
       } catch {
         // silent fail
       } finally {
         setLoading(false);
       }
     },
-    [token, conversationId]
+    [token, conversationId, decryptMessageBody]
   );
 
   useFocusEffect(
@@ -86,6 +120,9 @@ export default function ChatScreen({ route, navigation }: any) {
     const body = text.trim();
     if (!body || !token || sending) return;
     setSending(true);
+    const kp = myKeysRef.current;
+    const payload =
+      kp && other?.publicKey ? encryptMessage(body, kp.privateKey, other.publicKey) : body;
     const optimistic: ChatMessage = {
       id: Date.now(),
       body,
@@ -96,15 +133,15 @@ export default function ChatScreen({ route, navigation }: any) {
     setText("");
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
     try {
-      const res = await api.sendMessage(token, conversationId, body);
-      setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? res.message : m)));
+      const res = await api.sendMessage(token, conversationId, payload);
+      setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? { ...res.message, body } : m)));
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setText(body);
     } finally {
       setSending(false);
     }
-  }, [text, token, sending, conversationId]);
+  }, [text, token, sending, conversationId, other?.publicKey]);
 
   const renderItem = ({ item }: { item: ChatMessage }) => {
     const mine = item.senderId === meIdRef.current;

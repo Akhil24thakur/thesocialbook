@@ -31,6 +31,7 @@ import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
+import { loadOrCreateKeyPair } from "./src/crypto";
 
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef<any>();
@@ -316,8 +317,10 @@ function RootNavigator() {
   useEffect(() => {
     if (!user || !token) return;
     const version = Constants.expoConfig?.version;
-    if (!version) return;
-    api.reportVersion(token, version).catch(() => {});
+    if (version) api.reportVersion(token, version).catch(() => {});
+    loadOrCreateKeyPair()
+      .then((kp) => api.registerPublicKey(token, kp.publicKey).catch(() => {}))
+      .catch(() => {});
   }, [user, token]);
 
   if (loading) {

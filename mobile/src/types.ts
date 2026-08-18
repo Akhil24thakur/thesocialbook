@@ -21,6 +21,7 @@ export interface PostAuthor {
   username?: string;
   avatarUrl: string | null;
   lastSeenAt?: string | null;
+  publicKey?: string | null;
 }
 
 export interface Post {
