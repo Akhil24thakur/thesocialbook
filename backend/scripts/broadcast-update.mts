@@ -17,8 +17,7 @@ const expo = tokens.filter((t) => t.type !== "fcm").map((t) => t.token);
 
 const title = "TheSocialBook";
 const body = "New version v1.3.5 is available — update now!";
-const url = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";
-const data = { type: "post", url };
+const data = { type: "post" };
 
 let fcmOk = 0;
 let fcmFail = 0;

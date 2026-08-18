@@ -54,12 +54,6 @@ if (Platform.OS === "android") {
 
 Notifications.addNotificationReceivedListener(() => setPendingPush(true));
 
-Notifications.addNotificationResponseReceivedListener((response) => {
-  const data = response.notification.request.content.data as Record<string, unknown> | undefined;
-  const url = data?.url ? String(data.url) : null;
-  if (url) Linking.openURL(url).catch(() => {});
-});
-
 const RELEASES_URL = "https://api.github.com/repos/Akhil24thakur/thesocialbook/releases/latest";
 const RELEASES_PAGE = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";
 
