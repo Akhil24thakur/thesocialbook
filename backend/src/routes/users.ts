@@ -81,11 +81,13 @@ router.get("/search", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Search query required" });
   }
   const searchLower = q.trim().toLowerCase();
+  const isNumericId = /^\d+$/.test(q.trim());
   const users = await prisma.user.findMany({
     where: {
       OR: [
         { name: { contains: searchLower, mode: "insensitive" } },
         { username: { contains: searchLower, mode: "insensitive" } },
+        ...(isNumericId ? [{ id: parseInt(q.trim(), 10) }] : []),
       ],
     },
     select: {

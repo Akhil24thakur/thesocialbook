@@ -164,9 +164,13 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
+    paddingTop: 16,
     backgroundColor: colors.white,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   input: {
     flex: 1,
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
     right: 16,
     top: "50%",
     transform: [{ translateY: -8 }],
-    opacity: 0,
+    opacity: 1,
   },
   center: {
     flex: 1,
@@ -214,7 +218,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   list: {
-    padding: 8,
+    padding: 16,
+    paddingBottom: 100,
   },
   userRow: {
     flexDirection: "row",
