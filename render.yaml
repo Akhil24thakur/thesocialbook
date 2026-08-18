@@ -7,7 +7,7 @@ services:
     buildCommand: |
       cd backend && npm ci && npx prisma generate
     startCommand: |
-      cd backend && DATABASE_URL="$MIGRATION_DATABASE_URL" npx prisma migrate deploy && npx tsx src/index.ts
+      cd backend && npx prisma migrate deploy && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
@@ -15,7 +15,7 @@ services:
         fromDatabase:
           name: thesocialbook-db
           property: connectionString
-      - key: MIGRATION_DATABASE_URL
+      - key: DIRECT_URL
         fromDatabase:
           name: thesocialbook-db
           property: connectionStringUnpooled
