@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <b>✨ Latest Version: v1.3.4</b>
+  <b>✨ Latest Version: v1.3.5</b>
   <br>
   <sub>Get the latest features, improvements and bug fixes.</sub>
 </p>
@@ -27,4 +27,3 @@
     📥 Download Latest Version
   </a>
 </p>
-
