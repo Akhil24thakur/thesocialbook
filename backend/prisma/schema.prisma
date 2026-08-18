@@ -17,6 +17,7 @@ model User {
   passwordHash String
   bio          String?
   avatarUrl    String?
+  appVersion   String?
   createdAt    DateTime  @default(now())
   posts        Post[]
   stories      Story[]

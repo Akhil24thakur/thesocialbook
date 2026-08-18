@@ -173,6 +173,8 @@ export const api = {
       body: { phone, otp, newPassword },
     }),
   notifications: (token: string) => request<{ notifications: Notification[] }>("/api/notifications", token),
+  reportVersion: (token: string, version: string) =>
+    request<{ ok: boolean }>("/api/me/version", token, { method: "PUT", body: { version } }),
   notificationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/notifications/unread-count", token),
   notificationsMarkRead: (token: string) =>
     request<{ ok: boolean }>("/api/notifications/read", token, { method: "PATCH" }),

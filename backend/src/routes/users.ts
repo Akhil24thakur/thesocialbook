@@ -29,6 +29,18 @@ function serialize(user: any) {
   };
 }
 
+router.put("/me/version", requireAuth, async (req, res) => {
+  const version = String(req.body?.version ?? "").trim();
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    return res.status(400).json({ error: "Invalid version format" });
+  }
+  await prisma.user.update({
+    where: { id: (req as AuthedRequest).userId },
+    data: { appVersion: version },
+  });
+  return res.json({ ok: true });
+});
+
 router.get("/:id", requireAuth, async (req, res) => {
   const me = (req as AuthedRequest).userId;
   const user = await prisma.user.findUnique({
