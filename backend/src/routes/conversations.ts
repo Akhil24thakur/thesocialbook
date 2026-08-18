@@ -43,13 +43,6 @@ router.post("/", requireAuth, async (req, res) => {
   const target = await prisma.user.findUnique({ where: { id: otherId }, select: { id: true } });
   if (!target) return res.status(404).json({ error: "User not found" });
 
-  const follows = await prisma.follow.findUnique({
-    where: { followerId_followingId: { followerId: meId, followingId: otherId } },
-  });
-  if (!follows) {
-    return res.status(403).json({ error: "Follow this user to start a conversation" });
-  }
-
   const existing = await prisma.conversation.findFirst({
     where: {
       members: { every: { userId: { in: [meId, otherId] } } },

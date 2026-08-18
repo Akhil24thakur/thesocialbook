@@ -149,29 +149,27 @@ export default function UserProfileScreen({ route }: any) {
         </View>
         {!isMe && (
           <View style={styles.actionsRow}>
-            {user.followedByMe && (
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.messageBtn]}
-                onPress={async () => {
-                  if (!token) return;
-                  try {
-                    const res = await api.getOrCreateConversation(token, userId);
-                    navigation.navigate("Chat", {
-                      conversationId: res.conversation.id,
-                      name: user.name,
-                      avatarUrl: user.avatarUrl,
-                      otherId: user.id,
-                    });
-                  } catch (e: any) {
-                    Alert.alert("Error", e?.message ?? "Could not start conversation");
-                  }
-                }}
-                accessibilityLabel="Message"
-              >
-                <Icon name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
-                <Text style={styles.messageBtnText}>Message</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.messageBtn]}
+              onPress={async () => {
+                if (!token) return;
+                try {
+                  const res = await api.getOrCreateConversation(token, userId);
+                  navigation.navigate("Chat", {
+                    conversationId: res.conversation.id,
+                    name: user.name,
+                    avatarUrl: user.avatarUrl,
+                    otherId: user.id,
+                  });
+                } catch (e: any) {
+                  Alert.alert("Error", e?.message ?? "Could not start conversation");
+                }
+              }}
+              accessibilityLabel="Message"
+            >
+              <Icon name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+              <Text style={styles.messageBtnText}>Message</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.actionBtn,

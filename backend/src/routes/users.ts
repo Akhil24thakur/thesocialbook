@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
 import { notify } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -30,7 +31,7 @@ function serialize(user: any) {
   };
 }
 
-router.put("/me/version", requireAuth, async (req, res) => {
+export const meVersionHandler = async (req: Request, res: Response) => {
   const version = String(req.body?.version ?? "").trim();
   if (!/^\d+\.\d+\.\d+$/.test(version)) {
     return res.status(400).json({ error: "Invalid version format" });
@@ -40,7 +41,9 @@ router.put("/me/version", requireAuth, async (req, res) => {
     data: { appVersion: version },
   });
   return res.json({ ok: true });
-});
+};
+
+router.put("/me/version", requireAuth, meVersionHandler);
 
 router.get("/:id", requireAuth, async (req, res) => {
   const me = (req as AuthedRequest).userId;
