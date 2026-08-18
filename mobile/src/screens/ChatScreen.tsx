@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -30,6 +31,13 @@ export default function ChatScreen({ route, navigation }: any) {
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList>(null);
   const meIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => {
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+    return () => show.remove();
+  }, []);
 
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
@@ -121,7 +129,7 @@ export default function ChatScreen({ route, navigation }: any) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View style={styles.header}>
@@ -150,6 +158,8 @@ export default function ChatScreen({ route, navigation }: any) {
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -273,29 +283,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 10,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 14,
     backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
   input: {
     flex: 1,
-    minHeight: 42,
-    maxHeight: 120,
-    borderRadius: 21,
+    minHeight: 46,
+    maxHeight: 130,
+    borderRadius: 23,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 15,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 16,
+    lineHeight: 21,
     color: colors.text,
   },
   sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
