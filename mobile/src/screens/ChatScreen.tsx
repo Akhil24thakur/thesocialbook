@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -56,6 +57,7 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
+  const insets = useSafeAreaInsets();
 
   const loadMeta = useCallback(async () => {
     if (!token) return;
@@ -164,11 +166,7 @@ export default function ChatScreen({ route, navigation }: any) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerUser}
@@ -204,26 +202,36 @@ export default function ChatScreen({ route, navigation }: any) {
           </View>
         }
       />
-      <View style={styles.inputBar}>
-        <TextInput
-          style={styles.input}
-          value={text}
-          onChangeText={setText}
-          placeholder="Message…"
-          placeholderTextColor={colors.textSecondary}
-          multiline
-          maxLength={4000}
-        />
-        <TouchableOpacity
-          style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
-          onPress={send}
-          disabled={!text.trim() || sending}
-          activeOpacity={0.7}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <View
+          style={[
+            styles.inputBar,
+            Platform.OS === "android" && { paddingBottom: Math.max(insets.bottom, 10) },
+          ]}
         >
-          <Icon name="send" size={20} color={colors.white} />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          <TextInput
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder="Message…"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            maxLength={4000}
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+            onPress={send}
+            disabled={!text.trim() || sending}
+            activeOpacity={0.7}
+          >
+            <Icon name="send" size={20} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
