@@ -57,10 +57,14 @@ if (Platform.OS === "android") {
 Notifications.addNotificationReceivedListener(() => setPendingPush(true));
 
 function PushTapNavigator() {
+  const { user } = useAuth();
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
       const data = resp.notification.request.content.data ?? {};
-      if (!navigationRef.isReady()) return;
+      if (!navigationRef.isReady() || !user) {
+        setPendingPush(true);
+        return;
+      }
       if (data.type === "message" && data.conversationId) {
         navigationRef.navigate("Chat", {
           conversationId: Number(data.conversationId),
@@ -72,7 +76,7 @@ function PushTapNavigator() {
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [user]);
   return null;
 }
 

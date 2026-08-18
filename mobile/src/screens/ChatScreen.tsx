@@ -63,11 +63,11 @@ export default function ChatScreen({ route, navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      if (!initialName) loadMeta();
+      loadMeta();
       loadMessages();
       const interval = setInterval(() => loadMessages(true), 5000);
       return () => clearInterval(interval);
-    }, [loadMeta, loadMessages, initialName])
+    }, [loadMeta, loadMessages])
   );
 
   useEffect(() => {
