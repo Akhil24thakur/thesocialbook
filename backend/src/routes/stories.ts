@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -11,7 +11,7 @@ const storySelect = {
   id: true,
   imageUrl: true,
   createdAt: true,
-  author: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
+  author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true, lastSeenAt: true } },
 } as const;
 
 router.get("/", requireAuth, async (req, res) => {

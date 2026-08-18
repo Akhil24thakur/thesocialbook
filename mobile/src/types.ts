@@ -7,6 +7,7 @@ export interface ApiUser {
   email?: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  isVerified?: boolean;
   lastSeenAt?: string | null;
   createdAt?: string;
   postCount?: number;
@@ -20,6 +21,7 @@ export interface PostAuthor {
   name: string;
   username?: string;
   avatarUrl: string | null;
+  isVerified?: boolean;
   lastSeenAt?: string | null;
   publicKey?: string | null;
 }

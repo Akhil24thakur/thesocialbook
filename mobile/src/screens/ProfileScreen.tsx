@@ -182,7 +182,12 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           </TouchableOpacity>
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{user?.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{user?.name}</Text>
+              {!!user?.isVerified && (
+                <Icon name="checkmark-circle" size={20} color={colors.primary} />
+              )}
+            </View>
             {!!user?.username && <Text style={styles.username}>@{user.username}</Text>}
             {!!user?.bio && <Text style={styles.bio}>{user.bio}</Text>}
           </View>
@@ -371,6 +376,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     color: colors.text,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   username: {
     fontSize: 14,

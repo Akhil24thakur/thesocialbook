@@ -143,9 +143,15 @@ export default function PostDetailScreen({ route, navigation }: any) {
                     name={post.author.name}
                     imageUrl={post.author.avatarUrl}
                     online={isOnline(post.author.lastSeenAt)}
+                    verified={post.author.isVerified}
                   />
                   <View style={styles.headerText}>
-                    <Text style={styles.name}>{post.author.name}</Text>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.name}>{post.author.name}</Text>
+                      {post.author.isVerified && (
+                        <Icon name="checkmark-circle" size={15} color={colors.primary} />
+                      )}
+                    </View>
                     <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
                   </View>
                 </TouchableOpacity>
@@ -185,6 +191,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
                   size={32}
                   imageUrl={item.author.avatarUrl}
                   online={isOnline(item.author.lastSeenAt)}
+                  verified={item.author.isVerified}
                 />
               </TouchableOpacity>
               <View style={styles.commentBody}>
@@ -192,7 +199,12 @@ export default function PostDetailScreen({ route, navigation }: any) {
                   <TouchableOpacity
                     onPress={() => navigation.navigate("UserProfile", { userId: item.author.id })}
                   >
-                    <Text style={styles.commentName}>{item.author.name}</Text>
+                    <View style={styles.commentNameRow}>
+                      <Text style={styles.commentName}>{item.author.name}</Text>
+                      {item.author.isVerified && (
+                        <Icon name="checkmark-circle" size={13} color={colors.primary} />
+                      )}
+                    </View>
                   </TouchableOpacity>
                   <RichText style={styles.commentText}>{item.content}</RichText>
                 </View>
@@ -221,6 +233,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
                     size={28}
                     imageUrl={r.author.avatarUrl}
                     online={isOnline(r.author.lastSeenAt)}
+                    verified={r.author.isVerified}
                   />
                 </TouchableOpacity>
                 <View style={styles.commentBody}>
@@ -328,6 +341,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   time: {
     color: colors.textSecondary,
     fontSize: 12,
@@ -383,6 +401,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.text,
     marginBottom: 2,
+  },
+  commentNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   commentText: {
     fontSize: 14,

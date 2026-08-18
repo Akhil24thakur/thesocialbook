@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -32,6 +33,7 @@ export default function ChatScreen({ route, navigation }: any) {
     id: number;
     name: string;
     avatarUrl: string | null;
+    isVerified?: boolean;
     lastSeenAt?: string | null;
     publicKey?: string | null;
   } | null>(
@@ -70,6 +72,7 @@ export default function ChatScreen({ route, navigation }: any) {
           id: o.id,
           name: o.name,
           avatarUrl: o.avatarUrl,
+          isVerified: o.isVerified,
           lastSeenAt: o.lastSeenAt,
           publicKey: o.publicKey,
         });
@@ -109,14 +112,24 @@ export default function ChatScreen({ route, navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       loadMeta();
-      loadMessages();
-      const interval = setInterval(() => loadMessages(true), 4000);
-      const msgSub = onWsEvent("message", conversationId, () => loadMessages(true));
-      const readSub = onWsEvent("read", conversationId, () => loadMessages(true));
+      if (AppState.currentState === "active") loadMessages();
+      const interval = setInterval(() => {
+        if (AppState.currentState === "active") loadMessages(true);
+      }, 4000);
+      const msgSub = onWsEvent("message", conversationId, () => {
+        if (AppState.currentState === "active") loadMessages(true);
+      });
+      const readSub = onWsEvent("read", conversationId, () => {
+        if (AppState.currentState === "active") loadMessages(true);
+      });
+      const appSub = AppState.addEventListener("change", (state) => {
+        if (state === "active") loadMessages(true);
+      });
       return () => {
         clearInterval(interval);
         msgSub();
         readSub();
+        appSub.remove();
       };
     }, [loadMeta, loadMessages, conversationId])
   );
@@ -199,6 +212,7 @@ export default function ChatScreen({ route, navigation }: any) {
             size={36}
             imageUrl={other?.avatarUrl}
             online={isOnline(other?.lastSeenAt)}
+            verified={other?.isVerified}
           />
           <View>
             <Text style={styles.headerName}>{other?.name ?? "Chat"}</Text>
@@ -223,7 +237,7 @@ export default function ChatScreen({ route, navigation }: any) {
           </View>
         }
       />
-      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+      <KeyboardStickyView>
         <View
           style={[
             styles.inputBar,
@@ -248,7 +262,7 @@ export default function ChatScreen({ route, navigation }: any) {
             <Icon name="send" size={20} color={colors.white} />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardStickyView>
     </View>
   );
 }

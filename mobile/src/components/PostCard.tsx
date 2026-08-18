@@ -94,11 +94,17 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
             imageUrl={post.author.avatarUrl}
             gradient={post.author.id === user?.id}
             online={isOnline(post.author.lastSeenAt)}
+            verified={post.author.isVerified}
           />
           <View style={styles.headerText}>
-            <Text style={styles.name} numberOfLines={1}>
-              {post.author.name}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {post.author.name}
+              </Text>
+              {post.author.isVerified && (
+                <Icon name="checkmark-circle" size={16} color={colors.primary} />
+              )}
+            </View>
             <View style={styles.timeRow}>
               <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
               <Icon name="globe-outline" size={12} color={colors.textSecondary} />
@@ -270,6 +276,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     color: colors.text,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   timeRow: {
     flexDirection: "row",

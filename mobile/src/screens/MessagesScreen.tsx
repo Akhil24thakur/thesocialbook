@@ -93,7 +93,7 @@ export default function MessagesScreen() {
         }
       >
         <View style={styles.avatarWrap}>
-          <Avatar name={other?.name ?? "?"} size={52} imageUrl={other?.avatarUrl} online={isOnline(other?.lastSeenAt)} />
+          <Avatar name={other?.name ?? "?"} size={52} imageUrl={other?.avatarUrl} online={isOnline(other?.lastSeenAt)} verified={other?.isVerified} />
           {item.unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{item.unreadCount > 99 ? "99+" : item.unreadCount}</Text>

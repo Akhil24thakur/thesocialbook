@@ -6,6 +6,7 @@ import { NavigationContainer, createNavigationContainerRef, useNavigation } from
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { LinearGradient } from "expo-linear-gradient";
 import { File, Paths } from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
@@ -477,14 +478,15 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NavigationContainer ref={navigationRef}>
-          <RootNavigator />
-        </NavigationContainer>
-        <StatusBar style="auto" />
-        <PushTapNavigator />
-      </AuthProvider>
-      {update && (
+      <KeyboardProvider>
+        <AuthProvider>
+          <NavigationContainer ref={navigationRef}>
+            <RootNavigator />
+          </NavigationContainer>
+          <StatusBar style="auto" />
+          <PushTapNavigator />
+        </AuthProvider>
+        {update && (
         <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>
           <View style={styles.updateOverlay}>
             <View style={styles.updateCard}>
@@ -581,6 +583,7 @@ export default function App() {
           </View>
         </Modal>
       )}
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

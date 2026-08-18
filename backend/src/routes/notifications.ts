@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -10,7 +10,7 @@ const notificationSelect = {
   type: true,
   read: true,
   createdAt: true,
-  actor: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
+  actor: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true, lastSeenAt: true } },
   post: { select: { id: true, content: true, imageUrl: true } },
   conversation: { select: { id: true } },
   messageBody: true,

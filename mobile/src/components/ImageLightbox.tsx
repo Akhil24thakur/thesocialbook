@@ -46,10 +46,15 @@ export default function ImageLightbox({
                 onPress={() => onAuthorPress(post)}
                 accessibilityLabel={`${post.author.name}'s profile`}
               >
-                <Avatar name={post.author.name} size={38} imageUrl={post.author.avatarUrl} />
-                <Text style={styles.name} numberOfLines={1}>
-                  {post.author.name}
-                </Text>
+                <Avatar name={post.author.name} size={38} imageUrl={post.author.avatarUrl} verified={post.author.isVerified} />
+                <View style={styles.userNameRow}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {post.author.name}
+                  </Text>
+                  {post.author.isVerified && (
+                    <Icon name="checkmark-circle" size={14} color={colors.primary} />
+                  )}
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeBtn}
@@ -128,6 +133,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     flexShrink: 1,
+  },
+  userNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    flex: 1,
   },
   closeBtn: {
     width: 42,

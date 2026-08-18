@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -12,6 +12,7 @@ const otherUserSelect = {
   name: true,
   username: true,
   avatarUrl: true,
+  isVerified: true,
   lastSeenAt: true,
   publicKey: true,
 } as const;

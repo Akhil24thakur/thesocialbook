@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { notify, notifyAll } from "../lib/notify.js";
@@ -11,7 +11,7 @@ const postSelect = {
   content: true,
   imageUrl: true,
   createdAt: true,
-  author: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
+  author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true, lastSeenAt: true } },
   _count: { select: { likes: true, comments: true } },
 } as const;
 
@@ -73,7 +73,7 @@ router.get("/feed", requireAuth, async (req, res) => {
     const [authors, likes] = await Promise.all([
       prisma.user.findMany({
         where: { id: { in: authorIds } },
-        select: { id: true, name: true, username: true, avatarUrl: true },
+        select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true },
       }),
       prisma.like.findMany({ where: { postId: { in: postIds }, userId } }),
     ]);
@@ -173,7 +173,7 @@ const commentSelect = {
   content: true,
   createdAt: true,
   parentId: true,
-  author: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
+  author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true, lastSeenAt: true } },
 } as const;
 
 router.get("/:id/comments", requireAuth, async (req, res) => {

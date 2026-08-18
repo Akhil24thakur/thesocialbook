@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
 import { notify } from "../lib/notify.js";
@@ -12,6 +12,7 @@ const publicSelect = {
   username: true,
   bio: true,
   avatarUrl: true,
+  isVerified: true,
   lastSeenAt: true,
   createdAt: true,
 } as const;
@@ -23,6 +24,7 @@ function serialize(user: any) {
     username: user.username,
     bio: user.bio,
     avatarUrl: user.avatarUrl,
+    isVerified: user.isVerified,
     createdAt: user.createdAt,
     postCount: user._count.posts,
     followerCount: user._count.followers,
@@ -129,7 +131,7 @@ router.get("/:id/posts", requireAuth, async (req, res) => {
       content: true,
       imageUrl: true,
       createdAt: true,
-      author: { select: { id: true, name: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true } },
       _count: { select: { likes: true, comments: true } },
       likes: { select: { userId: true }, where: { userId } },
     },

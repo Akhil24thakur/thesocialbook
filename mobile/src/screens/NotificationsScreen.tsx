@@ -121,7 +121,10 @@ export default function NotificationsScreen({ navigation }: any) {
               onPress={() => navigation.navigate("UserProfile", { userId: item.actor.id })}
             >
               {item.actor.name}
-            </Text>{" "}
+            </Text>
+            {item.actor.isVerified && (
+              <Text style={styles.verified}> ✓</Text>
+            )}{" "}
             {typeText[item.type] ?? "posted something new"}
           </Text>
           {item.messageBody ? (
@@ -251,6 +254,10 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   strong: {
+    fontWeight: "700",
+  },
+  verified: {
+    color: colors.primary,
     fontWeight: "700",
   },
   rowPreview: {

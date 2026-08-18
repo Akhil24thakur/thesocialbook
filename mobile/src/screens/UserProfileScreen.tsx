@@ -122,9 +122,14 @@ export default function UserProfileScreen({ route }: any) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.profileRow}>
-          <Avatar name={user.name} size={72} imageUrl={user.avatarUrl} online={isOnline(user.lastSeenAt)} />
+          <Avatar name={user.name} size={72} imageUrl={user.avatarUrl} online={isOnline(user.lastSeenAt)} verified={user.isVerified} />
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{user.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{user.name}</Text>
+              {!!user.isVerified && (
+                <Icon name="checkmark-circle" size={20} color={colors.primary} />
+              )}
+            </View>
             {!!user.username && <Text style={styles.username}>@{user.username}</Text>}
             {isOnline(user.lastSeenAt) ? (
               <Text style={styles.online}>Online</Text>
@@ -236,6 +241,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     color: colors.text,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   username: {
     fontSize: 14,
