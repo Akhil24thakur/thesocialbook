@@ -59,10 +59,7 @@ export default function EditProfileScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={styles.form}>
         <Text style={styles.label}>Name</Text>
         <TextInput

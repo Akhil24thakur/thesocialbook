@@ -158,10 +158,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} disabled={busy || uploading}>
           <Text style={styles.cancel}>Cancel</Text>

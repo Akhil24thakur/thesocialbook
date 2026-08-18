@@ -223,10 +223,7 @@ export default function ChatScreen({ route, navigation }: any) {
           </View>
         }
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-      >
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
         <View
           style={[
             styles.inputBar,
