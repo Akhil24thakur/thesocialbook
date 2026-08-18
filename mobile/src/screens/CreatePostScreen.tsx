@@ -18,6 +18,7 @@ import { api, uploadImage } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
+import RichPasteModal from "../components/RichPasteModal";
 import { colors } from "../theme";
 
 export default function CreatePostScreen({ navigation, route }: any) {
@@ -35,6 +36,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
   const [error, setError] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [pasteOpen, setPasteOpen] = useState(false);
   const photoRequested = route?.params?.withPhoto === true;
 
   const canPost = (content.trim().length > 0 || !!photo) && !busy && !uploading;
@@ -85,6 +87,18 @@ export default function CreatePostScreen({ navigation, route }: any) {
     setSelection({ start: pos, end: pos });
     setLinkOpen(false);
     setLinkUrl("");
+  };
+
+  const insertPasted = (text: string) => {
+    const start = selection?.start ?? content.length;
+    const end = selection?.end ?? start;
+    const s = Math.min(start, end);
+    const e = Math.max(start, end);
+    const next = content.slice(0, s) + text + content.slice(e);
+    setContent(next);
+    const pos = s + text.length;
+    setSelection({ start: pos, end: pos });
+    setPasteOpen(false);
   };
 
   const pickPhoto = async () => {
@@ -219,7 +233,20 @@ export default function CreatePostScreen({ navigation, route }: any) {
           >
             <Icon name="link-outline" size={19} color={colors.text} />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.toolBtn}
+            onPress={() => setPasteOpen(true)}
+            accessibilityLabel="Paste rich text"
+          >
+            <Icon name="clipboard-outline" size={19} color={colors.text} />
+          </TouchableOpacity>
         </View>
+
+        <RichPasteModal
+          visible={pasteOpen}
+          onInsert={insertPasted}
+          onClose={() => setPasteOpen(false)}
+        />
 
         <Modal
           visible={linkOpen}
