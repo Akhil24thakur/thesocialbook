@@ -311,6 +311,21 @@ function HomeTabs() {
   );
 }
 
+const registerPushToken = useCallback(async (token: string) => {
+  try {
+    const perms = await Notifications.requestPermissionsAsync();
+    if (!perms.granted) return;
+    const pushToken = await Notifications.getExpoPushTokenAsync({
+      projectId: "c45269d6-680e-407c-8828-da5323e9f0f7",
+    });
+    if (pushToken?.data) {
+      api.registerDeviceToken(token, pushToken.data, "expo").catch(() => {});
+    }
+  } catch {
+    // Best effort
+  }
+}, []);
+
 function RootNavigator() {
   const { user, token, loading } = useAuth();
 
@@ -321,7 +336,12 @@ function RootNavigator() {
     loadOrCreateKeyPair()
       .then((kp) => api.registerPublicKey(token, kp.publicKey).catch(() => {}))
       .catch(() => {});
-  }, [user, token]);
+    registerPushToken(token);
+    const sub = Notifications.addPushTokenListener((t) => {
+      if (t?.data) api.registerDeviceToken(token, t.data, "expo").catch(() => {});
+    });
+    return () => sub.remove();
+  }, [user, token, registerPushToken]);
 
   if (loading) {
     return (
