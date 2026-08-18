@@ -11,7 +11,7 @@ const storySelect = {
   id: true,
   imageUrl: true,
   createdAt: true,
-  author: { select: { id: true, name: true, username: true, avatarUrl: true } },
+  author: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
 } as const;
 
 router.get("/", requireAuth, async (req, res) => {

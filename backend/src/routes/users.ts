@@ -11,6 +11,7 @@ const publicSelect = {
   username: true,
   bio: true,
   avatarUrl: true,
+  lastSeenAt: true,
   createdAt: true,
 } as const;
 

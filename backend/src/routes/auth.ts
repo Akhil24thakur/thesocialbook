@@ -24,6 +24,7 @@ const userSelect = {
   email: true,
   bio: true,
   avatarUrl: true,
+  lastSeenAt: true,
   createdAt: true,
   _count: { select: { posts: true, followers: true, following: true } },
 } as const;

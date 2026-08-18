@@ -13,7 +13,7 @@ import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import PostCard from "../components/PostCard";
-import { colors } from "../theme";
+import { colors, isOnline } from "../theme";
 import type { ApiUser, Post } from "../types";
 
 export default function UserProfileScreen({ route }: any) {
@@ -120,11 +120,15 @@ export default function UserProfileScreen({ route }: any) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.profileRow}>
-          <Avatar name={user.name} size={72} />
+          <Avatar name={user.name} size={72} imageUrl={user.avatarUrl} online={isOnline(user.lastSeenAt)} />
           <View style={styles.profileInfo}>
             <Text style={styles.name}>{user.name}</Text>
             {!!user.username && <Text style={styles.username}>@{user.username}</Text>}
-            {!!user.bio && <Text style={styles.bio}>{user.bio}</Text>}
+            {isOnline(user.lastSeenAt) ? (
+              <Text style={styles.online}>Online</Text>
+            ) : (
+              !!user.bio && <Text style={styles.bio}>{user.bio}</Text>
+            )}
           </View>
         </View>
         <View style={styles.statsRow}>
@@ -213,6 +217,12 @@ const styles = StyleSheet.create({
   bio: {
     fontSize: 14,
     color: colors.text,
+    marginTop: 6,
+  },
+  online: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.online,
     marginTop: 6,
   },
   statsRow: {

@@ -17,7 +17,7 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
-import { colors } from "../theme";
+import { colors, isOnline } from "../theme";
 import type { Post } from "../types";
 
 export default function ProfileScreen({ navigation }: any) {
@@ -164,7 +164,12 @@ export default function ProfileScreen({ navigation }: any) {
             accessibilityLabel="Change profile photo"
           >
             <View style={styles.avatarWrap}>
-              <Avatar name={user?.name ?? "?"} size={84} imageUrl={user?.avatarUrl} />
+              <Avatar
+                name={user?.name ?? "?"}
+                size={84}
+                imageUrl={user?.avatarUrl}
+                online={isOnline(user?.lastSeenAt)}
+              />
               {uploading ? (
                 <View style={styles.uploadingBadge}>
                   <ActivityIndicator size="small" color={colors.white} />

@@ -7,6 +7,7 @@ export interface ApiUser {
   email?: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  lastSeenAt?: string | null;
   createdAt?: string;
   postCount?: number;
   followerCount?: number;
@@ -19,6 +20,7 @@ export interface PostAuthor {
   name: string;
   username?: string;
   avatarUrl: string | null;
+  lastSeenAt?: string | null;
 }
 
 export interface Post {

@@ -11,7 +11,7 @@ const postSelect = {
   content: true,
   imageUrl: true,
   createdAt: true,
-  author: { select: { id: true, name: true, username: true, avatarUrl: true } },
+  author: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
   _count: { select: { likes: true, comments: true } },
 } as const;
 
@@ -173,7 +173,7 @@ const commentSelect = {
   content: true,
   createdAt: true,
   parentId: true,
-  author: { select: { id: true, name: true, username: true, avatarUrl: true } },
+  author: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
 } as const;
 
 router.get("/:id/comments", requireAuth, async (req, res) => {

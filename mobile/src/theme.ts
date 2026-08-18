@@ -29,6 +29,15 @@ export const radius = {
   pill: 999,
 };
 
+const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+
+export function isOnline(lastSeenAt?: string | null): boolean {
+  if (!lastSeenAt) return false;
+  const t = new Date(lastSeenAt).getTime();
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t < ONLINE_WINDOW_MS;
+}
+
 export const formatTime = (iso: string) => {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();

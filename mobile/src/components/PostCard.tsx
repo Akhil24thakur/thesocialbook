@@ -19,7 +19,7 @@ import MenuSheet from "./MenuSheet";
 import RichText from "./RichText";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import { colors, formatCount, formatTime } from "../theme";
+import { colors, formatCount, formatTime, isOnline } from "../theme";
 import type { Post } from "../types";
 
 interface Props {
@@ -93,6 +93,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
             size={44}
             imageUrl={post.author.avatarUrl}
             gradient={post.author.id === user?.id}
+            online={isOnline(post.author.lastSeenAt)}
           />
           <View style={styles.headerText}>
             <Text style={styles.name} numberOfLines={1}>

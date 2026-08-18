@@ -10,7 +10,7 @@ const notificationSelect = {
   type: true,
   read: true,
   createdAt: true,
-  actor: { select: { id: true, name: true, username: true, avatarUrl: true } },
+  actor: { select: { id: true, name: true, username: true, avatarUrl: true, lastSeenAt: true } },
   post: { select: { id: true, content: true, imageUrl: true } },
 } as const;
 

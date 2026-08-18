@@ -18,6 +18,7 @@ model User {
   bio          String?
   avatarUrl    String?
   appVersion   String?
+  lastSeenAt   DateTime?
   createdAt    DateTime  @default(now())
   posts        Post[]
   stories      Story[]

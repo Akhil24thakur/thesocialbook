@@ -16,7 +16,7 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import RichText from "../components/RichText";
-import { colors, formatCount, formatTime } from "../theme";
+import { colors, formatCount, formatTime, isOnline } from "../theme";
 import type { Comment, Post } from "../types";
 
 export default function PostDetailScreen({ route, navigation }: any) {
@@ -139,7 +139,11 @@ export default function PostDetailScreen({ route, navigation }: any) {
                   style={styles.authorBtn}
                   onPress={() => navigation.navigate("UserProfile", { userId: post.author.id })}
                 >
-                  <Avatar name={post.author.name} imageUrl={post.author.avatarUrl} />
+                  <Avatar
+                    name={post.author.name}
+                    imageUrl={post.author.avatarUrl}
+                    online={isOnline(post.author.lastSeenAt)}
+                  />
                   <View style={styles.headerText}>
                     <Text style={styles.name}>{post.author.name}</Text>
                     <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
@@ -176,7 +180,12 @@ export default function PostDetailScreen({ route, navigation }: any) {
                 onPress={() => navigation.navigate("UserProfile", { userId: item.author.id })}
                 accessibilityLabel={`${item.author.name}'s profile`}
               >
-                <Avatar name={item.author.name} size={32} imageUrl={item.author.avatarUrl} />
+                <Avatar
+                  name={item.author.name}
+                  size={32}
+                  imageUrl={item.author.avatarUrl}
+                  online={isOnline(item.author.lastSeenAt)}
+                />
               </TouchableOpacity>
               <View style={styles.commentBody}>
                 <View style={styles.commentBubble}>
@@ -207,7 +216,12 @@ export default function PostDetailScreen({ route, navigation }: any) {
                   onPress={() => navigation.navigate("UserProfile", { userId: r.author.id })}
                   accessibilityLabel={`${r.author.name}'s profile`}
                 >
-                  <Avatar name={r.author.name} size={28} imageUrl={r.author.avatarUrl} />
+                  <Avatar
+                    name={r.author.name}
+                    size={28}
+                    imageUrl={r.author.avatarUrl}
+                    online={isOnline(r.author.lastSeenAt)}
+                  />
                 </TouchableOpacity>
                 <View style={styles.commentBody}>
                   <View style={styles.replyBubble}>
