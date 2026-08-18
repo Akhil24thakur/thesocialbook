@@ -51,14 +51,13 @@ router.post("/device-token", requireAuth, async (req, res) => {
   }
   const userId = (req as AuthedRequest).userId;
   const { token, type } = parsed.data;
-  const existing = await prisma.deviceToken.findUnique({ where: { token } });
-  if (existing) {
-    if (existing.userId !== userId) {
-      await prisma.deviceToken.update({ where: { id: existing.id }, data: { userId } });
-    }
-  } else {
-    await prisma.deviceToken.create({ data: { userId, token, type } });
-  }
+
+  await prisma.deviceToken.upsert({
+    where: { token },
+    create: { userId, token, type },
+    update: { userId, type },
+  });
+
   return res.json({ ok: true });
 });
 
