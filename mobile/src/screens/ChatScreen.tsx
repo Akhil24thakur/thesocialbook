@@ -45,39 +45,6 @@ export default function ChatScreen({ route, navigation }: any) {
   const listRef = useRef<FlatList>(null);
   const meIdRef = useRef<number | null>(null);
   const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
-  const keyboardOpen = useRef<boolean>(false);
-
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", () => {
-      keyboardOpen.current = true;
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-    });
-    const hide = Keyboard.addListener("keyboardDidHide", () => {
-      keyboardOpen.current = false;
-    });
-    loadOrCreateKeyPair()
-      .then((kp) => {
-        myKeysRef.current = kp;
-      })
-      .catch(() => {});
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  useEffect(
-    () => {
-      if (keyboardOpen.current && listRef.current) {
-        const safeRef = listRef.current;
-        const timer = setTimeout(() => {
-          safeRef.scrollToEnd({ animated: true });
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-    },
-    [messages.length, keyboardOpen.current]
-  );
 
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
@@ -323,8 +290,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   list: {
-    padding: 16,
     flexGrow: 1,
+    flexShrink: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    // paddingBottom will be calculated by KeyboardStickyView
   },
   bubbleRow: {
     flexDirection: "row",
@@ -388,15 +358,12 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingTop: 10,
-    paddingBottom: 14,
     backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
   input: {
     flex: 1,
-    minHeight: 46,
-    maxHeight: 130,
     borderRadius: 23,
     backgroundColor: colors.background,
     borderWidth: 1,
