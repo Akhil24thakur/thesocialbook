@@ -1,7 +1,7 @@
 # TheSocialBook
 
 <p align="center">
-  <img src="https://img.shields.io/badge/TheSocialBook-v1.3.11-d73a49?style=for-the-badge&logo=android&logoColor=white" alt="TheSocialBook v1.3.11">
+  <img src="https://img.shields.io/badge/TheSocialBook-v1.3.12-d73a49?style=for-the-badge&logo=android&logoColor=white" alt="TheSocialBook v1.3.12">
 </p>
 
 <h2 align="center">📱 Download TheSocialBook</h2>
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <b>✨ Latest Version: v1.3.11</b>
+  <b>✨ Latest Version: v1.3.12</b>
   <br>
   <sub>Get the latest features, improvements and bug fixes.</sub>
 </p>
