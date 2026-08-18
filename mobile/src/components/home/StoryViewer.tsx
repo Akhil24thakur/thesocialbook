@@ -29,6 +29,7 @@ export type Story = {
 export type StoryGroup = {
   name: string;
   avatarUrl?: string | null;
+  userId?: number;
   stories: Story[];
 };
 
@@ -40,12 +41,14 @@ export default function StoryViewer({
   groupIndex,
   ownGroupIndex,
   onDelete,
+  onProfile,
   onClose,
 }: {
   groups: StoryGroup[];
   groupIndex: number | null;
   ownGroupIndex?: number | null;
   onDelete?: (storyId?: number) => void;
+  onProfile?: (userId: number) => void;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -150,6 +153,7 @@ export default function StoryViewer({
                 menuOpen={menuOpen && index === ownGroupIndex}
                 onMenuChange={setMenuOpen}
                 onDelete={onDelete}
+                onProfile={onProfile}
                 onNext={advance}
                 onPrev={goPrev}
                 onClose={onClose}
@@ -172,6 +176,7 @@ const GroupPage = memo(function GroupPage({
   menuOpen,
   onMenuChange,
   onDelete,
+  onProfile,
   onNext,
   onPrev,
   onClose,
@@ -185,6 +190,7 @@ const GroupPage = memo(function GroupPage({
   menuOpen: boolean;
   onMenuChange: (open: boolean) => void;
   onDelete?: (storyId?: number) => void;
+  onProfile?: (userId: number) => void;
   onNext: () => void;
   onPrev: () => void;
   onClose: () => void;
@@ -256,7 +262,12 @@ const GroupPage = memo(function GroupPage({
       </View>
 
       <View style={[styles.topBar, { paddingTop: insets.top + 26 }]}>
-        <View style={styles.userRow}>
+        <TouchableOpacity
+          style={styles.userRow}
+          onPress={group.userId && onProfile ? () => onProfile(group.userId!) : undefined}
+          activeOpacity={0.7}
+          accessibilityLabel={group.userId && onProfile ? `${group.name}'s profile` : undefined}
+        >
           <Avatar name={name} size={36} imageUrl={group.avatarUrl} />
           <View style={styles.userInfo}>
             <Text style={styles.name} numberOfLines={1}>
@@ -264,7 +275,7 @@ const GroupPage = memo(function GroupPage({
             </Text>
             <Text style={styles.time}>{story ? formatTime(story.createdAt) : ""}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <View style={styles.topActions}>
           {own && onDelete && (
             <TouchableOpacity

@@ -19,7 +19,7 @@ import RichText from "../components/RichText";
 import { colors, formatCount, formatTime } from "../theme";
 import type { Comment, Post } from "../types";
 
-export default function PostDetailScreen({ route }: any) {
+export default function PostDetailScreen({ route, navigation }: any) {
   const { postId } = route.params;
   const initialPost = route.params?.post as Post | undefined;
   const { token, user } = useAuth();
@@ -135,11 +135,16 @@ export default function PostDetailScreen({ route }: any) {
           post ? (
             <View style={styles.post}>
               <View style={styles.header}>
-                <Avatar name={post.author.name} />
-                <View style={styles.headerText}>
-                  <Text style={styles.name}>{post.author.name}</Text>
-                  <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
-                </View>
+                <TouchableOpacity
+                  style={styles.authorBtn}
+                  onPress={() => navigation.navigate("UserProfile", { userId: post.author.id })}
+                >
+                  <Avatar name={post.author.name} imageUrl={post.author.avatarUrl} />
+                  <View style={styles.headerText}>
+                    <Text style={styles.name}>{post.author.name}</Text>
+                    <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
               <RichText style={styles.content}>{post.content}</RichText>
               <TouchableOpacity style={styles.likeBtn} onPress={toggleLike}>
@@ -167,10 +172,19 @@ export default function PostDetailScreen({ route }: any) {
         renderItem={({ item }) => (
           <View>
             <View style={styles.comment}>
-              <Avatar name={item.author.name} size={32} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("UserProfile", { userId: item.author.id })}
+                accessibilityLabel={`${item.author.name}'s profile`}
+              >
+                <Avatar name={item.author.name} size={32} imageUrl={item.author.avatarUrl} />
+              </TouchableOpacity>
               <View style={styles.commentBody}>
                 <View style={styles.commentBubble}>
-                  <Text style={styles.commentName}>{item.author.name}</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("UserProfile", { userId: item.author.id })}
+                  >
+                    <Text style={styles.commentName}>{item.author.name}</Text>
+                  </TouchableOpacity>
                   <RichText style={styles.commentText}>{item.content}</RichText>
                 </View>
                 <View style={styles.commentMeta}>
@@ -189,15 +203,24 @@ export default function PostDetailScreen({ route }: any) {
             </View>
             {(item.replies ?? []).map((r) => (
               <View key={r.id} style={styles.reply}>
-                <Avatar name={r.author.name} size={28} />
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("UserProfile", { userId: r.author.id })}
+                  accessibilityLabel={`${r.author.name}'s profile`}
+                >
+                  <Avatar name={r.author.name} size={28} imageUrl={r.author.avatarUrl} />
+                </TouchableOpacity>
                 <View style={styles.commentBody}>
                   <View style={styles.replyBubble}>
-                    <Text style={styles.commentName}>
-                      {r.author.name}
-                      {r.author.id === item.author.id && (
-                        <Text style={styles.opTag}> · OP</Text>
-                      )}
-                    </Text>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("UserProfile", { userId: r.author.id })}
+                    >
+                      <Text style={styles.commentName}>
+                        {r.author.name}
+                        {r.author.id === item.author.id && (
+                          <Text style={styles.opTag}> · OP</Text>
+                        )}
+                      </Text>
+                    </TouchableOpacity>
                     <RichText style={styles.commentText}>{r.content}</RichText>
                   </View>
                   <View style={styles.commentMeta}>
@@ -278,6 +301,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
+  },
+  authorBtn: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerText: {
     marginLeft: 10,

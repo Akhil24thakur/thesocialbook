@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -23,6 +23,7 @@ import { colors, storyGradient } from "../theme";
 import type { StoryItem } from "../types";
 
 export default function StoriesScreen() {
+  const navigation = useNavigation<any>();
   const { token, user } = useAuth();
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -188,6 +189,7 @@ export default function StoriesScreen() {
         groupIndex={viewerIndex}
         ownGroupIndex={myStoryGroup ? 0 : null}
         onDelete={onDeleteOwnStory}
+        onProfile={(id) => navigation.navigate("UserProfile", { userId: id })}
         onClose={() => setViewerIndex(null)}
       />
     </View>

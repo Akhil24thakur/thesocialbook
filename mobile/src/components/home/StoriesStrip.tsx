@@ -23,6 +23,7 @@ export default function StoriesStrip({
   userAvatarUrl,
   onRefresh,
   onDeleteStory,
+  onProfile,
 }: {
   groups: StoryGroup[];
   myStoryGroup: StoryGroup | null;
@@ -30,6 +31,7 @@ export default function StoriesStrip({
   userAvatarUrl?: string | null;
   onRefresh: () => Promise<void>;
   onDeleteStory: (id: number) => Promise<void>;
+  onProfile?: (userId: number) => void;
 }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, pickCamera, pickGallery, confirmUpload } =
@@ -139,6 +141,7 @@ export default function StoriesStrip({
         groupIndex={viewerIndex}
         ownGroupIndex={myStoryGroup ? 0 : null}
         onDelete={onDeleteOwnStory}
+        onProfile={onProfile}
         onClose={() => setViewerIndex(null)}
       />
     </View>

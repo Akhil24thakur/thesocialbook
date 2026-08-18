@@ -9,7 +9,7 @@ import {
   Text,
   type ViewToken,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PostCard from "../components/PostCard";
@@ -29,6 +29,7 @@ function newSeed() {
 }
 
 export default function FeedScreen() {
+  const navigation = useNavigation<any>();
   const { token, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [storyItems, setStoryItems] = useState<StoryItem[]>([]);
@@ -200,11 +201,12 @@ export default function FeedScreen() {
           userAvatarUrl={user?.avatarUrl}
           onRefresh={load}
           onDeleteStory={onDeleteStory}
+          onProfile={(id) => navigation.navigate("UserProfile", { userId: id })}
         />
         <FeedTabs active={tab} onChange={setTab} />
       </View>
     ),
-    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, tab]
+    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, navigation, tab]
   );
 
   const renderItem = useCallback(
