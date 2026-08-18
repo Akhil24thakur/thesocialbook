@@ -33,6 +33,9 @@ import { brandGradient, colors } from "./src/theme";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
 import { loadOrCreateKeyPair } from "./src/crypto";
 import { connectWs, onWsEvent } from "./src/ws";
+import { reportCrash, setupCrashLog } from "./src/crashLog";
+
+setupCrashLog();
 
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef<any>();
@@ -318,6 +321,7 @@ function HomeTabs() {
 
 const registerPushToken = useCallback(async (token: string) => {
   try {
+    await new Promise((resolve) => setTimeout(resolve, 4000));
     const perms = await Notifications.requestPermissionsAsync();
     if (!perms.granted) return;
     const pushToken = await Notifications.getExpoPushTokenAsync({
@@ -326,8 +330,8 @@ const registerPushToken = useCallback(async (token: string) => {
     if (pushToken?.data) {
       api.registerDeviceToken(token, pushToken.data, "expo").catch(() => {});
     }
-  } catch {
-    // Best effort
+  } catch (e) {
+    reportCrash("registerPushToken failed", String((e as Error)?.stack ?? e));
   }
 }, []);
 

@@ -175,6 +175,17 @@ model DeviceToken {
   createdAt DateTime @default(now())
 }
 
+model CrashReport {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  message   String
+  stack     String?
+  appVersion String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model OtpCode {
   id        Int       @id @default(autoincrement())
   target    String
