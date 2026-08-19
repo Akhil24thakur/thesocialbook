@@ -30,8 +30,7 @@ export default function TopAppBar({
         <Icon name="menu" size={24} color={colors.text} />
       </TouchableOpacity>
       <View style={styles.brand}>
-        <Text style={styles.brandText}>
-          <Text style={styles.brandDark}>The</Text>
+<Text style={styles.brandText}>
           <Text style={styles.brandAccent}>Social</Text>
           <Text style={styles.brandDark}>Book</Text>
         </Text>
