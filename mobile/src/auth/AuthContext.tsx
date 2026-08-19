@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import { api } from "../api";
 import { storage } from "../storage";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import { setPushStatus } from "../pushStatus";
+import { reportCrash } from "../crashLog";
 import type { ApiUser } from "../types";
 
 const TOKEN_KEY = "thesocialbook_token";
@@ -76,7 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const registerPushToken = async (authToken: string) => {
-    if (isExpoGo || Platform.OS === "web") return;
+    if (isExpoGo || Platform.OS === "web") {
+      setPushStatus("skipped (Expo Go / web)");
+      return;
+    }
     try {
       const Notifications = require("expo-notifications") as typeof import("expo-notifications");
       if (Platform.OS === "android") {
@@ -89,19 +94,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== "granted") {
         const { status: newStatus } = await Notifications.requestPermissionsAsync();
-        if (newStatus !== "granted") return;
+        if (newStatus !== "granted") {
+          setPushStatus("permission denied");
+          return;
+        }
       }
       if (Platform.OS === "android") {
         const { data: deviceToken } = await Notifications.getDevicePushTokenAsync();
         await api.registerDeviceToken(authToken, deviceToken, "fcm");
+        setPushStatus("registered fcm");
       } else {
         const { data: expoToken } = await Notifications.getExpoPushTokenAsync({
           projectId: Constants.expoConfig?.extra?.eas?.projectId,
         });
         await api.registerDeviceToken(authToken, expoToken, "expo");
+        setPushStatus("registered expo");
       }
-    } catch {
-      // Silent fail - push notifications are best effort
+    } catch (e: any) {
+      const message = String(e?.message ?? e ?? "unknown error");
+      setPushStatus(`failed: ${message.slice(0, 160)}`);
+      reportCrash("push token registration failed", `${message}\n${String(e?.stack ?? "")}`);
     }
   };
 

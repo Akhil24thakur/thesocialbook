@@ -33,9 +33,10 @@ import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, colors } from "./src/theme";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
+import { getPushStatus } from "./src/pushStatus";
 import { loadOrCreateKeyPair } from "./src/crypto";
 import { connectWs, onWsEvent } from "./src/ws";
-import { reportCrash, setupCrashLog } from "./src/crashLog";
+import { setupCrashLog } from "./src/crashLog";
 
 setupCrashLog();
 
@@ -309,6 +310,7 @@ function HomeTabs() {
           <View style={styles.menuSheet}>
             <Text style={styles.menuTitle}>TheSocialBook</Text>
             <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "1.2.4"}</Text>
+            <Text style={styles.menuPush}>Push: {getPushStatus()}</Text>
             {MENU_ITEMS.map((m) => (
               <TouchableOpacity
                 key={m.label}
@@ -331,22 +333,6 @@ function HomeTabs() {
   );
 }
 
-const registerPushToken = async (token: string) => {
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 4000));
-    const perms = await Notifications.requestPermissionsAsync();
-    if (!perms.granted) return;
-    const pushToken = await Notifications.getExpoPushTokenAsync({
-      projectId: "c45269d6-680e-407c-8828-da5323e9f0f7",
-    });
-    if (pushToken?.data) {
-      api.registerDeviceToken(token, pushToken.data, "expo").catch(() => {});
-    }
-  } catch (e) {
-    reportCrash("registerPushToken failed", String((e as Error)?.stack ?? e));
-  }
-};
-
 function RootNavigator() {
   const { user, token, loading } = useAuth();
 
@@ -357,16 +343,11 @@ function RootNavigator() {
     loadOrCreateKeyPair()
       .then((kp) => api.registerPublicKey(token, kp.publicKey).catch(() => {}))
       .catch(() => {});
-    registerPushToken(token);
     connectWs(token);
-    const sub = Notifications.addPushTokenListener((t) => {
-      if (t?.data) api.registerDeviceToken(token, t.data, "expo").catch(() => {});
-    });
     return () => {
-      sub.remove();
       connectWs(null);
     };
-  }, [user, token, registerPushToken]);
+  }, [user, token]);
 
   if (loading) {
     return (
@@ -657,6 +638,11 @@ const styles = StyleSheet.create({
     fontFamily: "Caveat_700Bold",
   },
   menuVersion: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  menuPush: {
     fontSize: 11,
     color: colors.textSecondary,
     marginBottom: 12,
