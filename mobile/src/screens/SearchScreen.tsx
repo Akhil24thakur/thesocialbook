@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,43 +16,86 @@ import Icon from "../components/Icon";
 import { colors, isOnline } from "../theme";
 import { API_URL } from "../config";
 
+type SearchUser = {
+  id: number;
+  name: string;
+  username?: string;
+  avatarUrl?: string | null;
+  isVerified?: boolean;
+  lastSeenAt?: string | null;
+};
+
+const DEBOUNCE_MS = 300;
+
 export default function SearchScreen() {
   const { token } = useAuth();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
-  const [users, setUsers] = useState<Array<{ id: number; name: string; username?: string; avatarUrl?: string | null; isVerified?: boolean; lastSeenAt?: string | null }>>([]);
+  const [users, setUsers] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seqRef = useRef(0);
 
-  const doSearch = useCallback(async (q?: string) => {
-    const term = (q ?? query).trim();
-    if (!term) return;
-    setLoading(true);
-    setError(null);
-    setSearched(true);
-    try {
-      const res = await fetch(
-        `${API_URL}/api/users/search?q=${encodeURIComponent(term)}`,
-        { method: "GET", headers: token ? { Authorization: `Bearer ${token}` } : {} }
-      );
-      if (!res.ok) throw new Error("Network error");
-      const data = await res.json();
-      setUsers(Array.isArray(data.users) ? data.users : [data.users ?? data]);
-    } catch (e) {
+  const runSearch = useCallback(
+    async (term: string) => {
+      const trimmed = term.trim();
+      const seq = ++seqRef.current;
+      if (!trimmed) {
+        setUsers([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `${API_URL}/api/users/search?q=${encodeURIComponent(trimmed)}&limit=20`,
+          { method: "GET", headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        if (!res.ok) throw new Error("Network error");
+        const data = await res.json();
+        if (seq !== seqRef.current) return;
+        setUsers(Array.isArray(data.users) ? data.users : []);
+      } catch {
+        if (seq !== seqRef.current) return;
+        setUsers([]);
+        setError("Failed to search users");
+      } finally {
+        if (seq === seqRef.current) setLoading(false);
+      }
+    },
+    [token]
+  );
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = query.trim();
+    if (!trimmed) {
+      seqRef.current++;
       setUsers([]);
-      setError("Failed to search users");
-    } finally {
+      setError(null);
       setLoading(false);
+      return;
     }
-  }, [query, token]);
+    debounceRef.current = setTimeout(() => runSearch(trimmed), DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, runSearch]);
 
-  const handlePress = (user: any) => {
+  const searchNow = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    runSearch(query);
+  };
+
+  const handlePress = (user: SearchUser) => {
     (navigation as any).navigate("UserProfile", { userId: user.id });
   };
 
-  const renderUser = ({ item }: { item: any }) => {
+  const renderUser = ({ item }: { item: SearchUser }) => {
     return (
       <TouchableOpacity
         style={styles.userRow}
@@ -82,8 +125,10 @@ export default function SearchScreen() {
     setQuery("");
     setUsers([]);
     setError(null);
-    setSearched(false);
   };
+
+  const showEmpty =
+    !loading && !error && query.trim().length > 0 && users.length === 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -92,14 +137,11 @@ export default function SearchScreen() {
           <Icon name="search" size={18} color={colors.textSecondary} />
           <TextInput
             style={styles.input}
-            placeholder="Search by name or user id"
+            placeholder="Search by username or name"
             placeholderTextColor={colors.textSecondary}
             value={query}
-            onChangeText={(t) => {
-              setQuery(t);
-              if (searched) setSearched(false);
-            }}
-            onSubmitEditing={() => doSearch()}
+            onChangeText={setQuery}
+            onSubmitEditing={searchNow}
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}
@@ -116,7 +158,7 @@ export default function SearchScreen() {
         </View>
         <TouchableOpacity
           style={[styles.searchBtn, !query.trim() && styles.searchBtnDisabled]}
-          onPress={() => doSearch()}
+          onPress={searchNow}
           disabled={!query.trim()}
         >
           <Text style={styles.searchBtnText}>Search</Text>
@@ -132,24 +174,24 @@ export default function SearchScreen() {
       {!loading && error && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>{error}</Text>
-          <Text style={styles.retryText} onPress={() => doSearch()}>
+          <Text style={styles.retryText} onPress={searchNow}>
             Try again
           </Text>
         </View>
       )}
 
-      {!loading && !error && !searched && (
+      {!loading && !error && !query.trim() && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            Type a name or user id, then press Search.
+            Type a username or name to find people.
           </Text>
         </View>
       )}
 
-      {!loading && !error && searched && users.length === 0 && (
+      {!loading && !error && showEmpty && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            No users found matching "{query.trim()}". Try again.
+            No users found matching "{query.trim()}".
           </Text>
         </View>
       )}
@@ -161,6 +203,7 @@ export default function SearchScreen() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         />
       )}
     </View>
@@ -203,7 +246,6 @@ const styles = StyleSheet.create({
   },
   clearBtn: {
     padding: 4,
-    opacity: 1,
   },
   searchBtn: {
     height: 48,

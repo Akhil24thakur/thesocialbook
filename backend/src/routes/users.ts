@@ -61,10 +61,58 @@ router.put("/me/public-key", requireAuth, mePublicKeyHandler);
 
 router.put("/me/version", requireAuth, meVersionHandler);
 
+router.get("/search", requireAuth, async (req, res) => {
+  const me = (req as AuthedRequest).userId;
+  const { q } = req.query;
+  if (!q || typeof q !== "string" || q.trim().length === 0) {
+    return res.status(400).json({ error: "Search query required" });
+  }
+  const searchLower = q.trim().toLowerCase();
+  const isNumericId = /^\d+$/.test(searchLower);
+  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "20"), 10) || 20, 1), 50);
+
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { username: { startsWith: searchLower, mode: "insensitive" } },
+        { name: { startsWith: searchLower, mode: "insensitive" } },
+        { username: { contains: searchLower, mode: "insensitive" } },
+        { name: { contains: searchLower, mode: "insensitive" } },
+        ...(isNumericId ? [{ id: parseInt(searchLower, 10) }] : []),
+      ],
+    },
+    select: {
+      ...publicSelect,
+      followers: { select: { id: true }, where: { followerId: me } },
+      _count: { select: { posts: true, followers: true, following: true } },
+    },
+    take: 50,
+  });
+
+  const rank = (u: (typeof users)[number]): number => {
+    const uname = (u.username ?? "").toLowerCase();
+    const name = (u.name ?? "").toLowerCase();
+    if (uname === searchLower) return 0;
+    if (name === searchLower) return 1;
+    if (uname.startsWith(searchLower)) return 2;
+    if (name.startsWith(searchLower)) return 3;
+    if (uname.includes(searchLower)) return 4;
+    if (name.includes(searchLower)) return 5;
+    return 6;
+  };
+
+  users.sort((a, b) => rank(a) - rank(b) || b._count.followers - a._count.followers);
+  return res.json({ users: users.slice(0, limit).map(serialize) });
+});
+
 router.get("/:id", requireAuth, async (req, res) => {
   const me = (req as AuthedRequest).userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "Invalid user id" });
+  }
   const user = await prisma.user.findUnique({
-    where: { id: Number(req.params.id) },
+    where: { id },
     select: {
       ...publicSelect,
       followers: { select: { id: true }, where: { followerId: me } },
@@ -75,36 +123,12 @@ router.get("/:id", requireAuth, async (req, res) => {
   return res.json({ user: serialize(user) });
 });
 
-router.get("/search", requireAuth, async (req, res) => {
-  const { q } = req.query;
-  if (!q || typeof q !== "string" || q.trim().length === 0) {
-    return res.status(400).json({ error: "Search query required" });
-  }
-  const searchLower = q.trim().toLowerCase();
-  const isNumericId = /^\d+$/.test(q.trim());
-  const users = await prisma.user.findMany({
-    where: {
-      OR: [
-        { name: { contains: searchLower, mode: "insensitive" } },
-        { username: { contains: searchLower, mode: "insensitive" } },
-        ...(isNumericId ? [{ id: parseInt(q.trim(), 10) }] : []),
-      ],
-    },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      avatarUrl: true,
-      isVerified: true,
-    },
-    take: 20,
-  });
-  return res.json({ users: users.map(serialize) });
-});
-
 router.post("/:id/follow", requireAuth, async (req, res) => {
   const me = (req as AuthedRequest).userId;
   const targetId = Number(req.params.id);
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    return res.status(400).json({ error: "Invalid user id" });
+  }
   if (targetId === me) return res.status(400).json({ error: "You cannot follow yourself" });
 
   const target = await prisma.user.findUnique({ where: { id: targetId } });
@@ -132,6 +156,9 @@ router.post("/:id/follow", requireAuth, async (req, res) => {
 router.delete("/:id/follow", requireAuth, async (req, res) => {
   const me = (req as AuthedRequest).userId;
   const targetId = Number(req.params.id);
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    return res.status(400).json({ error: "Invalid user id" });
+  }
 
   await prisma.follow.deleteMany({
     where: { followerId: me, followingId: targetId },
@@ -151,6 +178,9 @@ router.delete("/:id/follow", requireAuth, async (req, res) => {
 router.get("/:id/posts", requireAuth, async (req, res) => {
   const userId = (req as AuthedRequest).userId;
   const authorId = Number(req.params.id);
+  if (!Number.isInteger(authorId) || authorId <= 0) {
+    return res.status(400).json({ error: "Invalid user id" });
+  }
   const posts = await prisma.post.findMany({
     where: { authorId },
     select: {

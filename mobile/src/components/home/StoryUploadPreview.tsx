@@ -41,11 +41,12 @@ export default function StoryUploadPreview({
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
-        {uri && <Image source={{ uri }} style={styles.image} resizeMode="contain" />}
-        <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
           <View style={styles.userRow}>
             <Avatar name={userName} size={36} gradient />
-            <Text style={styles.name}>{userName}</Text>
+            <Text style={styles.name} numberOfLines={1}>
+              {userName}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.close}
@@ -57,28 +58,46 @@ export default function StoryUploadPreview({
           </TouchableOpacity>
         </View>
 
-        {music && (
-          <View style={[styles.musicChip, { bottom: insets.bottom + 92 }]}>
-            <Icon name="musical-notes" size={16} color={colors.primary} />
-            <View style={styles.musicChipInfo}>
-              <Text style={styles.musicChipTitle} numberOfLines={1}>
-                {music.song.title}
-              </Text>
-              <Text style={styles.musicChipSub} numberOfLines={1}>
-                {music.song.artist} · {music.startTime}s – {music.startTime + music.duration}s
-              </Text>
+        <View style={styles.musicArea}>
+          {music ? (
+            <View style={styles.musicChip}>
+              <Icon name="musical-notes" size={16} color={colors.primary} />
+              <View style={styles.musicChipInfo}>
+                <Text style={styles.musicChipTitle} numberOfLines={1}>
+                  {music.song.title}
+                </Text>
+                <Text style={styles.musicChipSub} numberOfLines={1}>
+                  {music.song.artist} · {music.startTime}s – {music.startTime + music.duration}s
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={onRemoveMusic}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Remove music"
+              >
+                <Icon name="close" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
+          ) : (
             <TouchableOpacity
-              onPress={onRemoveMusic}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Remove music"
+              style={styles.addMusicBtn}
+              onPress={onAddMusic}
+              disabled={uploading}
+              accessibilityLabel="Add music"
             >
-              <Icon name="close" size={16} color={colors.textSecondary} />
+              <Icon name="musical-notes" size={18} color={colors.white} />
+              <Text style={styles.addMusicText}>Add Music</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
 
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={styles.imageWrap}>
+          {uri && (
+            <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+          )}
+        </View>
+
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
           <TouchableOpacity
             style={styles.cropBtn}
             onPress={() => setCropping(true)}
@@ -87,17 +106,6 @@ export default function StoryUploadPreview({
           >
             <Icon name="crop-outline" size={18} color={colors.white} />
             <Text style={styles.cropText}>Crop</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.cropBtn, music && styles.musicBtnActive]}
-            onPress={onAddMusic}
-            disabled={uploading}
-            accessibilityLabel="Add music"
-          >
-            <Icon name="musical-notes" size={18} color={music ? colors.primary : colors.white} />
-            <Text style={[styles.cropText, music && { color: colors.primary }]}>
-              {music ? "Music" : "Add Music"}
-            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.uploadBtn}
@@ -135,31 +143,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0A0E16",
   },
-  image: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-  },
   topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
+    paddingBottom: 10,
   },
   userRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    marginRight: 12,
   },
   name: {
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: "700",
     color: colors.white,
@@ -170,35 +169,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  musicArea: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    paddingBottom: 10,
   },
-  cropBtn: {
+  addMusicBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    alignSelf: "flex-start",
+    gap: 8,
     backgroundColor: "rgba(255,255,255,0.14)",
     borderRadius: 26,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
   },
-  cropText: {
+  addMusicText: {
     fontSize: 15,
     fontWeight: "700",
     color: colors.white,
   },
   musicChip: {
-    position: "absolute",
-    left: 16,
-    right: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -222,8 +212,37 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 1,
   },
-  musicBtnActive: {
-    backgroundColor: "rgba(255,255,255,0.9)",
+  imageWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  bottomBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  cropBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: 26,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  cropText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.white,
   },
   uploadBtn: {
     flexDirection: "row",
@@ -233,7 +252,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     paddingHorizontal: 22,
     paddingVertical: 12,
-    minWidth: 120,
     justifyContent: "center",
   },
   uploadText: {
