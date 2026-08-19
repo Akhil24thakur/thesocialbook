@@ -399,9 +399,10 @@ export default function ReelsScreen() {
   const { token } = useAuth();
   const [reels, setReels] = useState<Reel[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const hasLoadedRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const [height, setHeight] = useState(0);
@@ -416,17 +417,23 @@ export default function ReelsScreen() {
   const load = useCallback(
     async (refresh = false) => {
       if (!token) return;
-      refresh ? setRefreshing(true) : setLoading(true);
+      if (refresh) {
+        setRefreshing(true);
+      } else if (!hasLoadedRef.current) {
+        setStatus("loading");
+      }
       try {
         const res = await api.reels(token, { limit: PAGE_SIZE });
+        hasLoadedRef.current = true;
         setReels(res.reels);
         setNextCursor(res.nextCursor);
-        setError("");
+        setErrorMsg("");
+        setStatus("ready");
         setActiveIndex(0);
       } catch (e: any) {
-        setError(e.message ?? "Could not load reels");
+        setErrorMsg(e.message ?? "Could not load reels");
+        if (!hasLoadedRef.current) setStatus("error");
       } finally {
-        setLoading(false);
         setRefreshing(false);
       }
     },
@@ -434,7 +441,7 @@ export default function ReelsScreen() {
   );
 
   const loadMore = useCallback(async () => {
-    if (!token || loadingMoreRef.current || !nextCursor || loading || refreshing) return;
+    if (!token || loadingMoreRef.current || !nextCursor || refreshing) return;
     loadingMoreRef.current = true;
     try {
       const res = await api.reels(token, { cursor: nextCursor, limit: PAGE_SIZE });
@@ -448,7 +455,7 @@ export default function ReelsScreen() {
     } finally {
       loadingMoreRef.current = false;
     }
-  }, [token, nextCursor, loading, refreshing]);
+  }, [token, nextCursor, refreshing]);
 
   const pauseAll = useCallback(() => {
     playersRef.current.forEach((p) => p.pause());
@@ -596,38 +603,36 @@ export default function ReelsScreen() {
     <ActivityIndicator style={styles.footer} color={colors.white} />
   ) : null;
 
-  let empty: React.ReactElement | null = null;
-  if (loading) {
-    empty = (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.white} />
-      </View>
-    );
-  } else if (error) {
-    empty = (
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>Couldn't load reels</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => load()}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  } else {
-    empty = (
-      <View style={styles.center}>
-        <Icon name="film-outline" size={52} color={colors.white} />
-        <Text style={styles.emptyTitle}>No reels yet</Text>
-        <Text style={styles.emptySub}>Be the first to share a video reel</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => navigation.navigate("CreateReel", {})}>
-          <Text style={styles.retryText}>Share a Reel</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
-      {height > 0 && (
+      {status === "loading" ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.white} />
+          <Text style={styles.loadingText}>Loading reels…</Text>
+        </View>
+      ) : status === "error" ? (
+        <View style={styles.center}>
+          <Icon name="cloud-offline-outline" size={52} color={colors.white} />
+          <Text style={styles.emptyTitle}>Couldn't load reels</Text>
+          <Text style={styles.emptySub}>{errorMsg || "Check your connection and try again"}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => load()} activeOpacity={0.85}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : reels.length === 0 ? (
+        <View style={styles.center}>
+          <Icon name="film-outline" size={52} color={colors.white} />
+          <Text style={styles.emptyTitle}>No reels yet</Text>
+          <Text style={styles.emptySub}>Be the first to share a video reel</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => navigation.navigate("CreateReel", {})}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.retryText}>Share a Reel</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
         <FlatList
           data={reels}
           keyExtractor={(r) => String(r.id)}
@@ -658,7 +663,6 @@ export default function ReelsScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={listFooter}
-          ListEmptyComponent={empty}
         />
       )}
 
@@ -838,6 +842,10 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     fontWeight: "700",
   },
   emptySub: {
+    color: "#9AA4B2",
+    fontSize: 14,
+  },
+  loadingText: {
     color: "#9AA4B2",
     fontSize: 14,
   },

@@ -19,6 +19,7 @@ import SkeletonFeed from "../components/home/SkeletonFeed";
 import StoriesStrip from "../components/home/StoriesStrip";
 import { Story, StoryGroup } from "../components/home/StoryViewer";
 import { storyGroupsFromApi } from "../data/stories";
+import ReelsScreen from "./ReelsScreen";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import type { Post, StoryItem } from "../types";
@@ -206,10 +207,9 @@ export default function FeedScreen() {
           onDeleteStory={onDeleteStory}
           onProfile={(id) => navigation.navigate("UserProfile", { userId: id })}
         />
-        <FeedTabs active={tab} onChange={setTab} />
       </View>
     ),
-    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, navigation, tab, colors]
+    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, navigation, colors]
   );
 
   const renderItem = useCallback(
@@ -228,27 +228,34 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={displayPosts}
-        keyExtractor={(p) => String(p.id)}
-        ListHeaderComponent={header}
-        renderItem={renderItem}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
-        }
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.6}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        ListFooterComponent={
-          loadingMoreRef.current ? (
-            <ActivityIndicator style={styles.footer} color={colors.primary} />
-          ) : null
-        }
-        ListEmptyComponent={empty}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.tabsRow}>
+        <FeedTabs active={tab} onChange={setTab} />
+      </View>
+      {tab === "reels" ? (
+        <ReelsScreen />
+      ) : (
+        <FlatList
+          data={displayPosts}
+          keyExtractor={(p) => String(p.id)}
+          ListHeaderComponent={header}
+          renderItem={renderItem}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.6}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          ListFooterComponent={
+            loadingMoreRef.current ? (
+              <ActivityIndicator style={styles.footer} color={colors.primary} />
+            ) : null
+          }
+          ListEmptyComponent={empty}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
@@ -257,6 +264,10 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  tabsRow: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   list: {
     padding: 16,

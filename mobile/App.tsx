@@ -19,7 +19,6 @@ import TopAppBar from "./src/components/home/TopAppBar";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 import FeedScreen from "./src/screens/FeedScreen";
-import ReelsScreen from "./src/screens/ReelsScreen";
 import CreateReelScreen from "./src/screens/CreateReelScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import CreatePostScreen from "./src/screens/CreatePostScreen";
@@ -376,16 +375,6 @@ function HomeTabs() {
           options={{
             tabBarButton: CreateButton,
             tabBarLabel: "",
-          }}
-        />
-        <Tab.Screen
-          name="Reels"
-          component={ReelsScreen}
-          options={{
-            headerShown: false,
-            tabBarIcon: ({ focused, color }) => (
-              <Icon name={focused ? "play-circle" : "play-circle-outline"} size={24} color={color} />
-            ),
           }}
         />
         <Tab.Screen

@@ -4,10 +4,11 @@ import Icon from "../Icon";
 import { type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
 
-export type FeedTab = "foryou" | "following";
+export type FeedTab = "foryou" | "reels" | "following";
 
 const TABS: { key: FeedTab; label: string; icon: string }[] = [
   { key: "foryou", label: "For You", icon: "flame-outline" },
+  { key: "reels", label: "Reels", icon: "play-circle-outline" },
   { key: "following", label: "Following", icon: "people-outline" },
 ];
 
