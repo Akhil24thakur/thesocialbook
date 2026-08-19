@@ -65,11 +65,17 @@ if (Platform.OS === "android") {
 
 Notifications.addNotificationReceivedListener(() => setPendingPush(true));
 
-const NotificationReply = require("./modules/notification-reply") as typeof import("./modules/notification-reply");
+const NotificationReply: any = (() => {
+  try {
+    return require("./modules/notification-reply");
+  } catch {
+    return null;
+  }
+})();
 
 function setReplyApiUrl() {
   try {
-    void NotificationReply.setApiUrl(API_URL);
+    void NotificationReply?.setApiUrl(API_URL);
   } catch {
     // Native module unavailable - ignore
   }
@@ -106,7 +112,7 @@ function PushTapNavigator() {
     let cancelled = false;
     (async () => {
       try {
-        const initial = await NotificationReply.getInitialNotification();
+        const initial = await NotificationReply?.getInitialNotification();
         if (cancelled || !initial) return;
         if (initial.url) {
           void Linking.openURL(initial.url);
