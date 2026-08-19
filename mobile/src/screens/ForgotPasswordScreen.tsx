@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +17,8 @@ import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import BrandLogo from "../components/BrandLogo";
 import Icon from "../components/Icon";
-import { brandGradient, colors } from "../theme";
+import { brandGradient, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 type Step = "phone" | "code";
 
@@ -33,6 +34,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [kbHeight, setKbHeight] = useState(0);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setKbHeight(e.endCoordinates.height));
@@ -209,7 +213,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={brandGradient}
+                colors={brandGradient(colors)}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
@@ -231,7 +235,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
   },

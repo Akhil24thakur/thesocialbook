@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Image,
   Modal,
@@ -11,7 +11,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
-import { colors, formatCount } from "../theme";
+import { formatCount, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { Post } from "../types";
 
 export default function ImageLightbox({
@@ -27,6 +28,8 @@ export default function ImageLightbox({
   onAuthorPress: (post: Post) => void;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
   return (
@@ -101,7 +104,7 @@ export default function ImageLightbox({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.96)",

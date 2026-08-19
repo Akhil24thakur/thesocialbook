@@ -1,16 +1,19 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { brandGradient, colors } from "../theme";
+import { brandGradient, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export default function BrandLogo({ size = 72 }: { size?: number }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const bookW = size * 0.54;
   const bookH = size * 0.44;
   const lineW = bookW * 0.58;
   return (
     <View style={[styles.wrap, { width: size, height: size }]}>
       <LinearGradient
-        colors={brandGradient}
+        colors={brandGradient(colors)}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.badge, { width: size, height: size, borderRadius: size * 0.28 }]}
@@ -26,7 +29,7 @@ export default function BrandLogo({ size = 72 }: { size?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   wrap: {
     alignItems: "center",
     justifyContent: "center",

@@ -20,7 +20,8 @@ import { attachKeyboardHeight } from "../../modules/notification-reply";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
-import { colors, formatTime, isOnline } from "../theme";
+import { formatTime, isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import { decryptMessage, encryptMessage, loadOrCreateKeyPair } from "../crypto";
 import { onWsEvent } from "../ws";
 import type { ChatMessage } from "../types";
@@ -59,6 +60,8 @@ function buildRows(messages: ChatMessage[]): ChatRow[] {
 }
 
 export default function ChatScreen({ route, navigation }: any) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { conversationId, name: initialName, avatarUrl: initialAvatar, otherId: initialOtherId } = route.params ?? {};
   const { token } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -348,7 +351,7 @@ export default function ChatScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

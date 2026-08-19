@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
-import { colors } from "../../theme";
-
-function Block({ style }: { style?: any }) {
-  return <View style={[styles.block, style]} />;
-}
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 export default function SkeletonFeed() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const Block = ({ style }: { style?: any }) => <View style={[styles.block, style]} />;
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function SkeletonFeed() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   block: {
     backgroundColor: "#E8EBF1",
     borderRadius: 8,

@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "../Icon";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 export type FeedTab = "foryou" | "following" | "trending";
 
@@ -12,6 +13,8 @@ const TABS: { key: FeedTab; label: string; icon: string }[] = [
 ];
 
 export default function FeedTabs({ active, onChange }: { active: FeedTab; onChange: (t: FeedTab) => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.row}>
       {TABS.map((t) => {
@@ -34,7 +37,7 @@ export default function FeedTabs({ active, onChange }: { active: FeedTab; onChan
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   row: {
     flexDirection: "row",
     backgroundColor: colors.card,

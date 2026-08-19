@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "../Icon";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 export default function AddStorySheet({
   visible,
@@ -20,6 +21,9 @@ export default function AddStorySheet({
   onCamera: () => void;
   onMusic: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
@@ -57,7 +61,7 @@ export default function AddStorySheet({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(23,32,51,0.45)",

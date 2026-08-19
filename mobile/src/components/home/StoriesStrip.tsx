@@ -15,7 +15,8 @@ import StoryUploadPreview from "./StoryUploadPreview";
 import AddStorySheet from "./AddStorySheet";
 import MusicPickerModal from "./MusicPickerModal";
 import { useStoryUpload } from "./useStoryUpload";
-import { colors, storyGradient } from "../../theme";
+import { storyGradient, type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 export default function StoriesStrip({
   groups,
@@ -37,6 +38,8 @@ export default function StoriesStrip({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, musicOpen, setMusicOpen, music, setMusic, pickCamera, pickGallery, openMusic, confirmUpload } =
     useStoryUpload();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const allGroups = useMemo<StoryGroup[]>(
     () => (myStoryGroup ? [myStoryGroup, ...groups] : groups),
@@ -77,7 +80,7 @@ export default function StoriesStrip({
               accessibilityLabel={myStoryGroup ? "Watch your story" : "Add to your story"}
             >
               {ownRingImage ? (
-                <LinearGradient colors={storyGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownRing}>
+                <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownRing}>
                   <View style={styles.avatarPad}>
                     <Image source={{ uri: ownRingImage }} style={styles.ownAvatar} />
                   </View>
@@ -103,7 +106,7 @@ export default function StoriesStrip({
             onPress={() => setViewerIndex(index + (myStoryGroup ? 1 : 0))}
             accessibilityLabel={`${item.name}'s story`}
           >
-            <LinearGradient colors={storyGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
+            <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
               <View style={styles.avatarPad}>
                 <Avatar name={item.name} size={50} imageUrl={item.avatarUrl} />
               </View>
@@ -162,7 +165,7 @@ export default function StoriesStrip({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: 22,

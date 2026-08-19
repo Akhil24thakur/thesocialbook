@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Linking, StyleSheet, Text, TextProps } from "react-native";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 const URL_RE = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s]|www\.[^\s<]+[^<.,:;"')\]\s])/g;
 const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(((?:https?|ftp):\/\/[^)\s]+)\)/g;
@@ -68,7 +69,7 @@ function parseMarkdownLinks(text: string): Span[] {
   return spans;
 }
 
-function spansToNodes(spans: Span[], keyBase: string): React.ReactNode[] {
+function spansToNodes(spans: Span[], keyBase: string, styles: ReturnType<typeof createStyles>): React.ReactNode[] {
   return linkify(spans).map((s, i) => {
     if (s.link) {
       return (
@@ -93,16 +94,18 @@ function spansToNodes(spans: Span[], keyBase: string): React.ReactNode[] {
 }
 
 export default function RichText({ style, children, ...rest }: TextProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const text = String(children ?? "");
   if (!text) return null;
   return (
     <Text style={style} {...rest}>
-      {spansToNodes(parseMarkdownLinks(text), "rt")}
+      {spansToNodes(parseMarkdownLinks(text), "rt", styles)}
     </Text>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   bold: { fontWeight: "700" },
   italic: { fontStyle: "italic" },
   underline: { textDecorationLine: "underline" },

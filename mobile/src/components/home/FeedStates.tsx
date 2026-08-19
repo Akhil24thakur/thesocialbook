@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "../Icon";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 export function EmptyFeed({ compact = false }: { compact?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={[styles.wrap, compact && styles.compact]}>
       <View style={styles.iconCircle}>
@@ -16,6 +19,8 @@ export function EmptyFeed({ compact = false }: { compact?: boolean }) {
 }
 
 export function ErrorFeed({ onRetry }: { onRetry: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={[styles.wrap, styles.compact]}>
       <View style={styles.iconCircle}>
@@ -30,7 +35,7 @@ export function ErrorFeed({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   wrap: {
     alignItems: "center",
     paddingVertical: 44,

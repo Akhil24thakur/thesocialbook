@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { PanResponder, StyleSheet, View } from "react-native";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 const TRACK_HEIGHT = 44;
 
@@ -23,6 +24,8 @@ export default function MusicClipSelector({
   onChange: (startTime: number) => void;
   onRelease: (startTime: number) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [trackWidth, setTrackWidth] = useState(0);
 
   const trackWRef = useRef(0);
@@ -121,7 +124,7 @@ export default function MusicClipSelector({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   touch: {
     height: TRACK_HEIGHT,
     justifyContent: "center",

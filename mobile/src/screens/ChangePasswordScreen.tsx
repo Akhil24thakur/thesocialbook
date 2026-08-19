@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,8 @@ import {
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Icon, { type IconName } from "../components/Icon";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export default function ChangePasswordScreen({ navigation }: any) {
   const { token, logout } = useAuth();
@@ -26,6 +27,9 @@ export default function ChangePasswordScreen({ navigation }: any) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const submit = async () => {
     setError("");
@@ -158,7 +162,7 @@ export default function ChangePasswordScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

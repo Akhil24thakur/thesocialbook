@@ -1,4 +1,4 @@
-export const colors = {
+export const lightColors = {
   primary: "#2196F3",
   primaryDark: "#1A7FDE",
   purple: "#6C63FF",
@@ -17,9 +17,32 @@ export const colors = {
   pink: "#EC4899",
 };
 
-export const avatarGradient: [string, string] = [colors.primary, colors.purple];
-export const storyGradient: [string, string, string] = [colors.primary, colors.purple, colors.pink];
-export const brandGradient: [string, string] = [colors.primary, colors.primaryDark];
+export type Colors = typeof lightColors;
+
+export const darkColors: Colors = {
+  primary: "#2196F3",
+  primaryDark: "#0D6BD1",
+  purple: "#7C74FF",
+  primaryLight: "#1E3A5F",
+  saffron: "#FFA940",
+  green: "#34D97B",
+  online: "#34D97B",
+  white: "#FFFFFF",
+  background: "#0E1116",
+  card: "#1A202B",
+  text: "#ECF1F8",
+  textSecondary: "#9AA4B2",
+  border: "#2A3140",
+  danger: "#FF4D7D",
+  amber: "#FFB020",
+  pink: "#FF6BA9",
+};
+
+export const colors = lightColors;
+
+export const avatarGradient = (c: Colors): [string, string] => [c.primary, c.purple];
+export const storyGradient = (c: Colors): [string, string, string] => [c.primary, c.purple, c.pink];
+export const brandGradient = (c: Colors): [string, string] => [c.primary, c.primaryDark];
 
 export const radius = {
   sm: 12,

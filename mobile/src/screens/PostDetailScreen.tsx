@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,8 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import RichText from "../components/RichText";
-import { colors, formatCount, formatTime, isOnline } from "../theme";
+import { formatCount, formatTime, isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { Comment, Post } from "../types";
 
 export default function PostDetailScreen({ route, navigation }: any) {
@@ -33,6 +34,9 @@ export default function PostDetailScreen({ route, navigation }: any) {
   const listRef = useRef<FlatList<Comment>>(null);
   const scrollToBottom = useRef(false);
   const [kb, setKb] = useState(0);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     const show = Keyboard.addListener(
@@ -304,7 +308,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Icon from "../components/Icon";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export default function GroupsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
@@ -17,7 +21,7 @@ export default function GroupsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

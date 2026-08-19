@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +17,8 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
-import { colors, isOnline } from "../theme";
+import { isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { Post } from "../types";
 
 export default function ProfileScreen({ navigation }: any) {
@@ -31,6 +32,9 @@ export default function ProfileScreen({ navigation }: any) {
     followerCount: 0,
     followingCount: 0,
   });
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const load = useCallback(
     async (refresh = false) => {
@@ -281,7 +285,7 @@ export default function ProfileScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

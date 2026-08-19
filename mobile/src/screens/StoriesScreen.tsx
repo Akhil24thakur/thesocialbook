@@ -20,7 +20,8 @@ import MusicPickerModal from "../components/home/MusicPickerModal";
 import { useStoryUpload } from "../components/home/useStoryUpload";
 import Icon from "../components/Icon";
 import { storyGroupsFromApi } from "../data/stories";
-import { colors, storyGradient } from "../theme";
+import { storyGradient, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { StoryItem } from "../types";
 
 export default function StoriesScreen() {
@@ -31,6 +32,8 @@ export default function StoriesScreen() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, musicOpen, setMusicOpen, music, setMusic, pickCamera, pickGallery, openMusic, confirmUpload } =
     useStoryUpload();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const load = useCallback(
     async (refresh = false) => {
@@ -120,7 +123,7 @@ export default function StoriesScreen() {
               onPress={() => (myStoryGroup ? setViewerIndex(0) : setAddOpen(true))}
               accessibilityLabel={myStoryGroup ? "Watch your story" : "Add to your story"}
             >
-              <LinearGradient colors={storyGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.addAvatar}>
+              <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.addAvatar}>
                 {ownRingImage ? (
                   <View style={styles.addAvatarPad}>
                     <Image source={{ uri: ownRingImage }} style={styles.addAvatarImg} />
@@ -149,7 +152,7 @@ export default function StoriesScreen() {
             onPress={() => setViewerIndex(index + (myStoryGroup ? 1 : 0))}
             accessibilityLabel={`${item.name}'s story`}
           >
-            <LinearGradient colors={storyGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
+            <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
               <View style={styles.avatarPad}>
                 <Avatar name={item.name} size={62} imageUrl={item.avatarUrl} />
               </View>
@@ -210,7 +213,7 @@ export default function StoriesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

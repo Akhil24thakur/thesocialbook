@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 const USERNAME_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -22,6 +23,9 @@ export default function EditProfileScreen({ navigation }: any) {
   const [bio, setBio] = useState(user?.bio ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const changedAt = user?.usernameChangedAt ? new Date(user.usernameChangedAt).getTime() : 0;
   const lockedUntil = changedAt + USERNAME_COOLDOWN_MS;
@@ -111,7 +115,7 @@ export default function EditProfileScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -9,6 +10,7 @@ interface IconProps {
   color?: string;
 }
 
-export default function Icon({ name, size = 22, color = colors.textSecondary }: IconProps) {
-  return <Ionicons name={name} size={size} color={color} />;
+export default function Icon({ name, size = 22, color }: IconProps) {
+  const { colors } = useTheme();
+  return <Ionicons name={name} size={size} color={color ?? colors.textSecondary} />;
 }

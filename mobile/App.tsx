@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
-import { NavigationContainer, createNavigationContainerRef, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef, useNavigation, DefaultTheme, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -32,7 +32,8 @@ import MessagesScreen from "./src/screens/MessagesScreen";
 import ChatScreen from "./src/screens/ChatScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
-import { brandGradient, colors } from "./src/theme";
+import { brandGradient, darkColors, lightColors, type Colors } from "./src/theme";
+import { ThemeProvider, useTheme } from "./src/theme-context";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
 import { getPushStatus } from "./src/pushStatus";
 import { loadOrCreateKeyPair } from "./src/crypto";
@@ -43,6 +44,32 @@ setupCrashLog();
 
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef<any>();
+
+const lightNavTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: lightColors.primary,
+    background: lightColors.background,
+    card: lightColors.card,
+    text: lightColors.text,
+    border: lightColors.border,
+    notification: lightColors.danger,
+  },
+};
+
+const darkNavTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: darkColors.primary,
+    background: darkColors.background,
+    card: darkColors.card,
+    text: darkColors.text,
+    border: darkColors.border,
+    notification: darkColors.danger,
+  },
+};
 
 const Notifications = require("expo-notifications") as typeof import("expo-notifications");
 
@@ -224,11 +251,14 @@ function CreatePlaceholder() {
 function HomeTabs() {
   const [createOpen, setCreateOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [chatUnread, setChatUnread] = useState(0);
   const pendingPush = usePendingPush();
   const navigation = useNavigation<any>();
   const { logout, token } = useAuth();
+  const { colors, mode, setMode } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const refreshUnread = useCallback(async () => {
     if (!token) return;
@@ -282,6 +312,7 @@ function HomeTabs() {
     { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
     { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
     { label: "Change Password", icon: "key-outline", action: () => navigation.navigate("ChangePassword") },
+    { label: "Theme", icon: "contrast-outline", action: () => setThemeOpen(true) },
     { label: "Logout", icon: "log-out-outline", danger: true, action: confirmLogout },
   ];
 
@@ -293,9 +324,9 @@ function HomeTabs() {
         onPress={() => setCreateOpen(true)}
         accessibilityLabel="Create"
       >
-        <View style={styles.createShadow}>
+<View style={styles.createShadow}>
           <LinearGradient
-            colors={brandGradient}
+            colors={brandGradient(colors)}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.plusButton}
@@ -305,7 +336,7 @@ function HomeTabs() {
         </View>
       </TouchableOpacity>
     ),
-    []
+    [styles, colors]
   );
 
   return (
@@ -401,12 +432,47 @@ function HomeTabs() {
           </View>
         </TouchableOpacity>
       </Modal>
+      <Modal visible={themeOpen} transparent animationType="fade" onRequestClose={() => setThemeOpen(false)}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setThemeOpen(false)}>
+          <View style={styles.menuSheet}>
+            <Text style={styles.menuTitle}>Theme</Text>
+            <Text style={styles.menuPush}>Choose how SocialBook looks</Text>
+            {(
+              [
+                { key: "system", label: "System Theme", desc: "Follows your phone (Default)", icon: "phone-portrait-outline" },
+                { key: "dark", label: "Dark", desc: "Always use dark mode", icon: "moon-outline" },
+                { key: "light", label: "White", desc: "Always use light mode", icon: "sunny-outline" },
+              ] as const
+            ).map((t) => (
+              <TouchableOpacity
+                key={t.key}
+                style={styles.menuItem}
+                onPress={() => {
+                  setMode(t.key);
+                  setThemeOpen(false);
+                }}
+              >
+                <View style={styles.menuIcon}>
+                  <Icon name={t.icon as any} size={20} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuLabel, mode === t.key && styles.themeOptionActive]}>{t.label}</Text>
+                  <Text style={styles.menuPush}>{t.desc}</Text>
+                </View>
+                {mode === t.key && <Icon name="checkmark" size={20} color={colors.primary} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
 
 function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | null) => void }) {
   const { user, token, loading } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -461,10 +527,12 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
   );
 }
 
-export default function App() {
+function AppContent() {
   const [fontsLoaded] = useFonts({ Caveat_700Bold });
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [dl, setDl] = useState<DownloadState | null>(null);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     checkForUpdates(setUpdate);
@@ -533,30 +601,27 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <SafeAreaProvider>
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaProvider>
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <KeyboardProvider>
-        <AuthProvider>
-          <NavigationContainer ref={navigationRef}>
-            <RootNavigator onCheckUpdate={(t) => checkForUpdates(setUpdate, t)} />
-          </NavigationContainer>
-          <StatusBar style="auto" />
-          <PushTapNavigator />
-        </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <NavigationContainer ref={navigationRef} theme={isDark ? darkNavTheme : lightNavTheme}>
+          <RootNavigator onCheckUpdate={(t) => checkForUpdates(setUpdate, t)} />
+        </NavigationContainer>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <PushTapNavigator />
+      </AuthProvider>
         {update && (
         <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>
           <View style={styles.updateOverlay}>
             <View style={styles.updateCard}>
               <LinearGradient
-                colors={brandGradient}
+                colors={brandGradient(colors)}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.updateHeader}
@@ -649,11 +714,20 @@ export default function App() {
         </Modal>
       )}
       </KeyboardProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   loading: {
     flex: 1,
     backgroundColor: colors.background,
@@ -866,5 +940,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: colors.white,
+  },
+  themeOptionActive: {
+    color: colors.primary,
+    fontWeight: "700",
   },
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,8 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
-import { colors, isOnline } from "../theme";
+import { isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { ApiUser, Post } from "../types";
 
 export default function UserProfileScreen({ route }: any) {
@@ -25,6 +26,9 @@ export default function UserProfileScreen({ route }: any) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [followBusy, setFollowBusy] = useState(false);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -213,7 +217,7 @@ export default function UserProfileScreen({ route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

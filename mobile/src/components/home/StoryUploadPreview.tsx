@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Avatar from "../Avatar";
 import Icon from "../Icon";
 import StoryCropScreen from "./StoryCropScreen";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 import type { StoryMusicSelection } from "../../music/catalog";
 
 export default function StoryUploadPreview({
@@ -32,6 +33,8 @@ export default function StoryUploadPreview({
 }) {
   const insets = useSafeAreaInsets();
   const [cropping, setCropping] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const confirm = () => {
     if (uploading) return;
@@ -138,7 +141,7 @@ export default function StoryUploadPreview({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "#0A0E16",

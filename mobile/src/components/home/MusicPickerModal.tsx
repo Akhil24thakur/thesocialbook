@@ -13,7 +13,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import Icon from "../Icon";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 import {
   DEFAULT_MUSIC_CLIP_SECONDS,
   fetchMusicCatalog,
@@ -38,6 +39,8 @@ export default function MusicPickerModal({
   onClose: () => void;
   onDone: (selection: StoryMusicSelection) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [songs, setSongs] = useState<StoryMusic[]>([]);
   const [loading, setLoading] = useState(false);
@@ -370,7 +373,7 @@ export default function MusicPickerModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

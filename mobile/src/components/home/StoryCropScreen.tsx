@@ -10,7 +10,8 @@ import {
   View,
 } from "react-native";
 import * as ImageManipulator from "expo-image-manipulator";
-import { colors } from "../../theme";
+import { type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Corner = "tl" | "tr" | "bl" | "br";
@@ -30,6 +31,8 @@ export default function StoryCropScreen({
   onCancel: () => void;
   onDone: (uri: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
   const [viewSize, setViewSize] = useState<{ w: number; h: number } | null>(null);
   const [frame, setFrame] = useState<Rect>({ x: 0, y: 0, w: 0, h: 0 });
@@ -196,7 +199,7 @@ export default function StoryCropScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "#0A0E16",

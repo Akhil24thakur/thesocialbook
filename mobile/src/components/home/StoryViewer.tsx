@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -17,7 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAudioPlayer } from "expo-audio";
 import Avatar from "../Avatar";
 import Icon from "../Icon";
-import { colors, formatTime, storyGradient } from "../../theme";
+import { formatTime, storyGradient, type Colors } from "../../theme";
+import { useTheme } from "../../theme-context";
 
 export type StoryMusic = {
   songId: string;
@@ -63,6 +64,8 @@ export default function StoryViewer({
   onProfile?: (userId: number) => void;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<StoryGroup>>(null);
   const skipMomentum = useRef(false);
@@ -207,6 +210,8 @@ const GroupPage = memo(function GroupPage({
   onPrev: () => void;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const story = group.stories[Math.min(storyIdx, group.stories.length - 1)];
   const name = group.name.split(" · ")[0];
   const dotRef = useRef<View>(null);
@@ -291,7 +296,7 @@ const GroupPage = memo(function GroupPage({
         <Image source={{ uri: story.imageUrl }} style={styles.image} resizeMode="contain" />
       ) : (
         <LinearGradient
-          colors={storyGradient}
+          colors={storyGradient(colors)}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.textBg}
@@ -432,7 +437,7 @@ const GroupPage = memo(function GroupPage({
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "#0A0E16",

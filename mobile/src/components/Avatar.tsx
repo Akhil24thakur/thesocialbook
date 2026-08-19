@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { avatarGradient, colors } from "../theme";
+import { avatarGradient, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import Icon from "./Icon";
 
 const AVATAR_COLORS = ["#1877F2", "#E0245E", "#0E8A3E", "#F1A100", "#7C3AED", "#0EA5E9", "#DB2777", "#059669"];
@@ -21,6 +22,8 @@ export default function Avatar({
   verified?: boolean;
   imageUrl?: string | null;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const initials = name
     .split(" ")
     .map((p) => p[0])
@@ -41,7 +44,7 @@ export default function Avatar({
         />
       ) : gradient ? (
         <LinearGradient
-          colors={avatarGradient}
+          colors={avatarGradient(colors)}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}
@@ -98,7 +101,7 @@ export default function Avatar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   circle: {
     alignItems: "center",
     justifyContent: "center",

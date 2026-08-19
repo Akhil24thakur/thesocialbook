@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +19,8 @@ import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import RichPasteModal from "../components/RichPasteModal";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export default function CreatePostScreen({ navigation, route }: any) {
   const { token, user } = useAuth();
@@ -38,6 +39,9 @@ export default function CreatePostScreen({ navigation, route }: any) {
   const [linkUrl, setLinkUrl] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
   const photoRequested = route?.params?.withPhoto === true;
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const canPost = (content.trim().length > 0 || !!photo) && !busy && !uploading;
 
@@ -318,7 +322,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

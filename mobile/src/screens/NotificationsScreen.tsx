@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon, { type IconName } from "../components/Icon";
-import { colors, formatTime } from "../theme";
+import { formatTime, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import { setPendingPush } from "../pushBadge";
 import type { Notification } from "../types";
 
@@ -14,6 +15,9 @@ export default function NotificationsScreen({ navigation }: any) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const load = useCallback(async (refresh = false) => {
     if (!token) return;
@@ -197,7 +201,7 @@ export default function NotificationsScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

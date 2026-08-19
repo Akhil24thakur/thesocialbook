@@ -19,7 +19,8 @@ import SkeletonFeed from "../components/home/SkeletonFeed";
 import StoriesStrip from "../components/home/StoriesStrip";
 import { Story, StoryGroup } from "../components/home/StoryViewer";
 import { storyGroupsFromApi } from "../data/stories";
-import { colors } from "../theme";
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { Post, StoryItem } from "../types";
 
 const FEED_PAGE_SIZE = 15;
@@ -42,6 +43,9 @@ export default function FeedScreen() {
   const loadingMoreRef = useRef(false);
   const seenRef = useRef(new Set<number>());
   const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const load = useCallback(
     async (refresh = false) => {
@@ -206,7 +210,7 @@ export default function FeedScreen() {
         <FeedTabs active={tab} onChange={setTab} />
       </View>
     ),
-    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, navigation, tab]
+    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, navigation, tab, colors]
   );
 
   const renderItem = useCallback(
@@ -250,7 +254,7 @@ export default function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

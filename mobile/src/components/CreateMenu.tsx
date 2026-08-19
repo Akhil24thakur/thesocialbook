@@ -1,13 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "./Icon";
-import { colors } from "../theme";
-
-const OPTIONS = [
-  { key: "post", label: "Create Post", sub: "Share text, photo and more", icon: "create-outline", color: colors.primary },
-  { key: "photo", label: "Upload Photo", sub: "Add a photo to your post", icon: "image-outline", color: colors.green },
-  { key: "live", label: "Go Live", sub: "Broadcast to your followers", icon: "videocam-outline", color: colors.pink },
-] as const;
+import { type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export default function CreateMenu({
   visible,
@@ -18,6 +13,14 @@ export default function CreateMenu({
   onClose: () => void;
   onSelect: (key: "post" | "photo" | "live") => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const OPTIONS = [
+    { key: "post", label: "Create Post", sub: "Share text, photo and more", icon: "create-outline", color: colors.primary },
+    { key: "photo", label: "Upload Photo", sub: "Add a photo to your post", icon: "image-outline", color: colors.green },
+    { key: "live", label: "Go Live", sub: "Broadcast to your followers", icon: "videocam-outline", color: colors.pink },
+  ] as const;
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
@@ -48,7 +51,7 @@ export default function CreateMenu({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(23,32,51,0.45)",

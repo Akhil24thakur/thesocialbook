@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
 import Icon from "./Icon";
-import { colors, radius } from "../theme";
+import { radius, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 const TOKEN_RE = /<([a-zA-Z/][^>]*)>|([^<]+)/g;
 
@@ -83,6 +84,8 @@ export default function RichPasteModal({
   onInsert: (text: string) => void;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const webRef = React.useRef<WebView>(null);
   const [extracting, setExtracting] = useState(false);
 
@@ -156,7 +159,7 @@ export default function RichPasteModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(23,32,51,0.45)",

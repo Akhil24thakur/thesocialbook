@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon, { IconName } from "./Icon";
-import { colors, radius } from "../theme";
+import { radius, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 interface Props {
   visible: boolean;
@@ -28,6 +29,8 @@ export default function ConfirmDialog({
   onConfirm,
   onClose,
 }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -62,7 +65,7 @@ export default function ConfirmDialog({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(23,32,51,0.45)",

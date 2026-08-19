@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,7 +13,8 @@ import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
-import { colors, formatTime, isOnline } from "../theme";
+import { formatTime, isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import { decryptMessage, loadOrCreateKeyPair } from "../crypto";
 import { onWsEvent } from "../ws";
 import type { Conversation } from "../types";
@@ -27,6 +28,9 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     loadOrCreateKeyPair()
@@ -150,7 +154,7 @@ export default function MessagesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

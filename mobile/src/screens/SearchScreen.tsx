@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
-import { colors, isOnline } from "../theme";
+import { isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import { API_URL } from "../config";
 
 type SearchUser = {
@@ -37,6 +38,9 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seqRef = useRef(0);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const runSearch = useCallback(
     async (term: string) => {
@@ -210,7 +214,7 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f7f7f7",

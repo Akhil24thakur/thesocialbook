@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon, { IconName } from "./Icon";
-import { colors, radius } from "../theme";
+import { radius, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 
 export interface MenuOption {
   label: string;
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export default function MenuSheet({ visible, title, options, onClose }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
@@ -48,7 +51,7 @@ export default function MenuSheet({ visible, title, options, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(23,32,51,0.45)",

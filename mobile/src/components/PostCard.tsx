@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -19,7 +19,8 @@ import MenuSheet from "./MenuSheet";
 import RichText from "./RichText";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import { colors, formatCount, formatTime, isOnline } from "../theme";
+import { formatCount, formatTime, isOnline, type Colors } from "../theme";
+import { useTheme } from "../theme-context";
 import type { Post } from "../types";
 
 interface Props {
@@ -33,6 +34,8 @@ const IMG_MAX_H = 420;
 const IMG_MIN_H = 190;
 
 function PostCard({ post, onToggleLike, onChanged }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const [imgH, setImgH] = useState<number | null>(null);
@@ -245,7 +248,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
 
 export default React.memo(PostCard);
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Colors) => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: 28,
