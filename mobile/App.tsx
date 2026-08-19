@@ -12,6 +12,7 @@ import { File, Paths } from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
 import { AuthProvider, useAuth } from "./src/auth/AuthContext";
 import { api } from "./src/api";
+import { API_URL } from "./src/config";
 import CreateMenu from "./src/components/CreateMenu";
 import Icon from "./src/components/Icon";
 import TopAppBar from "./src/components/home/TopAppBar";
@@ -64,6 +65,17 @@ if (Platform.OS === "android") {
 
 Notifications.addNotificationReceivedListener(() => setPendingPush(true));
 
+const NotificationReply = require("./modules/notification-reply") as typeof import("./modules/notification-reply");
+
+function setReplyApiUrl() {
+  try {
+    void NotificationReply.setApiUrl(API_URL);
+  } catch {
+    // Native module unavailable - ignore
+  }
+}
+setReplyApiUrl();
+
 function PushTapNavigator() {
   const { user } = useAuth();
   useEffect(() => {
@@ -88,6 +100,28 @@ function PushTapNavigator() {
       }
     });
     return () => sub.remove();
+  }, [user]);
+  useEffect(() => {
+    if (!user || !navigationRef.isReady()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const initial = await NotificationReply.getInitialNotification();
+        if (cancelled || !initial) return;
+        if (initial.url) {
+          void Linking.openURL(initial.url);
+        } else if (initial.conversationId) {
+          navigationRef.navigate("Chat", { conversationId: initial.conversationId });
+        } else if (initial.postId) {
+          navigationRef.navigate("PostDetail", { postId: initial.postId });
+        }
+      } catch {
+        // Native module unavailable - ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
   return null;
 }

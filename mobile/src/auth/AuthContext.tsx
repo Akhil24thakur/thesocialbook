@@ -12,6 +12,16 @@ const USER_KEY = "thesocialbook_user";
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
+function syncReplyAuth(token: string | null) {
+  if (isExpoGo || !token) return;
+  try {
+    const NotificationReply = require("../../modules/notification-reply") as typeof import("../../modules/notification-reply");
+    void NotificationReply.setAuth(token);
+  } catch {
+    // Native module unavailable - ignore
+  }
+}
+
 interface AuthContextValue {
   user: ApiUser | null;
   token: string | null;
@@ -54,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(me);
           await storage.setItem(USER_KEY, JSON.stringify(me));
           await registerPushToken(stored);
+          syncReplyAuth(stored);
         } catch (e: any) {
           if (e?.status === 401) {
             await storage.deleteItem(TOKEN_KEY);
@@ -75,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(newToken);
     setUser(newUser);
     await registerPushToken(newToken);
+    syncReplyAuth(newToken);
   };
 
   const registerPushToken = async (authToken: string) => {
