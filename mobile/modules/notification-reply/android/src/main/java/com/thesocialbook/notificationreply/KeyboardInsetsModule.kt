@@ -22,9 +22,9 @@ class KeyboardInsetsModule : Module() {
     Events("onKeyboardHeight")
 
     AsyncFunction("attach") {
-      if (attached) return@AsyncFunction
+      if (attached) return@AsyncFunction null
       attached = true
-      val activity = appContext.currentActivity ?: return@AsyncFunction
+      val activity = appContext.currentActivity ?: return@AsyncFunction null
       activity.runOnUiThread {
         val root = activity.window.decorView
         if (Build.VERSION.SDK_INT >= 30) {
