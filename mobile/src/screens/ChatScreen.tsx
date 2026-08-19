@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
   FlatList,
   Keyboard,
+  Linking,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +27,37 @@ import type { ChatMessage } from "../types";
 
 const CANNOT_DECRYPT = "\u{1F512} This message cannot be decrypted";
 
+const URL_RE = /(https?:\/\/[^\s]+)/g;
+
+const isUrl = (s: string) => /^https?:\/\//.test(s);
+
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOf(new Date()) - startOf(d)) / 86400000);
+  if (diff <= 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+type ChatRow =
+  | { key: string; kind: "header"; label: string }
+  | { key: string; kind: "msg"; msg: ChatMessage };
+
+function buildRows(messages: ChatMessage[]): ChatRow[] {
+  const rows: ChatRow[] = [];
+  let last = "";
+  for (const m of messages) {
+    const label = dayLabel(m.createdAt);
+    if (label !== last) {
+      rows.push({ key: `h-${m.id}`, kind: "header", label });
+      last = label;
+    }
+    rows.push({ key: `m-${m.id}`, kind: "msg", msg: m });
+  }
+  return rows;
+}
+
 export default function ChatScreen({ route, navigation }: any) {
   const { conversationId, name: initialName, avatarUrl: initialAvatar, otherId: initialOtherId } = route.params ?? {};
   const { token } = useAuth();
@@ -42,9 +75,11 @@ export default function ChatScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [revealedId, setRevealedId] = useState<number | null>(null);
   const listRef = useRef<FlatList>(null);
   const meIdRef = useRef<number | null>(null);
   const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
+  const rows = useMemo(() => buildRows(messages), [messages]);
 
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
@@ -153,28 +188,58 @@ export default function ChatScreen({ route, navigation }: any) {
     }
   }, [text, token, sending, conversationId, other?.publicKey]);
 
-  const renderItem = ({ item }: { item: ChatMessage }) => {
-    const mine = item.senderId === meIdRef.current;
-    const pending = mine && item.id > 1000000000000;
-    const read = mine && !!item.readAt;
-    return (
-      <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-        <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-          <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.body}</Text>
-          <View style={styles.bubbleMeta}>
-            <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
-              {formatTime(item.createdAt)}
-            </Text>
-            {mine &&
-              (pending ? (
-                <Icon name="time-outline" size={13} color="rgba(255,255,255,0.6)" />
-              ) : read ? (
-                <Icon name="checkmark-done" size={14} color={colors.primaryLight} />
-              ) : (
-                <Icon name="checkmark" size={14} color="rgba(255,255,255,0.85)" />
-              ))}
+  const renderItem = ({ item }: { item: ChatRow }) => {
+    if (item.kind === "header") {
+      return (
+        <View style={styles.dayHeaderWrap}>
+          <View style={styles.dayHeader}>
+            <Text style={styles.dayHeaderText}>{item.label}</Text>
           </View>
         </View>
+      );
+    }
+    const msg = item.msg;
+    const mine = msg.senderId === meIdRef.current;
+    const pending = mine && msg.id > 1000000000000;
+    const read = mine && !!msg.readAt;
+    const shown = revealedId === msg.id;
+    return (
+      <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
+        <Pressable
+          style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
+          onPress={() => setRevealedId(shown ? null : msg.id)}
+        >
+          <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>
+            {msg.body.split(URL_RE).map((part, i) =>
+              isUrl(part) ? (
+                <Text
+                  key={`${msg.id}-l${i}`}
+                  style={[styles.link, mine && styles.linkMine]}
+                  onPress={() => void Linking.openURL(part)}
+                >
+                  {part}
+                </Text>
+              ) : (
+                part
+              )
+            )}
+          </Text>
+          {shown && (
+            <View style={styles.bubbleMeta}>
+              <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
+                {formatTime(msg.createdAt)}
+              </Text>
+              {mine &&
+                (pending ? (
+                  <Icon name="time-outline" size={13} color="rgba(255,255,255,0.6)" />
+                ) : read ? (
+                  <Icon name="checkmark-done" size={14} color={colors.primaryLight} />
+                ) : (
+                  <Icon name="checkmark" size={14} color="rgba(255,255,255,0.85)" />
+                ))}
+            </View>
+          )}
+        </Pressable>
       </View>
     );
   };
@@ -212,8 +277,8 @@ export default function ChatScreen({ route, navigation }: any) {
       </View>
       <FlatList
         ref={listRef}
-        data={messages}
-        keyExtractor={(item) => String(item.id)}
+        data={rows}
+        keyExtractor={(item) => item.key}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
@@ -338,6 +403,31 @@ const styles = StyleSheet.create({
   },
   bubbleTimeMine: {
     color: "rgba(255,255,255,0.75)",
+  },
+  link: {
+    color: colors.primary,
+    textDecorationLine: "underline",
+  },
+  linkMine: {
+    color: "#D6EBFF",
+  },
+  dayHeaderWrap: {
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  dayHeader: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  dayHeaderText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
   },
   empty: {
     flex: 1,
