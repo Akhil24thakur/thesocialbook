@@ -4,12 +4,11 @@ import Icon from "../Icon";
 import { type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
 
-export type FeedTab = "foryou" | "following" | "trending";
+export type FeedTab = "foryou" | "following";
 
 const TABS: { key: FeedTab; label: string; icon: string }[] = [
   { key: "foryou", label: "For You", icon: "flame-outline" },
   { key: "following", label: "Following", icon: "people-outline" },
-  { key: "trending", label: "Trending", icon: "trending-up-outline" },
 ];
 
 export default function FeedTabs({ active, onChange }: { active: FeedTab; onChange: (t: FeedTab) => void }) {

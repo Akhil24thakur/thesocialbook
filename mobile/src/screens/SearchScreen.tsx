@@ -217,12 +217,12 @@ export default function SearchScreen() {
 const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f7f7",
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
     paddingTop: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
     flexDirection: "row",
@@ -296,7 +296,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     marginBottom: 12,
     padding: 8,
     borderRadius: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   userAvatar: {
     width: 48,

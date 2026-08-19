@@ -19,6 +19,8 @@ import TopAppBar from "./src/components/home/TopAppBar";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 import FeedScreen from "./src/screens/FeedScreen";
+import ReelsScreen from "./src/screens/ReelsScreen";
+import CreateReelScreen from "./src/screens/CreateReelScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import CreatePostScreen from "./src/screens/CreatePostScreen";
 import PostDetailScreen from "./src/screens/PostDetailScreen";
@@ -292,9 +294,10 @@ function HomeTabs() {
 
   const goTab = (tab: string) => navigation.navigate("Home", { screen: tab });
 
-  const openCreate = (key: "post" | "photo" | "live") => {
+  const openCreate = (key: "post" | "photo" | "live" | "reel") => {
     if (key === "post") navigation.navigate("CreatePost", {});
     else if (key === "photo") navigation.navigate("CreatePost", { withPhoto: true });
+    else if (key === "reel") navigation.navigate("CreateReel", {});
     else navigation.navigate("CreatePost", { prefill: "Going live now!" });
   };
 
@@ -373,6 +376,16 @@ function HomeTabs() {
           options={{
             tabBarButton: CreateButton,
             tabBarLabel: "",
+          }}
+        />
+        <Tab.Screen
+          name="Reels"
+          component={ReelsScreen}
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ focused, color }) => (
+              <Icon name={focused ? "play-circle" : "play-circle-outline"} size={24} color={color} />
+            ),
           }}
         />
         <Tab.Screen
@@ -513,6 +526,7 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
         <>
           <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: "Create Post" }} />
+          <Stack.Screen name="CreateReel" component={CreateReelScreen} options={{ title: "Create Reel" }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: "Post" }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />

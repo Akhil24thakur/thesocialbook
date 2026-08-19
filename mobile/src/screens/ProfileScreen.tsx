@@ -398,14 +398,13 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    rowGap: 6,
     marginTop: 16,
   },
   stat: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "baseline",
-    marginRight: 24,
+    justifyContent: "center",
   },
   statNum: {
     fontSize: 18,

@@ -157,7 +157,6 @@ export default function FeedScreen() {
 
   const displayPosts = useMemo(() => {
     if (tab === "following") return [];
-    if (tab === "trending") return [...posts].sort((a, b) => b.likeCount - a.likeCount);
     return posts;
   }, [posts, tab]);
 

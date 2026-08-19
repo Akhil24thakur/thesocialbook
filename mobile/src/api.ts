@@ -2,7 +2,7 @@ import { File } from "expo-file-system";
 import { Image, Platform } from "react-native";
 import * as ImageManipulator from "expo-image-manipulator";
 import { API_URL } from "./config";
-import type { ApiUser, ChatMessage, Comment, Conversation, Post, StoryItem, Notification } from "./types";
+import type { ApiUser, ChatMessage, Comment, Conversation, Post, Reel, StoryItem, Notification } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -219,4 +219,28 @@ export const api = {
   conversationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/conversations/unread-count", token),
   searchUsers: (token: string, query: string) =>
     request<{ users: ApiUser[] }>("/api/users/search?q=" + encodeURIComponent(query), token),
+  reels: (token: string, params?: { cursor?: number; limit?: number }) =>
+    request<{ reels: Reel[]; nextCursor: number | null }>(`/api/reels`, token, { params }),
+  createReel: (
+    token: string,
+    body: { caption?: string; videoUrl?: string; externalUrl?: string; posterUrl?: string }
+  ) => request<{ reel: Reel }>("/api/reels", token, { method: "POST", body }),
+  deleteReel: (token: string, id: number) =>
+    request<{ ok: boolean }>(`/api/reels/${id}`, token, { method: "DELETE" }),
+  toggleReelLike: (token: string, id: number) =>
+    request<{ liked: boolean }>(`/api/reels/${id}/like`, token, { method: "POST" }),
+  shareReel: (token: string, id: number) =>
+    request<{ ok: boolean }>(`/api/reels/${id}/share`, token, { method: "POST" }),
+  reelComments: (token: string, id: number) =>
+    request<{ comments: Comment[] }>(`/api/reels/${id}/comments`, token),
+  addReelComment: (token: string, id: number, content: string, parentId?: number) =>
+    request<{ comment: Comment }>(`/api/reels/${id}/comments`, token, {
+      method: "POST",
+      body: { content, parentId: parentId ?? null },
+    }),
+  reelUploadUrl: (token: string, ext: string) =>
+    request<{ uploadUrl: string; publicUrl: string; token: string; filename: string }>(
+      `/api/reels/upload-url?ext=${encodeURIComponent(ext)}`,
+      token
+    ),
 };

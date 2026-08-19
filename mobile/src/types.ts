@@ -92,3 +92,19 @@ export interface Conversation {
   } | null;
   unreadCount: number;
 }
+
+export interface Reel {
+  id: number;
+  caption: string;
+  videoUrl: string | null;
+  externalUrl: string | null;
+  posterUrl: string | null;
+  isExternal: boolean;
+  shareCount: number;
+  createdAt: string;
+  author: PostAuthor;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  followedByMe: boolean;
+}
