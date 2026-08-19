@@ -15,8 +15,6 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -77,18 +75,26 @@ export default function ChatScreen({ route, navigation }: any) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [revealedId, setRevealedId] = useState<number | null>(null);
+  const [kbPad, setKbPad] = useState(0);
   const listRef = useRef<FlatList>(null);
   const meIdRef = useRef<number | null>(null);
   const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
   const rows = useMemo(() => buildRows(messages), [messages]);
 
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKbPad(e.endCoordinates.height)
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbPad(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
   const insets = useSafeAreaInsets();
-  const { height: kbHeight } = useReanimatedKeyboardAnimation();
-  const containerStyle = useAnimatedStyle(() => ({
-    paddingBottom: kbHeight.value,
-  }));
 
   const loadMeta = useCallback(async () => {
     if (!token) return;
@@ -258,7 +264,7 @@ export default function ChatScreen({ route, navigation }: any) {
   }
 
   return (
-    <Animated.View style={[styles.container, containerStyle]}>
+    <View style={[styles.container, { paddingBottom: kbPad }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerUser}
@@ -319,7 +325,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <Icon name="send" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
