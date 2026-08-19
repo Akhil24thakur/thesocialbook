@@ -31,8 +31,25 @@ async function deleteTokens(tokens: string[]) {
   await prisma.deviceToken.deleteMany({ where: { token: { in: tokens } } });
 }
 
+function hasNativeService(v?: string | null) {
+  if (!v) return false;
+  const m = v.match(/^(\d+)\.(\d+)/);
+  if (!m) return false;
+  const major = parseInt(m[1], 10);
+  const minor = parseInt(m[2], 10);
+  return major > 2 || (major === 2 && minor >= 7);
+}
+
+async function fcmVersionMap(userIds: number[]) {
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, appVersion: true },
+  });
+  return new Map(users.map((u) => [u.id, u.appVersion]));
+}
+
 async function sendToTokens(
-  fcmTokens: string[],
+  fcmTokens: { token: string; userId: number }[],
   expoTokens: string[],
   payload: {
     title: string;
@@ -56,28 +73,46 @@ async function sendToTokens(
     try {
       const app = getFcmApp();
       if (app) {
-        const res = await getMessaging(app).sendEachForMulticast({
-          tokens: fcmTokens,
-          notification: { title: payload.title, body: payload.body },
-          data,
-          android: { priority: "high" },
-        });
+        const ver = await fcmVersionMap(fcmTokens.map((t) => t.userId));
+        const native = fcmTokens.filter((t) => hasNativeService(ver.get(t.userId)));
+        const legacy = fcmTokens.filter((t) => !hasNativeService(ver.get(t.userId)));
+
         const dead: string[] = [];
-        res.responses.forEach((r, i) => {
-          if (!r.success) {
-            const code = r.error?.code ?? "";
-            if (code.includes("registration-token-not-registered") || code.includes("unregistered")) {
-              dead.push(fcmTokens[i]);
+        const handle = (res: { responses: { success: boolean; error?: { code?: string } }[] }, tokens: string[]) => {
+          res.responses.forEach((r, i) => {
+            if (!r.success) {
+              const code = r.error?.code ?? "";
+              if (code.includes("registration-token-not-registered") || code.includes("unregistered")) {
+                dead.push(tokens[i]);
+              }
             }
-          }
-        });
+          });
+        };
+
+        if (native.length) {
+          const res = await getMessaging(app).sendEachForMulticast({
+            tokens: native.map((t) => t.token),
+            data,
+            android: { priority: "high" },
+          });
+          handle(res, native.map((t) => t.token));
+        }
+
+        if (legacy.length) {
+          const res = await getMessaging(app).sendEachForMulticast({
+            tokens: legacy.map((t) => t.token),
+            notification: { title: payload.title, body: payload.body },
+            data,
+            android: { priority: "high" },
+          });
+          handle(res, legacy.map((t) => t.token));
+        }
+
         if (dead.length) await deleteTokens(dead);
-      } else {
-        // No FCM credentials configured yet - skip silently
       }
     } catch (e: any) {
       if (String(e?.errorInfo?.code ?? "").includes("registration-token-not-registered")) {
-        await deleteTokens(fcmTokens);
+        await deleteTokens(fcmTokens.map((t) => t.token));
       }
     }
   }
@@ -107,11 +142,11 @@ export async function sendPush(
 ) {
   const tokens = await prisma.deviceToken.findMany({
     where: { userId: recipientId },
-    select: { token: true, type: true },
+    select: { token: true, type: true, userId: true },
   });
   if (!tokens.length) return;
 
-  const fcmTokens = tokens.filter((t) => t.type === "fcm").map((t) => t.token);
+  const fcmTokens = tokens.filter((t) => t.type === "fcm").map((t) => ({ token: t.token, userId: t.userId }));
   const expoTokens = tokens.filter((t) => t.type !== "fcm").map((t) => t.token);
   await sendToTokens(fcmTokens, expoTokens, payload);
 }
@@ -125,7 +160,7 @@ export async function sendBroadcast(
   });
   const fcmTokens = tokens
     .filter((t) => t.type === "fcm" && t.userId !== excludeUserId)
-    .map((t) => t.token);
+    .map((t) => ({ token: t.token, userId: t.userId }));
   const expoTokens = tokens
     .filter((t) => t.type !== "fcm" && t.userId !== excludeUserId)
     .map((t) => t.token);
