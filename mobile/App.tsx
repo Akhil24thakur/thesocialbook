@@ -159,14 +159,42 @@ interface DownloadState {
   message?: string;
 }
 
-async function checkForUpdates(setUpdate: (u: UpdateInfo | null) => void) {
+async function checkForUpdates(
+  setUpdate: (u: UpdateInfo | null) => void,
+  token: string | null = null
+) {
   try {
     const current = Constants.expoConfig?.version;
     if (!current) return;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await fetch(RELEASES_URL, { signal: controller.signal });
+      const res = await fetch(`${API_URL}/api/update-info`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: controller.signal,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const upd = data?.update;
+        if (upd && typeof upd.version === "string" && isNewerVersion(upd.version, current)) {
+          setUpdate({
+            version: upd.version,
+            notes: String(upd.notes ?? ""),
+            apkUrl: upd.apkUrl ?? null,
+            apkSize: typeof upd.apkSize === "number" ? upd.apkSize : undefined,
+          });
+        }
+        return;
+      }
+    } catch {
+      // Fall back to GitHub below
+    } finally {
+      clearTimeout(timer);
+    }
+    const ghController = new AbortController();
+    const ghTimer = setTimeout(() => ghController.abort(), 15000);
+    try {
+      const res = await fetch(RELEASES_URL, { signal: ghController.signal });
       if (!res.ok) return;
       const release = await res.json();
       const latest = String(release.tag_name ?? "").replace(/^v/, "");
@@ -181,7 +209,7 @@ async function checkForUpdates(setUpdate: (u: UpdateInfo | null) => void) {
         apkSize: typeof apk?.size === "number" ? apk.size : undefined,
       });
     } finally {
-      clearTimeout(timer);
+      clearTimeout(ghTimer);
     }
   } catch {
     // Silent - update check is best effort
@@ -377,7 +405,7 @@ function HomeTabs() {
   );
 }
 
-function RootNavigator() {
+function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | null) => void }) {
   const { user, token, loading } = useAuth();
 
   useEffect(() => {
@@ -388,6 +416,7 @@ function RootNavigator() {
       .then((kp) => api.registerPublicKey(token, kp.publicKey).catch(() => {}))
       .catch(() => {});
     connectWs(token);
+    onCheckUpdate?.(token);
     return () => {
       connectWs(null);
     };
@@ -517,7 +546,7 @@ export default function App() {
       <KeyboardProvider>
         <AuthProvider>
           <NavigationContainer ref={navigationRef}>
-            <RootNavigator />
+            <RootNavigator onCheckUpdate={(t) => checkForUpdates(setUpdate, t)} />
           </NavigationContainer>
           <StatusBar style="auto" />
           <PushTapNavigator />

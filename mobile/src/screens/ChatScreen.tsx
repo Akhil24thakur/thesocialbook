@@ -15,7 +15,8 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -84,6 +85,10 @@ export default function ChatScreen({ route, navigation }: any) {
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
   const insets = useSafeAreaInsets();
+  const { height: kbHeight } = useReanimatedKeyboardAnimation();
+  const containerStyle = useAnimatedStyle(() => ({
+    paddingBottom: kbHeight.value,
+  }));
 
   const loadMeta = useCallback(async () => {
     if (!token) return;
@@ -253,7 +258,7 @@ export default function ChatScreen({ route, navigation }: any) {
   }
 
   return (
-    <KeyboardAvoidingView behavior="height" style={styles.container}>
+    <Animated.View style={[styles.container, containerStyle]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerUser}
@@ -314,7 +319,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <Icon name="send" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 

@@ -9,6 +9,7 @@ import conversationRoutes from "./routes/conversations.js";
 import crashRoutes from "./routes/crash.js";
 import { meVersionHandler, mePublicKeyHandler } from "./routes/users.js";
 import uploadRoutes from "./routes/upload.js";
+import updateRoutes from "./routes/update.js";
 import { requireAuth } from "./middleware/auth.js";
 
 export const app = express();
@@ -30,6 +31,7 @@ app.put("/api/me/version", requireAuth, meVersionHandler);
 app.put("/api/me/public-key", requireAuth, mePublicKeyHandler);
 app.use("/api/crash-report", crashRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api", updateRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found" });
