@@ -34,12 +34,22 @@ async function deleteTokens(tokens: string[]) {
 async function sendToTokens(
   fcmTokens: string[],
   expoTokens: string[],
-  payload: { title: string; body: string; type: string; postId?: number; conversationId?: number }
+  payload: {
+    title: string;
+    body: string;
+    type: string;
+    postId?: number;
+    conversationId?: number;
+    url?: string;
+  }
 ) {
   const data = {
     type: payload.type,
+    title: payload.title,
+    body: payload.body,
     postId: String(payload.postId ?? ""),
     conversationId: String(payload.conversationId ?? ""),
+    url: payload.url ?? "",
   };
 
   if (fcmTokens.length) {
