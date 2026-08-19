@@ -35,6 +35,9 @@ model User {
   deviceTokens DeviceToken[]
   conversations ConversationMember[]
   messages     Message[]
+  reels        Reel[]
+  reelLikes    ReelLike[]
+  reelComments ReelComment[]
 
   @@index([createdAt])
 }
@@ -117,6 +120,49 @@ model Post {
 
   @@index([authorId])
   @@index([createdAt])
+}
+
+model Reel {
+  id          Int           @id @default(autoincrement())
+  authorId    Int
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  caption     String        @default("")
+  videoUrl    String?
+  externalUrl String?
+  posterUrl   String?
+  shareCount  Int           @default(0)
+  createdAt   DateTime      @default(now())
+  likes       ReelLike[]
+  comments    ReelComment[]
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model ReelLike {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  reelId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel   Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+}
+
+model ReelComment {
+  id        Int          @id @default(autoincrement())
+  reelId    Int
+  authorId  Int
+  parentId  Int?
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reel      Reel         @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  parent    ReelComment? @relation("reelCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ReelComment[] @relation("reelCommentReplies")
+  content   String
+  createdAt DateTime     @default(now())
+
+  @@index([reelId])
+  @@index([parentId])
 }
 
 model Like {
