@@ -269,6 +269,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    rowGap: 6,
     marginTop: 16,
   },
   stat: {
