@@ -1,4 +1,4 @@
-import { requireNativeModule } from "expo-modules-core";
+import { EventEmitter, requireNativeModule } from "expo-modules-core";
 
 const Native = requireNativeModule("NotificationReply");
 
@@ -18,4 +18,23 @@ export function setApiUrl(url: string): Promise<void> {
 
 export function getInitialNotification(): Promise<InitialNotification | null> {
   return Native.getInitialNotification();
+}
+
+export type KeyboardHeightListener = (heightDp: number) => void;
+
+let kbNative: any = null;
+try {
+  kbNative = requireNativeModule("KeyboardInsets");
+} catch {}
+
+export function attachKeyboardHeight(
+  listener: KeyboardHeightListener
+): { remove: () => void } | null {
+  if (!kbNative) return null;
+  const emitter = new EventEmitter<{ onKeyboardHeight: (e: { height: number }) => void }>(kbNative);
+  const sub = emitter.addListener("onKeyboardHeight", (e) => listener(e.height));
+  try {
+    void kbNative.attach();
+  } catch {}
+  return sub;
 }

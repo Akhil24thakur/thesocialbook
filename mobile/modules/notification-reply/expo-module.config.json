@@ -1,6 +1,9 @@
 {
   "platforms": ["android"],
   "android": {
-    "modules": ["com.thesocialbook.notificationreply.NotificationReplyModule"]
+    "modules": [
+      "com.thesocialbook.notificationreply.NotificationReplyModule",
+      "com.thesocialbook.notificationreply.KeyboardInsetsModule"
+    ]
   }
 }

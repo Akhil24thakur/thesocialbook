@@ -16,6 +16,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../api";
+import { attachKeyboardHeight } from "../../modules/notification-reply";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
@@ -76,21 +77,36 @@ export default function ChatScreen({ route, navigation }: any) {
   const [sending, setSending] = useState(false);
   const [revealedId, setRevealedId] = useState<number | null>(null);
   const [kbPad, setKbPad] = useState(0);
+  const nativeKbRef = useRef(0);
   const listRef = useRef<FlatList>(null);
   const meIdRef = useRef<number | null>(null);
   const myKeysRef = useRef<{ publicKey: string; privateKey: string } | null>(null);
   const rows = useMemo(() => buildRows(messages), [messages]);
 
   useEffect(() => {
+    const sub = attachKeyboardHeight((h) => {
+      nativeKbRef.current = h;
+      setKbPad(h);
+    });
     const show = Keyboard.addListener("keyboardDidShow", (e) =>
-      setKbPad(e.endCoordinates.height)
+      setKbPad((prev) => (nativeKbRef.current > 0 ? prev : e.endCoordinates.height))
     );
-    const hide = Keyboard.addListener("keyboardDidHide", () => setKbPad(0));
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKbPad((prev) => (nativeKbRef.current > 0 ? prev : 0))
+    );
     return () => {
+      sub?.remove();
       show.remove();
       hide.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (kbPad > 0) {
+      const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 250);
+      return () => clearTimeout(t);
+    }
+  }, [kbPad]);
 
   const { user: me } = useAuth();
   meIdRef.current = me?.id ?? null;
@@ -264,7 +280,7 @@ export default function ChatScreen({ route, navigation }: any) {
   }
 
   return (
-    <View style={[styles.container, { paddingBottom: kbPad }]}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerUser}
@@ -288,6 +304,7 @@ export default function ChatScreen({ route, navigation }: any) {
       </View>
       <FlatList
         ref={listRef}
+        style={styles.listArea}
         data={rows}
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
@@ -301,29 +318,31 @@ export default function ChatScreen({ route, navigation }: any) {
           </View>
         }
       />
-      <View
-        style={[
-          styles.inputBar,
-          Platform.OS === "android" && { paddingBottom: Math.max(insets.bottom, 10) },
-        ]}
-      >
-        <TextInput
-          style={styles.input}
-          value={text}
-          onChangeText={setText}
-          placeholder="Message…"
-          placeholderTextColor={colors.textSecondary}
-          multiline
-          maxLength={4000}
-        />
-        <TouchableOpacity
-          style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
-          onPress={send}
-          disabled={!text.trim() || sending}
-          activeOpacity={0.7}
+      <View style={[styles.inputArea, { paddingBottom: kbPad }]}>
+        <View
+          style={[
+            styles.inputBar,
+            Platform.OS === "android" && { paddingBottom: Math.max(insets.bottom, 10) },
+          ]}
         >
-          <Icon name="send" size={20} color={colors.white} />
-        </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder="Message…"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            maxLength={4000}
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+            onPress={send}
+            disabled={!text.trim() || sending}
+            activeOpacity={0.7}
+          >
+            <Icon name="send" size={20} color={colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -363,9 +382,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  listArea: {
+    flex: 1,
+  },
   list: {
     flexGrow: 1,
-    flexShrink: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
   },
@@ -449,6 +470,9 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  inputArea: {
+    backgroundColor: colors.card,
   },
   inputBar: {
     flexDirection: "row",
