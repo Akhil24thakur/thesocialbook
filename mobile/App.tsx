@@ -69,6 +69,10 @@ function PushTapNavigator() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
       const data = resp.notification.request.content.data ?? {};
+      if (data.type === "update") {
+        void Linking.openURL(RELEASES_PAGE);
+        return;
+      }
       if (!navigationRef.isReady() || !user) {
         setPendingPush(true);
         return;
