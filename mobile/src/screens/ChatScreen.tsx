@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -188,7 +188,7 @@ export default function ChatScreen({ route, navigation }: any) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView behavior="height" style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerUser}
@@ -225,33 +225,31 @@ export default function ChatScreen({ route, navigation }: any) {
           </View>
         }
       />
-      <KeyboardStickyView>
-        <View
-          style={[
-            styles.inputBar,
-            Platform.OS === "android" && { paddingBottom: Math.max(insets.bottom, 10) },
-          ]}
+      <View
+        style={[
+          styles.inputBar,
+          Platform.OS === "android" && { paddingBottom: Math.max(insets.bottom, 10) },
+        ]}
+      >
+        <TextInput
+          style={styles.input}
+          value={text}
+          onChangeText={setText}
+          placeholder="Message…"
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          maxLength={4000}
+        />
+        <TouchableOpacity
+          style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+          onPress={send}
+          disabled={!text.trim() || sending}
+          activeOpacity={0.7}
         >
-          <TextInput
-            style={styles.input}
-            value={text}
-            onChangeText={setText}
-            placeholder="Message…"
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            maxLength={4000}
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
-            onPress={send}
-            disabled={!text.trim() || sending}
-            activeOpacity={0.7}
-          >
-            <Icon name="send" size={20} color={colors.white} />
-          </TouchableOpacity>
-        </View>
-      </KeyboardStickyView>
-    </View>
+          <Icon name="send" size={20} color={colors.white} />
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -294,7 +292,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-    // paddingBottom will be calculated by KeyboardStickyView
   },
   bubbleRow: {
     flexDirection: "row",
