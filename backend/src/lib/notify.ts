@@ -44,9 +44,10 @@ export async function notifyMessage(
   try {
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
     const name = actor?.name ?? "Someone";
+    const content = String(_messageBody ?? "").slice(0, 500);
     await sendPush(recipientId, {
       title: name,
-      body: "Sent you a message",
+      body: content || "Sent you a message",
       type: "message",
       conversationId,
     });
