@@ -4,7 +4,6 @@ import {
   FlatList,
   Image,
   Modal,
-  PanResponder,
   StyleSheet,
   Text,
   TextInput,
@@ -12,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAudioPlayer } from "expo-audio";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import Icon from "../Icon";
 import { colors } from "../../theme";
 import {
@@ -22,6 +21,7 @@ import {
   type StoryMusic,
   type StoryMusicSelection,
 } from "../../music/catalog";
+import MusicClipSelector from "./MusicClipSelector";
 
 function formatSec(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
@@ -48,8 +48,33 @@ export default function MusicPickerModal({
   const [songDuration, setSongDuration] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState(false);
-  const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const player = useAudioPlayer(null);
+  const status = useAudioPlayerStatus(player);
+  const loopTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastUrlRef = useRef<string | null>(null);
+  const lastSeekRef = useRef(0);
+
+  const startRef = useRef(0);
+  startRef.current = startTime;
+  const clipRef = useRef(DEFAULT_MUSIC_CLIP_SECONDS);
+  const selectedRef = useRef<StoryMusic | null>(null);
+  selectedRef.current = selected;
+
+  const duration = useMemo(() => {
+    const d = status.duration;
+    return d && isFinite(d) && d > 0 ? d : songDuration;
+  }, [status.duration, songDuration]);
+
+  const clipDuration = useMemo(
+    () => (duration != null && duration > 0 ? Math.min(DEFAULT_MUSIC_CLIP_SECONDS, duration) : DEFAULT_MUSIC_CLIP_SECONDS),
+    [duration]
+  );
+  clipRef.current = clipDuration;
+
+  const maxStart = useMemo(
+    () => (duration != null && duration > 0 ? Math.max(0, duration - clipDuration) : 0),
+    [duration, clipDuration]
+  );
 
   const filtered = useMemo(() => searchMusic(songs, query), [songs, query]);
 
@@ -71,8 +96,8 @@ export default function MusicPickerModal({
   }, [visible, songs.length, load]);
 
   const stopPreview = useCallback(() => {
-    if (stopTimer.current) clearTimeout(stopTimer.current);
-    stopTimer.current = null;
+    if (loopTimer.current) clearInterval(loopTimer.current);
+    loopTimer.current = null;
     try {
       player.pause();
     } catch {}
@@ -81,7 +106,7 @@ export default function MusicPickerModal({
 
   useEffect(() => {
     return () => {
-      if (stopTimer.current) clearTimeout(stopTimer.current);
+      if (loopTimer.current) clearInterval(loopTimer.current);
     };
   }, []);
 
@@ -93,6 +118,7 @@ export default function MusicPickerModal({
       setSongDuration(null);
       setPreviewError(false);
       setQuery("");
+      lastUrlRef.current = null;
     }
   }, [visible, stopPreview]);
 
@@ -101,58 +127,69 @@ export default function MusicPickerModal({
       stopPreview();
       setPreviewError(false);
       try {
-        player.replace(song.audioUrl);
+        if (lastUrlRef.current !== song.audioUrl) {
+          lastUrlRef.current = song.audioUrl;
+          player.replace(song.audioUrl);
+        }
+        if (duration != null && duration > 0) {
+          const clip = Math.min(DEFAULT_MUSIC_CLIP_SECONDS, duration);
+          const max = Math.max(0, duration - clip);
+          from = Math.round(Math.min(max, Math.max(0, from)));
+          startRef.current = from;
+          setStartTime(from);
+        }
         await player.seekTo(from);
         player.play();
         setPreviewing(true);
-        const dur = player.duration;
-        if (dur && isFinite(dur) && dur > 0) setSongDuration(dur);
-        stopTimer.current = setTimeout(() => {
+        const clip = clipRef.current;
+        loopTimer.current = setInterval(() => {
           try {
-            player.pause();
+            player.seekTo(startRef.current);
           } catch {}
-          setPreviewing(false);
-        }, DEFAULT_MUSIC_CLIP_SECONDS * 1000);
+        }, clip * 1000);
       } catch {
         setPreviewing(false);
         setPreviewError(true);
       }
     },
-    [player, stopPreview]
+    [player, stopPreview, duration]
   );
 
-  const maxStart = useMemo(() => {
-    const d = songDuration ?? 60;
-    return Math.max(0, d - DEFAULT_MUSIC_CLIP_SECONDS);
-  }, [songDuration]);
+  const seekDuringDrag = useCallback(
+    (from: number) => {
+      const now = Date.now();
+      if (previewing && now - lastSeekRef.current > 150) {
+        lastSeekRef.current = now;
+        try {
+          player.seekTo(from);
+        } catch {}
+      }
+    },
+    [player, previewing]
+  );
 
-  const sliderRef = useRef<View>(null);
-  const [sliderWidth, setSliderWidth] = useState(0);
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => {
-        if (!sliderWidth) return;
-        const x = e.nativeEvent.locationX;
-        setStartTime(Math.round(Math.min(maxStart, Math.max(0, (x / sliderWidth) * maxStart))));
-      },
-      onPanResponderMove: (e) => {
-        if (!sliderWidth) return;
-        const x = e.nativeEvent.locationX;
-        setStartTime(Math.round(Math.min(maxStart, Math.max(0, (x / sliderWidth) * maxStart))));
-      },
-      onPanResponderRelease: () => {
-        if (selected) startPreview(selected, startTime);
-      },
-    })
-  ).current;
+  const onDragChange = useCallback(
+    (t: number) => {
+      setStartTime(t);
+      seekDuringDrag(t);
+    },
+    [seekDuringDrag]
+  );
+
+  const onDragRelease = useCallback(
+    (t: number) => {
+      const song = selectedRef.current;
+      if (song) startPreview(song, t);
+    },
+    [startPreview]
+  );
 
   const onSelectSong = (song: StoryMusic) => {
     setSelected(song);
     setStartTime(0);
     setSongDuration(null);
     setPreviewError(false);
+    lastUrlRef.current = null;
     stopPreview();
   };
 
@@ -200,6 +237,8 @@ export default function MusicPickerModal({
   };
 
   const clipPreviewing = previewing && selected;
+  const durationKnown = duration != null && duration > 0;
+  const isShortSong = durationKnown && duration <= DEFAULT_MUSIC_CLIP_SECONDS;
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -275,26 +314,35 @@ export default function MusicPickerModal({
               <Text style={styles.clipTitle} numberOfLines={1}>
                 {selected.title} — {selected.artist}
               </Text>
-              <Text style={styles.clipTime}>
-                {formatSec(startTime)} – {formatSec(startTime + DEFAULT_MUSIC_CLIP_SECONDS)}
-              </Text>
+              <View style={styles.timeWrap}>
+                <Text style={styles.clipTime}>
+                  {formatSec(startTime)} – {formatSec(startTime + clipDuration)}
+                </Text>
+                {durationKnown && (
+                  <Text style={styles.clipTotal}> / {formatSec(duration!)}</Text>
+                )}
+              </View>
             </View>
-            <View
-              style={styles.sliderTrack}
-              ref={sliderRef}
-              onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
-              {...pan.panHandlers}
-            >
-              <View
-                style={[
-                  styles.sliderFill,
-                  { width: maxStart > 0 ? `${(startTime / maxStart) * 100}%` : "0%" },
-                ]}
-              />
-              <View style={[styles.sliderThumb, { left: maxStart > 0 ? `${(startTime / maxStart) * 100}%` : "0%" }]} />
-            </View>
-            <Text style={styles.sliderHint}>Drag to choose where the 15s clip starts</Text>
+
+            <MusicClipSelector
+              duration={duration}
+              clipDuration={clipDuration}
+              startTime={startTime}
+              disabled={!durationKnown}
+              onChange={onDragChange}
+              onRelease={onDragRelease}
+            />
+
+            <Text style={styles.sliderHint}>
+              {isShortSong
+                ? `Full song · ${formatSec(duration!)}`
+                : !durationKnown
+                  ? "Loading audio…"
+                  : `Drag to choose where the ${Math.round(clipDuration)}s clip starts`}
+            </Text>
+
             {previewError && <Text style={styles.previewError}>Preview failed — check your connection.</Text>}
+
             <View style={styles.bottomRow}>
               <TouchableOpacity
                 style={[styles.previewBig, clipPreviewing && styles.previewBigActive]}
@@ -307,7 +355,7 @@ export default function MusicPickerModal({
               <TouchableOpacity
                 style={styles.doneBtn}
                 onPress={() =>
-                  onDone({ song: selected, startTime, duration: DEFAULT_MUSIC_CLIP_SECONDS })
+                  onDone({ song: selected, startTime, duration: clipDuration })
                 }
                 accessibilityLabel="Add music to story"
               >
@@ -367,7 +415,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 16,
-    paddingBottom: 180,
+    paddingBottom: 190,
   },
   row: {
     flexDirection: "row",
@@ -465,7 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 4,
   },
   clipTitle: {
     flex: 1,
@@ -474,38 +522,23 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginRight: 8,
   },
+  timeWrap: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
   clipTime: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.primary,
   },
-  sliderTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginVertical: 8,
-  },
-  sliderFill: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
-  sliderThumb: {
-    position: "absolute",
-    top: -6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-    transform: [{ translateX: -8 }],
+  clipTotal: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   sliderHint: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   previewError: {
     fontSize: 12,
