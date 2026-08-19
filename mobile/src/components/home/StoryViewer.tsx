@@ -14,9 +14,20 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAudioPlayer } from "expo-audio";
 import Avatar from "../Avatar";
 import Icon from "../Icon";
 import { colors, formatTime, storyGradient } from "../../theme";
+
+export type StoryMusic = {
+  songId: string;
+  title: string;
+  artist: string;
+  audioUrl: string;
+  coverUrl?: string | null;
+  startTime: number;
+  duration: number;
+};
 
 export type Story = {
   id?: number;
@@ -24,6 +35,7 @@ export type Story = {
   content: string;
   imageUrl?: string | null;
   createdAt: string;
+  music?: StoryMusic | null;
 };
 
 export type StoryGroup = {
@@ -201,6 +213,60 @@ const GroupPage = memo(function GroupPage({
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
   const popScale = useRef(new Animated.Value(0)).current;
   const popFade = useRef(new Animated.Value(0)).current;
+  const player = useAudioPlayer(null);
+  const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (stopTimer.current) clearTimeout(stopTimer.current);
+      try {
+        player.pause();
+      } catch {}
+    };
+  }, [player]);
+
+  useEffect(() => {
+    if (stopTimer.current) clearTimeout(stopTimer.current);
+    stopTimer.current = null;
+    const m = story?.music;
+    const shouldPlay = isActive && !!m && !!m.audioUrl && !menuOpen;
+    if (!shouldPlay) {
+      try {
+        player.pause();
+      } catch {}
+      return;
+    }
+    let cancelled = false;
+    const clip = m!;
+    try {
+      player.replace(clip.audioUrl);
+      player
+        .seekTo(clip.startTime)
+        .then(() => {
+          if (cancelled) return;
+          player.play();
+          stopTimer.current = setTimeout(() => {
+            try {
+              player.pause();
+            } catch {}
+          }, clip.duration * 1000);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          try {
+            player.play();
+          } catch {}
+        });
+    } catch {}
+    return () => {
+      cancelled = true;
+      if (stopTimer.current) clearTimeout(stopTimer.current);
+      stopTimer.current = null;
+      try {
+        player.pause();
+      } catch {}
+    };
+  }, [story, isActive, menuOpen, player]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -260,6 +326,24 @@ const GroupPage = memo(function GroupPage({
           </View>
         ))}
       </View>
+
+      {story?.music?.audioUrl && (
+        <View style={[styles.musicChip, { bottom: insets.top + 10 }]}>
+          <View style={styles.musicIconWrap}>
+            <Icon name="musical-notes" size={16} color={colors.white} />
+          </View>
+          <View style={styles.musicInfo}>
+            <Text style={styles.musicTitle} numberOfLines={1}>
+              {story.music.title || "Music"}
+            </Text>
+            {!!story.music.artist && (
+              <Text style={styles.musicArtist} numberOfLines={1}>
+                {story.music.artist}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
 
       <View style={[styles.topBar, { paddingTop: insets.top + 26 }]}>
         <TouchableOpacity
@@ -384,6 +468,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 14,
     zIndex: 30,
+  },
+  musicChip: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(10,14,22,0.72)",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  musicIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  musicInfo: {
+    flex: 1,
+  },
+  musicTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  musicArtist: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 1,
   },
   userRow: {
     flexDirection: "row",

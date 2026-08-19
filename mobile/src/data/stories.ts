@@ -24,6 +24,17 @@ export function storyGroupsFromApi(stories: StoryItem[]): StoryGroup[] {
         content: "",
         imageUrl: s.imageUrl,
         createdAt: s.createdAt,
+        music: s.musicAudioUrl
+          ? {
+              songId: s.musicSongId ?? "",
+              title: s.musicSongTitle ?? "",
+              artist: s.musicSongArtist ?? "",
+              audioUrl: s.musicAudioUrl,
+              coverUrl: s.musicCoverUrl ?? null,
+              startTime: s.musicStartTime ?? 0,
+              duration: s.musicDuration ?? 15,
+            }
+          : null,
       })),
     });
   }

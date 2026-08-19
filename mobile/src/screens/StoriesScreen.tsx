@@ -16,6 +16,7 @@ import Avatar from "../components/Avatar";
 import AddStorySheet from "../components/home/AddStorySheet";
 import StoryUploadPreview from "../components/home/StoryUploadPreview";
 import StoryViewer, { Story, StoryGroup } from "../components/home/StoryViewer";
+import MusicPickerModal from "../components/home/MusicPickerModal";
 import { useStoryUpload } from "../components/home/useStoryUpload";
 import Icon from "../components/Icon";
 import { storyGroupsFromApi } from "../data/stories";
@@ -28,7 +29,7 @@ export default function StoriesScreen() {
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, pickCamera, pickGallery, confirmUpload } =
+  const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, musicOpen, setMusicOpen, music, setMusic, pickCamera, pickGallery, openMusic, confirmUpload } =
     useStoryUpload();
 
   const load = useCallback(
@@ -172,6 +173,16 @@ export default function StoriesScreen() {
         }}
         onGallery={pickGallery}
         onCamera={pickCamera}
+        onMusic={openMusic}
+      />
+
+      <MusicPickerModal
+        visible={musicOpen}
+        onClose={() => setMusicOpen(false)}
+        onDone={(sel) => {
+          setMusic(sel);
+          setMusicOpen(false);
+        }}
       />
 
       <StoryUploadPreview
@@ -179,8 +190,11 @@ export default function StoriesScreen() {
         userName={user?.name ?? "?"}
         visible={previewUri !== null}
         uploading={uploading}
+        music={music}
         onCancel={() => setPreviewUri(null)}
         onCropped={setPreviewUri}
+        onAddMusic={openMusic}
+        onRemoveMusic={() => setMusic(null)}
         onConfirm={onUploadConfirmed}
       />
 

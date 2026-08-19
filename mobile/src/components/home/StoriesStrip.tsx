@@ -13,6 +13,7 @@ import Icon from "../Icon";
 import StoryViewer, { StoryGroup } from "./StoryViewer";
 import StoryUploadPreview from "./StoryUploadPreview";
 import AddStorySheet from "./AddStorySheet";
+import MusicPickerModal from "./MusicPickerModal";
 import { useStoryUpload } from "./useStoryUpload";
 import { colors, storyGradient } from "../../theme";
 
@@ -34,7 +35,7 @@ export default function StoriesStrip({
   onProfile?: (userId: number) => void;
 }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, pickCamera, pickGallery, confirmUpload } =
+  const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, musicOpen, setMusicOpen, music, setMusic, pickCamera, pickGallery, openMusic, confirmUpload } =
     useStoryUpload();
 
   const allGroups = useMemo<StoryGroup[]>(
@@ -124,6 +125,16 @@ export default function StoriesStrip({
         }}
         onGallery={pickGallery}
         onCamera={pickCamera}
+        onMusic={openMusic}
+      />
+
+      <MusicPickerModal
+        visible={musicOpen}
+        onClose={() => setMusicOpen(false)}
+        onDone={(sel) => {
+          setMusic(sel);
+          setMusicOpen(false);
+        }}
       />
 
       <StoryUploadPreview
@@ -131,8 +142,11 @@ export default function StoriesStrip({
         userName={userName}
         visible={previewUri !== null}
         uploading={uploading}
+        music={music}
         onCancel={() => setPreviewUri(null)}
         onCropped={setPreviewUri}
+        onAddMusic={openMusic}
+        onRemoveMusic={() => setMusic(null)}
         onConfirm={onUploadConfirmed}
       />
 

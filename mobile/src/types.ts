@@ -51,6 +51,13 @@ export interface StoryItem {
   imageUrl: string;
   createdAt: string;
   author: PostAuthor;
+  musicSongId?: string | null;
+  musicSongTitle?: string | null;
+  musicSongArtist?: string | null;
+  musicAudioUrl?: string | null;
+  musicCoverUrl?: string | null;
+  musicStartTime?: number | null;
+  musicDuration?: number | null;
 }
 
 export interface Notification {

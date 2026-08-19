@@ -11,6 +11,13 @@ const storySelect = {
   id: true,
   imageUrl: true,
   createdAt: true,
+  musicSongId: true,
+  musicSongTitle: true,
+  musicSongArtist: true,
+  musicAudioUrl: true,
+  musicCoverUrl: true,
+  musicStartTime: true,
+  musicDuration: true,
   author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true, lastSeenAt: true } },
 } as const;
 
@@ -28,6 +35,13 @@ router.get("/", requireAuth, async (req, res) => {
 
 const createStorySchema = z.object({
   imageUrl: z.string().url().max(1000),
+  musicSongId: z.string().max(200).optional(),
+  musicSongTitle: z.string().max(300).optional(),
+  musicSongArtist: z.string().max(300).optional(),
+  musicAudioUrl: z.string().url().max(1000).optional(),
+  musicCoverUrl: z.string().url().max(1000).optional(),
+  musicStartTime: z.number().min(0).max(3600).optional(),
+  musicDuration: z.number().min(1).max(120).optional(),
 });
 
 router.post("/", requireAuth, async (req, res) => {
@@ -35,8 +49,23 @@ router.post("/", requireAuth, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "A valid image URL is required" });
   }
+  const hasMusic = !!(parsed.data.musicSongId && parsed.data.musicAudioUrl);
   const story = await prisma.story.create({
-    data: { imageUrl: parsed.data.imageUrl, authorId: (req as AuthedRequest).userId },
+    data: {
+      imageUrl: parsed.data.imageUrl,
+      authorId: (req as AuthedRequest).userId,
+      ...(hasMusic
+        ? {
+            musicSongId: parsed.data.musicSongId,
+            musicSongTitle: parsed.data.musicSongTitle ?? null,
+            musicSongArtist: parsed.data.musicSongArtist ?? null,
+            musicAudioUrl: parsed.data.musicAudioUrl,
+            musicCoverUrl: parsed.data.musicCoverUrl ?? null,
+            musicStartTime: parsed.data.musicStartTime ?? 0,
+            musicDuration: parsed.data.musicDuration ?? 15,
+          }
+        : {}),
+    },
     select: storySelect,
   });
   return res.status(201).json({ story });

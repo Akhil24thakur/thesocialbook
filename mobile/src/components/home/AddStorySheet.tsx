@@ -10,6 +10,7 @@ export default function AddStorySheet({
   onViewStory,
   onGallery,
   onCamera,
+  onMusic,
 }: {
   visible: boolean;
   hasStory: boolean;
@@ -17,6 +18,7 @@ export default function AddStorySheet({
   onViewStory: () => void;
   onGallery: () => void;
   onCamera: () => void;
+  onMusic: () => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -42,6 +44,12 @@ export default function AddStorySheet({
               <Icon name="camera-outline" size={20} color={colors.pink} />
             </View>
             <Text style={styles.optionLabel}>Take a photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.option} onPress={onMusic}>
+            <View style={[styles.optionIcon, { backgroundColor: `${colors.purple}1A` }]}>
+              <Icon name="musical-notes" size={20} color={colors.purple} />
+            </View>
+            <Text style={styles.optionLabel}>Add music</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

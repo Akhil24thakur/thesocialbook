@@ -153,8 +153,23 @@ export const api = {
   unfollow: (token: string, id: number) =>
     request<{ user: ApiUser }>(`/api/users/${id}/follow`, token, { method: "DELETE" }),
   stories: (token: string) => request<{ stories: StoryItem[] }>("/api/stories", token),
-  createStory: (token: string, imageUrl: string) =>
-    request<{ story: StoryItem }>("/api/stories", token, { method: "POST", body: { imageUrl } }),
+  createStory: (
+    token: string,
+    imageUrl: string,
+    music?: {
+      musicSongId: string;
+      musicSongTitle: string;
+      musicSongArtist: string;
+      musicAudioUrl: string;
+      musicCoverUrl: string;
+      musicStartTime: number;
+      musicDuration: number;
+    } | null
+  ) =>
+    request<{ story: StoryItem }>("/api/stories", token, {
+      method: "POST",
+      body: { imageUrl, ...(music ?? {}) },
+    }),
   deleteStory: (token: string, id: number) =>
     request<{ ok: boolean }>(`/api/stories/${id}`, token, { method: "DELETE" }),
   changePassword: (token: string, currentPassword: string, newPassword: string) =>
