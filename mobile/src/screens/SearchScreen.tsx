@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Image,
-  AppState,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
-import { useFocusEffect } from "@react-navigation/native";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { colors, isOnline } from "../theme";
@@ -28,44 +24,32 @@ export default function SearchScreen() {
   const [users, setUsers] = useState<Array<{ id: number; name: string; username?: string; avatarUrl?: string | null; isVerified?: boolean; lastSeenAt?: string | null }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<any>(null);
+  const [searched, setSearched] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadUsers = async (q: string) => {
-        if (!q || q.trim().length === 0) {
-          setUsers([]);
-          setError(null);
-          return;
-        }
-        setLoading(true);
-        setError(null);
-        try {
-          const res = await fetch(`${API_URL}/api/users/search?q=${encodeURIComponent(
-            q.trim()
-          )}`, {
-            method: "GET",
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (!res.ok) throw new Error("Network error");
-          const data = await res.json();
-          setUsers(Array.isArray(data.users) ? data.users : [data.users ?? data]);
-        } catch (e) {
-          setError("Failed to search users");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      const debounce = setTimeout(() => {
-        loadUsers(query);
-      }, 300);
-      return () => clearTimeout(debounce);
-    }, [query, token])
-  );
+  const doSearch = useCallback(async (q?: string) => {
+    const term = (q ?? query).trim();
+    if (!term) return;
+    setLoading(true);
+    setError(null);
+    setSearched(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/users/search?q=${encodeURIComponent(term)}`,
+        { method: "GET", headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      if (!res.ok) throw new Error("Network error");
+      const data = await res.json();
+      setUsers(Array.isArray(data.users) ? data.users : [data.users ?? data]);
+    } catch (e) {
+      setUsers([]);
+      setError("Failed to search users");
+    } finally {
+      setLoading(false);
+    }
+  }, [query, token]);
 
   const handlePress = (user: any) => {
-    ;(navigation as any).navigate("UserProfile", { userId: user.id });
+    (navigation as any).navigate("UserProfile", { userId: user.id });
   };
 
   const renderUser = ({ item }: { item: any }) => {
@@ -97,62 +81,88 @@ export default function SearchScreen() {
   const clearInput = () => {
     setQuery("");
     setUsers([]);
-    if (inputRef.current) {
-      inputRef.current.blur?.();
-    }
+    setError(null);
+    setSearched(false);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.retryText} onPress={clearInput}>
-          Try again
-        </Text>
-      </View>
-    );
-  }
-
-  if (users.length === 0 && query.trim().length > 0) {
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyText}>No users found matching "{query}"</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          placeholder="Search users…"
-          value={query}
-          onChangeText={setQuery}
-          placeholderTextColor={colors.textSecondary}
-        />
-        {query.trim().length > 0 && (
-          <TouchableOpacity style={styles.clearBtn} onPress={clearInput}>
-            <Icon name="close" size={16} color={colors.textSecondary} />
-          </TouchableOpacity>
-        )}
+        <View style={styles.inputWrap}>
+          <Icon name="search" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={styles.input}
+            placeholder="Search by name or user id"
+            placeholderTextColor={colors.textSecondary}
+            value={query}
+            onChangeText={(t) => {
+              setQuery(t);
+              if (searched) setSearched(false);
+            }}
+            onSubmitEditing={() => doSearch()}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {query.trim().length > 0 && (
+            <TouchableOpacity
+              style={styles.clearBtn}
+              onPress={clearInput}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Icon name="close" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity
+          style={[styles.searchBtn, !query.trim() && styles.searchBtnDisabled]}
+          onPress={() => doSearch()}
+          disabled={!query.trim()}
+        >
+          <Text style={styles.searchBtnText}>Search</Text>
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={users}
-        renderItem={renderUser}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.list}
-      />
+      {loading && (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+
+      {!loading && error && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>{error}</Text>
+          <Text style={styles.retryText} onPress={() => doSearch()}>
+            Try again
+          </Text>
+        </View>
+      )}
+
+      {!loading && !error && !searched && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>
+            Type a name or user id, then press Search.
+          </Text>
+        </View>
+      )}
+
+      {!loading && !error && searched && users.length === 0 && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>
+            No users found matching "{query.trim()}". Try again.
+          </Text>
+        </View>
+      )}
+
+      {!loading && !error && users.length > 0 && (
+        <FlatList
+          data={users}
+          renderItem={renderUser}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+        />
+      )}
     </View>
   );
 }
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    paddingTop: 16,
+    paddingTop: 12,
     backgroundColor: colors.white,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
@@ -172,42 +182,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  input: {
+  inputWrap: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     height: 48,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingRight: 48,
+    paddingHorizontal: 12,
+    gap: 8,
+    backgroundColor: colors.background,
+  },
+  input: {
+    flex: 1,
+    height: 48,
+    padding: 0,
     fontSize: 15,
     color: colors.text,
   },
   clearBtn: {
-    position: "absolute",
-    right: 16,
-    top: "50%",
-    transform: [{ translateY: -8 }],
+    padding: 4,
     opacity: 1,
+  },
+  searchBtn: {
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchBtnDisabled: {
+    opacity: 0.5,
+  },
+  searchBtnText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "700",
   },
   center: {
     flex: 1,
     backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
-  },
-  errorContainer: {
-    padding: 24,
-    alignItems: "center",
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  retryText: {
-    color: colors.primary,
-    fontSize: 14,
   },
   emptyState: {
     padding: 24,
@@ -216,6 +234,12 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: 16,
+    textAlign: "center",
+  },
+  retryText: {
+    color: colors.primary,
+    fontSize: 14,
+    marginTop: 8,
   },
   list: {
     padding: 16,
