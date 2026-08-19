@@ -1,10 +1,10 @@
-﻿# TheSocialBook
+﻿# SocialBook
 
 <p align="center">
-  <img src="https://img.shields.io/badge/TheSocialBook-v2.0.8-d73a49?style=for-the-badge&logo=android&logoColor=white" alt="TheSocialBook v2.0.8">
+  <img src="https://img.shields.io/badge/SocialBook-v2.0.8-d73a49?style=for-the-badge&logo=android&logoColor=white" alt="SocialBook v2.0.8">
 </p>
 
-<h2 align="center">ðŸ“± Download TheSocialBook</h2>
+<h2 align="center">📱 Download SocialBook</h2>
 
 <p align="center">
   <a href="https://github.com/Akhil24thakur/thesocialbook/releases/latest">

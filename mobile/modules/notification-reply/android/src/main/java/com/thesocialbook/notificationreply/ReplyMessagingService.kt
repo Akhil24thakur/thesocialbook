@@ -16,7 +16,7 @@ class ReplyMessagingService : FirebaseMessagingService() {
   override fun onMessageReceived(message: RemoteMessage) {
     val data = message.data
     val type = data["type"] ?: ""
-    val title = data["title"] ?: "TheSocialBook"
+    val title = data["title"] ?: "SocialBook"
     val body = data["body"] ?: ""
     val convId = data["conversationId"]?.toIntOrNull() ?: 0
     val postId = data["postId"]?.toIntOrNull() ?: 0

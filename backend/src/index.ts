@@ -15,7 +15,7 @@ const server = createServer(app);
 initWs(server);
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`TheSocialBook API running on http://0.0.0.0:${PORT}`);
+  console.log(`SocialBook API running on http://0.0.0.0:${PORT}`);
 });
 
 setInterval(() => {

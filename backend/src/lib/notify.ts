@@ -3,19 +3,19 @@ import { sendBroadcast, sendPush } from "./fcm.js";
 
 const MESSAGES = {
   like: (actorName: string) => ({
-    title: "TheSocialBook",
+    title: "SocialBook",
     body: `${actorName} liked your post`,
   }),
   comment: (actorName: string) => ({
-    title: "TheSocialBook",
+    title: "SocialBook",
     body: `${actorName} commented on your post`,
   }),
   reply: (actorName: string) => ({
-    title: "TheSocialBook",
+    title: "SocialBook",
     body: `${actorName} replied to your comment`,
   }),
   follow: (actorName: string) => ({
-    title: "TheSocialBook",
+    title: "SocialBook",
     body: `${actorName} started following you`,
   }),
 } as const;
@@ -85,7 +85,7 @@ export async function notifyAll(actorId: number, postId: number) {
   try {
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
     const body = `${actor?.name ?? "Someone"} posted something new`;
-    await sendBroadcast(actorId, { title: "TheSocialBook", body, type: "post", postId });
+    await sendBroadcast(actorId, { title: "SocialBook", body, type: "post", postId });
     await prisma.notification.createMany({
       data: (
         await prisma.user.findMany({ where: { id: { not: actorId } }, select: { id: true } })

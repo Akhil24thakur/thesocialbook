@@ -82,7 +82,7 @@ export default function SignupScreen({ navigation }: any) {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={[styles.brand, compact && styles.brandCompact]}>
             <BrandLogo size={compact ? 46 : 76} />
-            <Text style={[styles.logo, compact && styles.logoCompact]}>TheSocialBook</Text>
+            <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
             <Text style={[styles.tagline, compact && styles.taglineCompact]}>Join India's social network</Text>
             <View style={styles.tricolor}>
               <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />

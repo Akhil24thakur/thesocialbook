@@ -116,7 +116,7 @@ export default function LoginScreen({ navigation }: any) {
         >
         <View style={[styles.brand, compact && styles.brandCompact]}>
           <BrandLogo size={compact ? 46 : 76} />
-          <Text style={[styles.logo, compact && styles.logoCompact]}>TheSocialBook</Text>
+          <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
           <Text style={[styles.tagline, compact && styles.taglineCompact]}>India's own social network</Text>
           <View style={styles.tricolor}>
             <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
@@ -283,7 +283,7 @@ export default function LoginScreen({ navigation }: any) {
               </TouchableOpacity>
               <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Signup")}>
                 <Text style={styles.linkText}>
-                  New to TheSocialBook? <Text style={styles.linkStrong}>Create an account</Text>
+                  New to SocialBook? <Text style={styles.linkStrong}>Create an account</Text>
                 </Text>
               </TouchableOpacity>
             </>

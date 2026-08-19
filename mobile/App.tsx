@@ -380,7 +380,7 @@ function HomeTabs() {
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <View style={styles.menuSheet}>
-            <Text style={styles.menuTitle}>TheSocialBook</Text>
+            <Text style={styles.menuTitle}>SocialBook</Text>
             <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "1.2.4"}</Text>
             <Text style={styles.menuPush}>Push: {getPushStatus()}</Text>
             {MENU_ITEMS.map((m) => (
@@ -621,7 +621,7 @@ export default function App() {
                     <Text style={styles.updateNotesText}>
                       {update.notes.trim()
                         ? update.notes.trim()
-                        : `A new version of TheSocialBook is available. Update now for the best experience.`}
+                        : `A new version of SocialBook is available. Update now for the best experience.`}
                     </Text>
                   </ScrollView>
                   <View style={styles.updateRow}>

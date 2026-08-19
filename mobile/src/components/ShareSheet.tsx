@@ -20,7 +20,7 @@ export default function ShareSheet({
   const [copied, setCopied] = useState(false);
 
   const link = `https://thesocialbook.app/p/${postId}`;
-  const message = `${content || "Check out this post"}\n${link} · TheSocialBook`;
+  const message = `${content || "Check out this post"}\n${link} · SocialBook`;
 
   const copyLink = async () => {
     await Clipboard.setStringAsync(link);
@@ -58,7 +58,7 @@ export default function ShareSheet({
 
   const OPTIONS = [
     { label: copied ? "Link copied" : "Copy Link", icon: copied ? "checkmark" : "link-outline", color: colors.primary, action: copyLink },
-    { label: "Share to TheSocialBook", icon: "paper-plane-outline", color: colors.primary, action: shareSocial },
+    { label: "Share to SocialBook", icon: "paper-plane-outline", color: colors.primary, action: shareSocial },
     { label: "WhatsApp", icon: "logo-whatsapp", color: colors.green, action: openWhatsApp },
     { label: "Instagram", icon: "logo-instagram", color: colors.pink, action: openInstagram },
     { label: "Messages", icon: "chatbubble-ellipses-outline", color: colors.primary, action: openMessages },

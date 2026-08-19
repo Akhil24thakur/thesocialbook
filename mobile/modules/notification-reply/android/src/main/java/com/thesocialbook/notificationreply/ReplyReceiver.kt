@@ -54,7 +54,7 @@ class ReplyReceiver : BroadcastReceiver() {
       Handler(Looper.getMainLooper()).post {
         val updated = NotificationCompat.Builder(context, "default")
           .setSmallIcon(R.drawable.ic_notification)
-          .setContentTitle("TheSocialBook")
+          .setContentTitle("SocialBook")
           .setContentText(statusText)
           .setAutoCancel(true)
           .build()

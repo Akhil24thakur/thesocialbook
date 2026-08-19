@@ -9,7 +9,7 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping TheSocialBook API
+      - name: Ping SocialBook API
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" -m 60 https://thesocialbook-sp3c.onrender.com/api/health)
           echo "Health check returned: $code"

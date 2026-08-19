@@ -15,7 +15,7 @@ const uniqueDeviceUsers = new Set(tokens.map((t) => t.userId)).size;
 const fcm = tokens.filter((t) => t.type === "fcm").map((t) => t.token);
 const expo = tokens.filter((t) => t.type !== "fcm").map((t) => t.token);
 
-const title = "TheSocialBook";
+const title = "SocialBook";
 const body = "New version v1.3.5 is available — update now!";
 const data = { type: "post" };
 

@@ -20,7 +20,7 @@ if (process.env.KEYSTORE_B64) {
   execSync(
     `keytool -genkeypair -v -keystore ${KEYSTORE} -alias ${ALIAS} -keyalg RSA -keysize 2048 -validity 10000 ` +
       `-storepass ${storePassword} -keypass ${keyPassword} ` +
-      `-dname "CN=TheSocialBook, OU=Dev, O=TheSocialBook, L=City, ST=State, C=IN"`,
+      `-dname "CN=SocialBook, OU=Dev, O=SocialBook, L=City, ST=State, C=IN"`,
     { stdio: "inherit" }
   );
   writeFileSync(
