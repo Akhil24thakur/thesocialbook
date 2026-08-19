@@ -137,6 +137,7 @@ router.post("/register", async (req, res) => {
       phone: user.phone,
       bio: user.bio,
       avatarUrl: user.avatarUrl,
+      isVerified: user.isVerified,
     },
   });
 });
@@ -171,6 +172,7 @@ router.post("/login", loginLimiter, async (req, res) => {
       phone: user.phone,
       bio: user.bio,
       avatarUrl: user.avatarUrl,
+      isVerified: user.isVerified,
     },
   });
 });
