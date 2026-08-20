@@ -2,7 +2,7 @@
   "expo": {
     "name": "SocialBook",
     "slug": "thesocialbook",
-    "version": "2.0.17",
+    "version": "2.0.18",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -38,7 +38,7 @@
     },
     "android": {
       "package": "com.thesocialbook.app",
-      "versionCode": 116,
+      "versionCode": 117,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {

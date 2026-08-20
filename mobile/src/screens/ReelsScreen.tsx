@@ -38,12 +38,8 @@ function playerHtml(videoId: string): string {
 <body>
 <div id="player"></div>
 <script>
-  var tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  var first = document.getElementsByTagName("script")[0];
-  first.parentNode.insertBefore(tag, first);
   var player = null;
-  var pending = { play: false, mute: true };
+  var pending = { play: true, mute: true };
   function apply() {
     if (!player) return;
     try {
@@ -75,8 +71,8 @@ function playerHtml(videoId: string): string {
         onStateChange: function (e) {
           if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: "state", s: e.data }));
         },
-        onError: function () {
-          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: "error" }));
+        onError: function (e) {
+          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: "error", c: e.data }));
         }
       }
     });
@@ -91,6 +87,9 @@ function playerHtml(videoId: string): string {
   }
   window.addEventListener("message", onMessage);
   document.addEventListener("message", onMessage);
+  var tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
 </script>
 </body>
 </html>`;
@@ -102,7 +101,6 @@ function ShortsItem({
   activeIndex,
   height,
   muted,
-  onTogglePlay,
   onToggleMute,
   registerPlayer,
 }: {
@@ -111,7 +109,6 @@ function ShortsItem({
   activeIndex: number;
   height: number;
   muted: boolean;
-  onTogglePlay: () => void;
   onToggleMute: () => void;
   registerPlayer: (videoId: string, ref: WebView | null) => void;
 }) {
@@ -123,6 +120,7 @@ function ShortsItem({
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [failedCode, setFailedCode] = useState<number | null>(null);
 
   const send = useCallback(
     (play: boolean, mute: boolean) => {
@@ -143,7 +141,7 @@ function ShortsItem({
   const onMessage = useCallback(
     (e: WebViewMessageEvent) => {
       try {
-        const m = JSON.parse(e.nativeEvent.data) as { t?: string; s?: number };
+        const m = JSON.parse(e.nativeEvent.data) as { t?: string; s?: number; c?: number };
         if (m.t === "ready") {
           setReady(true);
           send(isActive, muted);
@@ -151,12 +149,17 @@ function ShortsItem({
           if (m.s === YT_STATE_PLAYING) setPlaying(true);
           else if (m.s === YT_STATE_PAUSED) setPlaying(false);
         } else if (m.t === "error") {
+          setFailedCode(m.c ?? null);
           setFailed(true);
         }
       } catch {}
     },
     [isActive, muted, send]
   );
+
+  const togglePlay = useCallback(() => {
+    send(!playing, muted);
+  }, [playing, muted, send]);
 
   const openOnYouTube = () => {
     Linking.openURL(`https://youtube.com/shorts/${item.videoId}`).catch(() => {});
@@ -182,15 +185,27 @@ function ShortsItem({
           onMessage={onMessage}
           onError={() => setFailed(true)}
           onHttpError={() => setFailed(true)}
-          originWhitelist={["https://www.youtube.com", "https://www.youtube-nocookie.com"]}
         />
       ) : (
         <View style={styles.fallbackGradient}>
           {failed && (
-            <TouchableOpacity style={styles.fallbackBtn} onPress={() => setFailed(false)} activeOpacity={0.85}>
-              <Icon name="refresh" size={18} color={colors.white} />
-              <Text style={styles.fallbackBtnText}>Retry video</Text>
-            </TouchableOpacity>
+            <>
+              <Text style={styles.fallbackText}>
+                {failedCode === 150 || failedCode === 101
+                  ? "This video can't be embedded"
+                  : "Couldn't play this video"}
+              </Text>
+              <View style={styles.fallbackRow}>
+                <TouchableOpacity style={styles.fallbackBtn} onPress={() => setFailed(false)} activeOpacity={0.85}>
+                  <Icon name="refresh" size={18} color={colors.white} />
+                  <Text style={styles.fallbackBtnText}>Retry</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.fallbackBtnOutline} onPress={openOnYouTube} activeOpacity={0.85}>
+                  <Icon name="logo-youtube" size={18} color={colors.white} />
+                  <Text style={styles.fallbackBtnText}>Open on YouTube</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
         </View>
       )}
@@ -219,7 +234,7 @@ function ShortsItem({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.playBtn} onPress={onTogglePlay} activeOpacity={0.8}>
+      <TouchableOpacity style={styles.playBtn} onPress={togglePlay} activeOpacity={0.8}>
         <Icon name={playing ? "pause" : "play"} size={22} color={colors.white} />
       </TouchableOpacity>
     </View>
@@ -382,11 +397,6 @@ export default function ReelsScreen() {
               activeIndex={activeIndex}
               height={height}
               muted={muted}
-              onTogglePlay={() => {
-                const item = items[activeIndexRef.current];
-                const ref = item ? playersRef.current.get(item.videoId) : null;
-                ref?.postMessage(JSON.stringify({ play: true, mute: mutedRef.current }));
-              }}
               onToggleMute={() => setMuted((m) => !m)}
               registerPlayer={registerPlayer}
             />
@@ -444,6 +454,27 @@ const createStyles = (colors: Colors) =>
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 999,
+    },
+    fallbackBtnOutline: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      borderWidth: 1,
+      borderColor: "#3A4150",
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 999,
+    },
+    fallbackText: {
+      color: "#C7CFDA",
+      fontSize: 14,
+      textAlign: "center",
+      paddingHorizontal: 32,
+    },
+    fallbackRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
     },
     fallbackBtnText: {
       color: colors.white,
