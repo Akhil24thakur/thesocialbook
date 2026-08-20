@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -21,7 +21,7 @@ import type { Conversation } from "../types";
 
 const LOCK = "\u{1F512}";
 
-export default function MessagesScreen() {
+export default function MessagesScreen({ active }: { active: boolean }) {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -68,19 +68,18 @@ export default function MessagesScreen() {
     [token]
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-      const interval = setInterval(() => load(), 30000);
-      const msgSub = onWsEvent("message", null, () => load());
-      const readSub = onWsEvent("read", null, () => load());
-      return () => {
-        clearInterval(interval);
-        msgSub();
-        readSub();
-      };
-    }, [load])
-  );
+  useEffect(() => {
+    if (!active) return;
+    load();
+    const interval = setInterval(() => load(), 30000);
+    const msgSub = onWsEvent("message", null, () => load());
+    const readSub = onWsEvent("read", null, () => load());
+    return () => {
+      clearInterval(interval);
+      msgSub();
+      readSub();
+    };
+  }, [active, load]);
 
   const renderItem = ({ item }: { item: Conversation }) => {
     const other = item.other;

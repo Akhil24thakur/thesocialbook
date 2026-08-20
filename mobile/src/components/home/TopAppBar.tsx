@@ -1,9 +1,11 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "../Icon";
 import { type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
+
+const LOGO_HEADER = require("../../../assets/brand/logo-header.png");
 
 export default function TopAppBar({
   onMenu,
@@ -30,10 +32,7 @@ export default function TopAppBar({
         <Icon name="menu" size={22} color={colors.text} />
       </TouchableOpacity>
       <View style={styles.brand}>
-        <Text style={styles.brandText}>
-          <Text style={styles.brandAccent}>Social</Text>
-          <Text style={styles.brandDark}>Book</Text>
-        </Text>
+        <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
       </View>
       <TouchableOpacity
         style={styles.iconBtn}
@@ -73,21 +72,13 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  brand: {
+brand: {
     flex: 1,
     alignItems: "center",
   },
-  brandText: {
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    fontFamily: "Caveat_700Bold",
-  },
-  brandDark: {
-    color: colors.text,
-  },
-  brandAccent: {
-    color: colors.primary,
+  brandImg: {
+    width: 132,
+    height: 34,
   },
   badge: {
     position: "absolute",

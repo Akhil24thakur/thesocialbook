@@ -1,17 +1,17 @@
 export const lightColors = {
-  primary: "#2196F3",
-  primaryDark: "#1A7FDE",
-  purple: "#6C63FF",
-  primaryLight: "#E3F2FD",
-  saffron: "#FF9933",
+  primary: "#7C3AED",
+  primaryDark: "#5B21B6",
+  purple: "#A855F7",
+  primaryLight: "#F3E8FF",
+  saffron: "#FFB020",
   green: "#22C55E",
   online: "#22C55E",
   white: "#FFFFFF",
-  background: "#F8F9FC",
+  background: "#FAFAFC",
   card: "#FFFFFF",
-  text: "#172033",
-  textSecondary: "#6F7480",
-  border: "#ECEFF3",
+  text: "#191522",
+  textSecondary: "#6E6A7A",
+  border: "#ECEAF2",
   danger: "#E0245E",
   amber: "#F59E0B",
   pink: "#EC4899",
@@ -20,29 +20,29 @@ export const lightColors = {
 export type Colors = typeof lightColors;
 
 export const darkColors: Colors = {
-  primary: "#2196F3",
-  primaryDark: "#0D6BD1",
-  purple: "#7C74FF",
-  primaryLight: "#1E3A5F",
-  saffron: "#FFA940",
+  primary: "#8B5CF6",
+  primaryDark: "#7C3AED",
+  purple: "#A855F7",
+  primaryLight: "#241A3D",
+  saffron: "#FFB020",
   green: "#34D97B",
   online: "#34D97B",
   white: "#FFFFFF",
-  background: "#0E1116",
-  card: "#1A202B",
-  text: "#ECF1F8",
-  textSecondary: "#9AA4B2",
-  border: "#2A3140",
+  background: "#0B0A12",
+  card: "#16141F",
+  text: "#F2F0F7",
+  textSecondary: "#9B96AB",
+  border: "#262331",
   danger: "#FF4D7D",
   amber: "#FFB020",
-  pink: "#FF6BA9",
+  pink: "#EC4899",
 };
 
 export const colors = lightColors;
 
 export const avatarGradient = (c: Colors): [string, string] => [c.primary, c.purple];
 export const storyGradient = (c: Colors): [string, string, string] => [c.primary, c.purple, c.pink];
-export const brandGradient = (c: Colors): [string, string] => [c.primary, c.primaryDark];
+export const brandGradient = (c: Colors): [string, string] => [c.primary, c.pink];
 
 export const radius = {
   sm: 12,

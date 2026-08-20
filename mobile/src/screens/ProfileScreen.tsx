@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { api, uploadImage } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -21,7 +21,8 @@ import { isOnline, type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import type { Post } from "../types";
 
-export default function ProfileScreen({ navigation }: any) {
+export default function ProfileScreen({ active }: { active: boolean }) {
+  const navigation = useNavigation<any>();
   const { token, user, setUser } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,11 +57,9 @@ export default function ProfileScreen({ navigation }: any) {
     [token, user]
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useEffect(() => {
+    if (active) load();
+  }, [active, load]);
 
   const toggleLike = useCallback(
     async (post: Post) => {

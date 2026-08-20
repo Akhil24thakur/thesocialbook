@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../api";
@@ -22,7 +22,8 @@ import { useTheme } from "../theme-context";
 import type { ReelFeedItem } from "../types";
 
 const PAGE_SIZE = 6;
-const MOUNT_WINDOW = 1;
+const BACK_PRELOAD = 1;
+const FORWARD_PRELOAD = 2;
 const YT_STATE_PLAYING = 1;
 const YT_STATE_PAUSED = 2;
 const INDICATOR_MS = 650;
@@ -113,12 +114,14 @@ function ShortsItem({
   index,
   activeIndex,
   height,
+  sessionKey,
   registerPlayer,
 }: {
   item: ReelFeedItem;
   index: number;
   activeIndex: number;
   height: number;
+  sessionKey: number;
   registerPlayer: (videoId: string, ref: WebView | null) => void;
 }) {
   const { colors } = useTheme();
@@ -128,7 +131,7 @@ function ShortsItem({
   const indTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playRef = useRef(false);
   const isActive = index === activeIndex;
-  const inWindow = Math.abs(index - activeIndex) <= MOUNT_WINDOW;
+  const inWindow = index >= activeIndex - BACK_PRELOAD && index <= activeIndex + FORWARD_PRELOAD;
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [liked, setLiked] = useState(false);
@@ -155,7 +158,7 @@ function ShortsItem({
     setLiked(false);
     setIndicator(null);
     if (indTimerRef.current) clearTimeout(indTimerRef.current);
-  }, [item.videoId]);
+  }, [item.videoId, sessionKey]);
 
   useEffect(() => {
     send(isActive, muted);
@@ -336,10 +339,8 @@ function ShortsItem({
   );
 }
 
-export default function ReelsScreen() {
+export default function ReelsScreen({ active, restartSignal }: { active: boolean; restartSignal: number }) {
   const { token } = useAuth();
-  const navigation = useNavigation<any>();
-  const isFocused = useIsFocused();
   const [items, setItems] = useState<ReelFeedItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -349,10 +350,10 @@ export default function ReelsScreen() {
   const seenRef = useRef<Set<string>>(new Set());
   const loadingMoreRef = useRef(false);
   const loadingRef = useRef(false);
-  const firstFocusRef = useRef(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
   const [height, setHeight] = useState(0);
+  const [sessionKey, setSessionKey] = useState(0);
   const playersRef = useRef<Map<string, WebView | null>>(new Map());
   const itemsRef = useRef<ReelFeedItem[]>([]);
   const { colors } = useTheme();
@@ -374,7 +375,15 @@ export default function ReelsScreen() {
       try {
         const res = await api.reels(token, { limit: PAGE_SIZE });
         hasLoadedRef.current = true;
-        const newItems = refresh ? shuffle([...res.items]) : res.items;
+        let newItems = refresh ? shuffle([...res.items]) : res.items;
+        if (
+          refresh &&
+          newItems.length > 1 &&
+          itemsRef.current.length > 0 &&
+          newItems[0].videoId === itemsRef.current[0].videoId
+        ) {
+          newItems = [...newItems.slice(1), newItems[0]];
+        }
         const unchanged =
           !refresh &&
           itemsRef.current.length === newItems.length &&
@@ -385,6 +394,7 @@ export default function ReelsScreen() {
           setNextPageToken(res.nextPageToken);
           setActiveIndex(0);
           activeIndexRef.current = 0;
+          setSessionKey((s) => s + 1);
         }
         setErrorMsg("");
         setStatus("ready");
@@ -439,38 +449,36 @@ export default function ReelsScreen() {
     ref?.postMessage(JSON.stringify({ play: true }));
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (firstFocusRef.current) {
-        firstFocusRef.current = false;
-        load(true);
-      } else {
-        resumeActive();
-      }
-      return () => {
-        pauseAll();
-      };
-    }, [load, resumeActive, pauseAll])
-  );
+  const firstActivationRef = useRef(true);
 
   useEffect(() => {
-    const unsub = navigation.addListener("tabPress", () => {
+    if (!active) {
+      pauseAll();
+      return;
+    }
+    if (firstActivationRef.current) {
+      firstActivationRef.current = false;
       load(true);
-    });
-    return unsub;
-  }, [navigation, load]);
+    } else {
+      resumeActive();
+    }
+  }, [active, load, resumeActive, pauseAll]);
+
+  useEffect(() => {
+    if (active && restartSignal > 0) load(true);
+  }, [active, restartSignal, load]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
         pauseAll();
-      } else if (isFocused) {
+      } else if (active) {
         load(true);
         resumeActive();
       }
     });
     return () => sub.remove();
-  }, [pauseAll, resumeActive, load, isFocused]);
+  }, [pauseAll, resumeActive, load, active]);
 
   const onMomentumEnd = useCallback(
     (e: any) => {
@@ -531,6 +539,7 @@ export default function ReelsScreen() {
               index={index}
               activeIndex={activeIndex}
               height={height}
+              sessionKey={sessionKey}
               registerPlayer={registerPlayer}
             />
           )}
@@ -608,7 +617,7 @@ const createStyles = (colors: Colors) =>
       borderRadius: 999,
     },
     fallbackText: {
-      color: "#C7CFDA",
+      color: colors.textSecondary,
       fontSize: 14,
       textAlign: "center",
       paddingHorizontal: 32,
@@ -712,11 +721,11 @@ const createStyles = (colors: Colors) =>
       fontWeight: "700",
     },
     emptySub: {
-      color: "#9AA4B2",
+      color: colors.textSecondary,
       fontSize: 14,
     },
     loadingText: {
-      color: "#9AA4B2",
+      color: colors.textSecondary,
       fontSize: 14,
     },
     retryBtn: {

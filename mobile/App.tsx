@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, BackHandler, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
 import { NavigationContainer, createNavigationContainerRef, useNavigation, DefaultTheme, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import PagerView, { type PagerViewOnPageSelectedEvent } from "react-native-pager-view";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { LinearGradient } from "expo-linear-gradient";
 import { File, Paths } from "expo-file-system";
@@ -45,6 +45,8 @@ setupCrashLog();
 
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef<any>();
+
+const LOGO_HEADER = require("./assets/brand/logo-header.png");
 
 const lightNavTheme = {
   ...DefaultTheme,
@@ -243,10 +245,23 @@ async function checkForUpdates(
     // Silent - update check is best effort
   }
 }
-const Tab = createBottomTabNavigator();
-
-function CreatePlaceholder() {
-  return null;
+function SectionHeader({ title }: { title: string }) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={{
+        paddingTop: insets.top + 4,
+        paddingBottom: 12,
+        backgroundColor: colors.card,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border,
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ fontSize: 17, fontWeight: "700", color: colors.text }}>{title}</Text>
+    </View>
+  );
 }
 
 function HomeTabs() {
@@ -260,6 +275,11 @@ function HomeTabs() {
   const { logout, token } = useAuth();
   const { colors, mode, setMode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const pagerRef = useRef<PagerView>(null);
+  const [page, setPage] = useState(0);
+  const pageRef = useRef(0);
+  const [restartSignal, setRestartSignal] = useState(0);
 
   const refreshUnread = useCallback(async () => {
     if (!token) return;
@@ -291,7 +311,37 @@ function HomeTabs() {
 
   const dotUnread = pendingPush || unreadCount > 0;
 
-  const goTab = (tab: string) => navigation.navigate("Home", { screen: tab });
+  const goTo = useCallback((index: number) => {
+    if (pageRef.current === index) return;
+    pagerRef.current?.setPage(index);
+  }, []);
+
+  const onPageSelected = useCallback((e: PagerViewOnPageSelectedEvent) => {
+    pageRef.current = e.nativeEvent.position;
+    setPage(e.nativeEvent.position);
+  }, []);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (pageRef.current !== 0) {
+        pagerRef.current?.setPage(0);
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, []);
+
+  const onTabPress = useCallback(
+    (index: number) => {
+      if (index === 1 && pageRef.current === 1) {
+        setRestartSignal((s) => s + 1);
+        return;
+      }
+      goTo(index);
+    },
+    [goTo]
+  );
 
   const openCreate = (key: "post" | "photo" | "live") => {
     if (key === "post") navigation.navigate("CreatePost", {});
@@ -307,10 +357,10 @@ function HomeTabs() {
   };
 
   const MENU_ITEMS: { label: string; icon: string; action: () => void; danger?: boolean }[] = [
-    { label: "My Profile", icon: "person-outline", action: () => goTab("Profile") },
+    { label: "My Profile", icon: "person-outline", action: () => goTo(3) },
     { label: "Stories", icon: "albums-outline", action: () => navigation.navigate("Stories") },
     { label: "Search", icon: "search", action: () => navigation.navigate("Search") },
-    { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTab("Messages") },
+    { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTo(2) },
     { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
     { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
     { label: "Change Password", icon: "key-outline", action: () => navigation.navigate("ChangePassword") },
@@ -318,104 +368,96 @@ function HomeTabs() {
     { label: "Logout", icon: "log-out-outline", danger: true, action: confirmLogout },
   ];
 
-  const CreateButton = useCallback(
-    (props: any) => (
+  const tabItems = [
+    { index: 0, label: "Home", icon: "home", iconOutline: "home-outline", badge: 0 },
+    { index: 1, label: "Reels", icon: "play-circle", iconOutline: "play-circle-outline", badge: 0 },
+    { index: 2, label: "Messages", icon: "chatbubble-ellipses", iconOutline: "chatbubble-ellipses-outline", badge: chatUnread },
+    { index: 3, label: "Profile", icon: "person", iconOutline: "person-outline", badge: 0 },
+  ];
+
+  const renderTab = (t: (typeof tabItems)[number]) => {
+    const active = page === t.index;
+    return (
       <TouchableOpacity
-        {...props}
-        style={styles.createSlot}
-        onPress={() => setCreateOpen(true)}
-        accessibilityLabel="Create"
+        key={t.index}
+        style={styles.tabItem}
+        onPress={() => onTabPress(t.index)}
+        accessibilityLabel={t.label}
+        accessibilityState={{ selected: active }}
       >
-<View style={styles.createShadow}>
-          <LinearGradient
-            colors={brandGradient(colors)}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.plusButton}
-          >
-            <Icon name="add" size={32} color={colors.white} />
-          </LinearGradient>
+        <View>
+          <Icon name={active ? (t.icon as any) : (t.iconOutline as any)} size={24} color={active ? colors.primary : colors.textSecondary} />
+          {t.badge > 0 && (
+            <View style={[styles.tabBadgeDot, { backgroundColor: colors.danger }]}>
+              <Text style={styles.tabBadgeText}>{t.badge > 99 ? "99+" : t.badge}</Text>
+            </View>
+          )}
         </View>
+        <Text style={[styles.tabLabel, { color: active ? colors.primary : colors.textSecondary }]}>{t.label}</Text>
       </TouchableOpacity>
-    ),
-    [styles, colors]
-  );
+    );
+  };
 
   return (
     <>
-      <Tab.Navigator
-        screenOptions={{
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textSecondary,
-          tabBarStyle: styles.tabBar,
-          headerTitleAlign: "center",
-        }}
-      >
-        <Tab.Screen
-          name="Feed"
-          component={FeedScreen}
-          options={{
-            header: () => (
-              <TopAppBar
-                onMenu={() => setMenuOpen(true)}
-                onNotify={() => navigation.navigate("Notifications")}
-                onNewPost={() => navigation.navigate("CreatePost", {})}
-                unreadCount={unreadCount}
-              />
-            ),
-            tabBarLabel: "Home",
-            tabBarIcon: ({ focused, color }) => (
-              <Icon name={focused ? "home" : "home-outline"} size={24} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Reels"
-          component={ReelsScreen}
-          options={{
-            headerShown: false,
-            tabBarLabel: "Reels",
-            tabBarIcon: ({ focused, color }) => (
-              <Icon name={focused ? "play-circle" : "play-circle-outline"} size={24} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Create"
-          component={CreatePlaceholder}
-          options={{
-            tabBarButton: CreateButton,
-            tabBarLabel: "",
-          }}
-        />
-        <Tab.Screen
-          name="Messages"
-          component={MessagesScreen}
-          options={{
-            tabBarBadge: chatUnread > 0 ? (chatUnread > 99 ? "99+" : chatUnread) : undefined,
-            tabBarBadgeStyle: styles.tabBadge,
-            tabBarIcon: ({ focused, color }) => (
-              <Icon name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={24} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{
-            headerTitle: "My Profile",
-            tabBarIcon: ({ focused, color }) => (
-              <Icon name={focused ? "person" : "person-outline"} size={24} color={color} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
+      <View style={styles.pagerWrap}>
+        <PagerView
+          ref={pagerRef}
+          style={styles.pager}
+          initialPage={0}
+          onPageSelected={onPageSelected}
+          overdrag={false}
+        >
+          <View style={styles.page} key="feed" collapsable={false}>
+            <TopAppBar
+              onMenu={() => setMenuOpen(true)}
+              onNotify={() => navigation.navigate("Notifications")}
+              onNewPost={() => navigation.navigate("CreatePost", {})}
+              unreadCount={unreadCount}
+            />
+            <FeedScreen active={page === 0} />
+          </View>
+          <View style={styles.page} key="reels" collapsable={false}>
+            <ReelsScreen active={page === 1} restartSignal={restartSignal} />
+          </View>
+          <View style={styles.page} key="messages" collapsable={false}>
+            <SectionHeader title="Messages" />
+            <MessagesScreen active={page === 2} />
+          </View>
+          <View style={styles.page} key="profile" collapsable={false}>
+            <SectionHeader title="My Profile" />
+            <ProfileScreen active={page === 3} />
+          </View>
+        </PagerView>
+        <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+          {renderTab(tabItems[0])}
+          {renderTab(tabItems[1])}
+          <TouchableOpacity
+            style={styles.createSlot}
+            onPress={() => setCreateOpen(true)}
+            accessibilityLabel="Create"
+          >
+            <View style={styles.createShadow}>
+              <LinearGradient
+                colors={brandGradient(colors)}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.plusButton}
+              >
+                <Icon name="add" size={32} color={colors.white} />
+              </LinearGradient>
+            </View>
+          </TouchableOpacity>
+          {renderTab(tabItems[2])}
+          {renderTab(tabItems[3])}
+        </View>
+      </View>
       <CreateMenu visible={createOpen} onClose={() => setCreateOpen(false)} onSelect={openCreate} />
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <View style={styles.menuSheet}>
-            <Text style={styles.menuTitle}>SocialBook</Text>
-            <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "1.2.4"}</Text>
+            <Image source={LOGO_HEADER} style={styles.menuLogo} resizeMode="contain" />
+            <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "2.0.25"}</Text>
             <Text style={styles.menuPush}>Push: {getPushStatus()}</Text>
             {MENU_ITEMS.map((m) => (
               <TouchableOpacity
@@ -739,13 +781,55 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     justifyContent: "center",
   },
   tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     backgroundColor: colors.card,
+    paddingTop: 6,
   },
-  tabBadge: {
-    backgroundColor: colors.primary,
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    paddingVertical: 2,
+  },
+  tabLabel: {
     fontSize: 10,
+    fontWeight: "600",
+  },
+  tabBadgeDot: {
+    position: "absolute",
+    top: -2,
+    right: -16,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  tabBadgeText: {
+    color: colors.white,
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  pagerWrap: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  pager: {
+    flex: 1,
+  },
+  page: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  menuLogo: {
+    width: 190,
+    height: 48,
+    marginBottom: 2,
   },
   createSlot: {
     flex: 1,

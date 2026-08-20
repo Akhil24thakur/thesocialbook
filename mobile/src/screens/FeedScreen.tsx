@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,7 @@ import {
   Text,
   type ViewToken,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PostCard from "../components/PostCard";
@@ -28,7 +28,7 @@ function newSeed() {
   return Math.floor(Math.random() * 2147483647) + 1;
 }
 
-export default function FeedScreen() {
+export default function FeedScreen({ active }: { active: boolean }) {
   const navigation = useNavigation<any>();
   const { token, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -120,11 +120,9 @@ export default function FeedScreen() {
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useEffect(() => {
+    if (active) load();
+  }, [active, load]);
 
   const toggleLike = useCallback(
     async (post: Post) => {
