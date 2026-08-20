@@ -280,6 +280,9 @@ function HomeTabs() {
   const [page, setPage] = useState(0);
   const pageRef = useRef(0);
   const [restartSignal, setRestartSignal] = useState(0);
+  const [feedRefresh, setFeedRefresh] = useState(0);
+  const lastHomeTapRef = useRef(0);
+  const lastBackPressRef = useRef(0);
 
   const refreshUnread = useCallback(async () => {
     if (!token) return;
@@ -329,13 +332,27 @@ function HomeTabs() {
         pagerRef.current?.setPage(0);
         return true;
       }
-      return false;
+      const now = Date.now();
+      if (now - lastBackPressRef.current <= 2000) return false;
+      lastBackPressRef.current = now;
+      setFeedRefresh((s) => s + 1);
+      return true;
     });
     return () => sub.remove();
   }, [navigation, menuOpen, themeOpen, createOpen]);
 
   const onTabPress = useCallback(
     (index: number) => {
+      const now = Date.now();
+      if (index === 0 && pageRef.current === 0) {
+        if (now - lastHomeTapRef.current <= 350) {
+          lastHomeTapRef.current = 0;
+          setFeedRefresh((s) => s + 1);
+        } else {
+          lastHomeTapRef.current = now;
+        }
+        return;
+      }
       if (index === 1 && pageRef.current === 1) {
         setRestartSignal((s) => s + 1);
         return;
@@ -417,7 +434,7 @@ function HomeTabs() {
               onNewPost={() => navigation.navigate("CreatePost", {})}
               unreadCount={unreadCount}
             />
-            <FeedScreen active={page === 0} />
+            <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
           </View>
           <View style={styles.page} key="reels" collapsable={false}>
             <ReelsScreen active={page === 1} restartSignal={restartSignal} />

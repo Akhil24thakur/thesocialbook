@@ -28,7 +28,7 @@ function newSeed() {
   return Math.floor(Math.random() * 2147483647) + 1;
 }
 
-export default function FeedScreen({ active }: { active: boolean }) {
+export default function FeedScreen({ active, refreshSignal }: { active: boolean; refreshSignal?: number }) {
   const navigation = useNavigation<any>();
   const { token, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -123,6 +123,10 @@ export default function FeedScreen({ active }: { active: boolean }) {
   useEffect(() => {
     if (active) load();
   }, [active, load]);
+
+  useEffect(() => {
+    if (active && refreshSignal && refreshSignal > 0) load(true);
+  }, [refreshSignal, active, load]);
 
   const toggleLike = useCallback(
     async (post: Post) => {
