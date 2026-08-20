@@ -39,7 +39,7 @@ function playerHtml(videoId: string): string {
 <div id="player"></div>
 <script>
   var player = null;
-  var pending = { play: true, mute: true };
+  var pending = { play: false, mute: true };
   function apply() {
     if (!player) return;
     try {
@@ -54,7 +54,7 @@ function playerHtml(videoId: string): string {
       height: "100%",
       playerVars: {
         playsinline: 1,
-        autoplay: 1,
+        autoplay: 0,
         mute: 1,
         controls: 1,
         rel: 0,
@@ -130,9 +130,9 @@ function ShortsItem({
   );
 
   useEffect(() => {
-    registerPlayer(item.videoId, webRef.current);
+    registerPlayer(item.videoId, inWindow ? webRef.current : null);
     return () => registerPlayer(item.videoId, null);
-  }, [item.videoId, registerPlayer]);
+  }, [item.videoId, inWindow, registerPlayer]);
 
   useEffect(() => {
     send(isActive, muted);
@@ -184,7 +184,6 @@ function ShortsItem({
           mediaPlaybackRequiresUserAction={false}
           onMessage={onMessage}
           onError={() => setFailed(true)}
-          onHttpError={() => setFailed(true)}
         />
       ) : (
         <View style={styles.fallbackGradient}>
@@ -269,14 +268,21 @@ export default function ReelsScreen() {
       }
       try {
         const res = await api.reels(token, { limit: PAGE_SIZE });
-        hasLoadedRef.current = true;
-        seenRef.current = new Set(res.items.map((it) => it.videoId));
-        setItems(res.items);
-        setNextPageToken(res.nextPageToken);
+        const newItems = res.items;
+        const unchanged =
+          hasLoadedRef.current &&
+          itemsRef.current.length === newItems.length &&
+          itemsRef.current.every((it, i) => it.videoId === newItems[i]?.videoId);
+        if (!unchanged) {
+          hasLoadedRef.current = true;
+          seenRef.current = new Set(newItems.map((it) => it.videoId));
+          setItems(newItems);
+          setNextPageToken(res.nextPageToken);
+          setActiveIndex(0);
+          activeIndexRef.current = 0;
+        }
         setErrorMsg("");
         setStatus("ready");
-        setActiveIndex(0);
-        activeIndexRef.current = 0;
       } catch (e: any) {
         setErrorMsg(e.message ?? "Could not load reels");
         if (!hasLoadedRef.current) setStatus("error");
@@ -320,12 +326,17 @@ export default function ReelsScreen() {
     });
   }, []);
 
+  const itemsRef = useRef<ReelFeedItem[]>([]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   const resumeActive = useCallback(() => {
-    const item = items[activeIndexRef.current];
+    const item = itemsRef.current[activeIndexRef.current];
     if (!item) return;
     const ref = playersRef.current.get(item.videoId);
     ref?.postMessage(JSON.stringify({ play: true, mute: mutedRef.current }));
-  }, [items]);
+  }, []);
 
   const mutedRef = useRef(true);
   mutedRef.current = muted;
@@ -342,10 +353,14 @@ export default function ReelsScreen() {
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
-      if (state !== "active") pauseAll();
+      if (state !== "active") {
+        pauseAll();
+      } else {
+        resumeActive();
+      }
     });
     return () => sub.remove();
-  }, [pauseAll]);
+  }, [pauseAll, resumeActive]);
 
   const onMomentumEnd = useCallback(
     (e: any) => {
