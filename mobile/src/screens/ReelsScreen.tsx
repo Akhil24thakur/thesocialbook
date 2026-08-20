@@ -175,7 +175,7 @@ function ShortsItem({
           ref={(ref) => {
             webRef.current = ref;
           }}
-          source={{ html: playerHtml(item.videoId), baseUrl: "https://www.youtube.com" }}
+          source={{ html: playerHtml(item.videoId), baseUrl: "https://thesocialbook.app" }}
           style={styles.player}
           javaScriptEnabled
           domStorageEnabled
