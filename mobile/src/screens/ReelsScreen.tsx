@@ -200,13 +200,14 @@ function ShortsItem({
   );
 
   const tap = useCallback(() => {
+    if (!isActive) return;
     const next = !playRef.current;
     playRef.current = next;
     setIndicator(next ? "play" : "pause");
     if (indTimerRef.current) clearTimeout(indTimerRef.current);
     indTimerRef.current = setTimeout(() => setIndicator(null), INDICATOR_MS);
     send(next, muted);
-  }, [send, muted]);
+  }, [isActive, send, muted]);
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
@@ -274,51 +275,57 @@ function ShortsItem({
 
       <TouchableOpacity style={styles.tapLayer} activeOpacity={1} onPress={tap} />
 
-      <View style={styles.info}>
-        <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
-          <Text style={styles.avatarText}>{(item.channelTitle || "?").charAt(0).toUpperCase()}</Text>
-        </LinearGradient>
-        <Text style={styles.username} numberOfLines={1}>
-          @{item.channelTitle}
-        </Text>
-      </View>
+      {isActive && (
+        <View style={styles.info}>
+          <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
+            <Text style={styles.avatarText}>{(item.channelTitle || "?").charAt(0).toUpperCase()}</Text>
+          </LinearGradient>
+          <Text style={styles.username} numberOfLines={1}>
+            @{item.channelTitle}
+          </Text>
+        </View>
+      )}
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => setLiked((prev) => !prev)}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          accessibilityLabel={liked ? "Unlike" : "Like"}
-          accessibilityState={{ selected: liked }}
-        >
-          <Icon name={liked ? "heart" : "heart-outline"} size={32} color={liked ? colors.primary : colors.white} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={onComment}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          accessibilityLabel="Comment"
-        >
-          <Icon name="chatbubble-outline" size={30} color={colors.white} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={onShare}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          accessibilityLabel="Share"
-        >
-          <Icon name="arrow-redo-outline" size={30} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+      {isActive && (
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => setLiked((prev) => !prev)}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityLabel={liked ? "Unlike" : "Like"}
+            accessibilityState={{ selected: liked }}
+          >
+            <Icon name={liked ? "heart" : "heart-outline"} size={32} color={liked ? colors.primary : colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={onComment}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityLabel="Comment"
+          >
+            <Icon name="chatbubble-outline" size={30} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={onShare}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityLabel="Share"
+          >
+            <Icon name="arrow-redo-outline" size={30} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      )}
 
-      <TouchableOpacity
-        style={styles.muteBtn}
-        onPress={toggleMute}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityLabel={muted ? "Unmute" : "Mute"}
-      >
-        <Icon name={muted ? "volume-mute" : "volume-high"} size={24} color={colors.white} />
-      </TouchableOpacity>
+      {isActive && (
+        <TouchableOpacity
+          style={styles.muteBtn}
+          onPress={toggleMute}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={muted ? "Unmute" : "Mute"}
+        >
+          <Icon name={muted ? "volume-mute" : "volume-high"} size={24} color={colors.white} />
+        </TouchableOpacity>
+      )}
 
       {indicator && (
         <View style={styles.indicatorWrap} pointerEvents="none">
@@ -475,6 +482,16 @@ export default function ReelsScreen() {
     [height]
   );
 
+  const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 60 });
+
+  const onViewableChanged = useCallback(({ viewableItems }: any) => {
+    const first = viewableItems[0];
+    if (first && typeof first.index === "number" && first.isViewable) {
+      activeIndexRef.current = first.index;
+      setActiveIndex(first.index);
+    }
+  }, []);
+
   const listFooter = loadingMoreRef.current ? (
     <ActivityIndicator style={styles.footer} color={colors.white} />
   ) : null;
@@ -520,6 +537,8 @@ export default function ReelsScreen() {
           pagingEnabled
           showsVerticalScrollIndicator={false}
           onMomentumScrollEnd={onMomentumEnd}
+          onViewableItemsChanged={onViewableChanged}
+          viewabilityConfig={viewabilityConfigRef.current}
           getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
           windowSize={5}
           maxToRenderPerBatch={3}
