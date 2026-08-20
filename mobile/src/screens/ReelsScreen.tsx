@@ -344,6 +344,7 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
   const navigation = useNavigation<any>();
   const [items, setItems] = useState<ReelFeedItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const queryRef = useRef<string | undefined>(undefined);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -376,6 +377,7 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
       try {
         const res = await api.reels(token, { limit: PAGE_SIZE });
         hasLoadedRef.current = true;
+        queryRef.current = res.query;
         let newItems = refresh ? shuffle([...res.items]) : res.items;
         if (
           refresh &&
@@ -414,7 +416,7 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
     if (!token || loadingMoreRef.current || !nextPageToken || refreshing) return;
     loadingMoreRef.current = true;
     try {
-      const res = await api.reels(token, { pageToken: nextPageToken, limit: PAGE_SIZE });
+      const res = await api.reels(token, { pageToken: nextPageToken, query: queryRef.current, limit: PAGE_SIZE });
       setItems((prev) => {
         const seen = seenRef.current;
         const fresh = res.items.filter((it) => !seen.has(it.videoId));

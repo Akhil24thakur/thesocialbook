@@ -219,6 +219,6 @@ export const api = {
   conversationsUnreadCount: (token: string) => request<{ unreadCount: number }>("/api/conversations/unread-count", token),
   searchUsers: (token: string, query: string) =>
     request<{ users: ApiUser[] }>("/api/users/search?q=" + encodeURIComponent(query), token),
-  reels: (token: string, params?: { pageToken?: string; limit?: number }) =>
-    request<{ items: ReelFeedItem[]; nextPageToken: string | null }>("/api/reels", token, { params }),
+  reels: (token: string, params?: { pageToken?: string; limit?: number; query?: string }) =>
+    request<{ items: ReelFeedItem[]; nextPageToken: string | null; query?: string }>("/api/reels", token, { params }),
 };
