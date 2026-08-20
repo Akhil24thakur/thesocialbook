@@ -4,13 +4,14 @@ import {
   AppState,
   FlatList,
   Image,
+  RefreshControl,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../api";
@@ -328,8 +329,10 @@ function ShortsItem({
   );
 }
 
-export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: number }) {
+export default function ReelsScreen() {
   const { token } = useAuth();
+  const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const [items, setItems] = useState<ReelFeedItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -338,6 +341,8 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
   const hasLoadedRef = useRef(false);
   const seenRef = useRef<Set<string>>(new Set());
   const loadingMoreRef = useRef(false);
+  const loadingRef = useRef(false);
+  const firstFocusRef = useRef(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
   const [height, setHeight] = useState(0);
@@ -352,7 +357,8 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
 
   const load = useCallback(
     async (refresh = false) => {
-      if (!token) return;
+      if (!token || loadingRef.current) return;
+      loadingRef.current = true;
       if (refresh) {
         setRefreshing(true);
       } else if (!hasLoadedRef.current) {
@@ -379,6 +385,7 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
         setErrorMsg(e.message ?? "Could not load reels");
         if (!hasLoadedRef.current) setStatus("error");
       } finally {
+        loadingRef.current = false;
         setRefreshing(false);
       }
     },
@@ -427,8 +434,12 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
 
   useFocusEffect(
     useCallback(() => {
-      load();
-      resumeActive();
+      if (firstFocusRef.current) {
+        firstFocusRef.current = false;
+        load(true);
+      } else {
+        resumeActive();
+      }
       return () => {
         pauseAll();
       };
@@ -436,20 +447,23 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
   );
 
   useEffect(() => {
+    const unsub = navigation.addListener("tabPress", () => {
+      load(true);
+    });
+    return unsub;
+  }, [navigation, load]);
+
+  useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
         pauseAll();
-      } else {
+      } else if (isFocused) {
         load(true);
         resumeActive();
       }
     });
     return () => sub.remove();
-  }, [pauseAll, resumeActive, load]);
-
-  useEffect(() => {
-    if (refreshNonce > 0) load(true);
-  }, [refreshNonce, load]);
+  }, [pauseAll, resumeActive, load, isFocused]);
 
   const onMomentumEnd = useCallback(
     (e: any) => {
@@ -514,6 +528,15 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={listFooter}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={colors.white}
+              colors={[colors.primary]}
+              progressBackgroundColor="#11161F"
+            />
+          }
         />
       )}
     </View>

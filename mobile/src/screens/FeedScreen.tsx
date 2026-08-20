@@ -7,20 +7,17 @@ import {
   StyleSheet,
   View,
   Text,
-  useWindowDimensions,
   type ViewToken,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PostCard from "../components/PostCard";
-import FeedTabs, { FeedTab } from "../components/home/FeedTabs";
 import { EmptyFeed, ErrorFeed } from "../components/home/FeedStates";
 import SkeletonFeed from "../components/home/SkeletonFeed";
 import StoriesStrip from "../components/home/StoriesStrip";
 import { Story, StoryGroup } from "../components/home/StoryViewer";
 import { storyGroupsFromApi } from "../data/stories";
-import ReelsScreen from "./ReelsScreen";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import type { Post, StoryItem } from "../types";
@@ -39,36 +36,14 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<FeedTab>("foryou");
   const seedRef = useRef(newSeed());
   const [hasMore, setHasMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const seenRef = useRef(new Set<number>());
   const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pagerRef = useRef<FlatList<string> | null>(null);
-  const [refreshNonce, setRefreshNonce] = useState(0);
-  const { width } = useWindowDimensions();
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  const changeTab = useCallback(
-    (t: FeedTab) => {
-      setTab(t);
-      if (t === "foryou" || t === "reels") {
-        pagerRef.current?.scrollToOffset({ offset: (t === "reels" ? 1 : 0) * width, animated: true });
-      }
-    },
-    [width]
-  );
-
-  const onPagerMomentumEnd = useCallback(
-    (e: any) => {
-      const idx = Math.round(e.nativeEvent.contentOffset.x / width);
-      setTab(idx >= 1 ? "reels" : "foryou");
-    },
-    [width]
-  );
 
   const load = useCallback(
     async (refresh = false) => {
@@ -178,11 +153,6 @@ export default function FeedScreen() {
     [token]
   );
 
-  const displayPosts = useMemo(() => {
-    if (tab === "following") return [];
-    return posts;
-  }, [posts, tab]);
-
   const friendGroups = useMemo<StoryGroup[]>(
     () => storyGroupsFromApi(storyItems.filter((s) => s.author.id !== user?.id)),
     [storyItems, user?.id]
@@ -245,84 +215,32 @@ export default function FeedScreen() {
   } else if (error) {
     empty = <ErrorFeed onRetry={() => load()} />;
   } else {
-    empty = <EmptyFeed compact={tab === "following"} />;
+    empty = <EmptyFeed />;
   }
 
   return (
     <View style={styles.container}>
-      {tab !== "reels" && (
-        <View style={styles.tabsRow}>
-          <FeedTabs
-            active={tab}
-            onChange={changeTab}
-            onRefreshReels={() => setRefreshNonce((n) => n + 1)}
-          />
-        </View>
-      )}
-      {tab === "following" ? (
-        <FlatList
-          data={displayPosts}
-          keyExtractor={(p) => String(p.id)}
-          ListHeaderComponent={header}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
-          }
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.6}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          ListFooterComponent={
-            loadingMoreRef.current ? (
-              <ActivityIndicator style={styles.footer} color={colors.primary} />
-            ) : null
-          }
-          ListEmptyComponent={empty}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <FlatList
-          ref={pagerRef}
-          data={["foryou", "reels"]}
-          keyExtractor={(k) => k}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          bounces={false}
-          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-          onMomentumScrollEnd={onPagerMomentumEnd}
-          renderItem={({ item }) => (
-            <View style={{ width, flex: 1 }}>
-              {item === "reels" ? (
-                <ReelsScreen refreshNonce={refreshNonce} />
-              ) : (
-                <FlatList
-                  data={displayPosts}
-                  keyExtractor={(p) => String(p.id)}
-                  ListHeaderComponent={header}
-                  renderItem={renderItem}
-                  refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
-                  }
-                  onEndReached={loadMore}
-                  onEndReachedThreshold={0.6}
-                  onViewableItemsChanged={onViewableItemsChanged}
-                  viewabilityConfig={viewabilityConfig}
-                  ListFooterComponent={
-                    loadingMoreRef.current ? (
-                      <ActivityIndicator style={styles.footer} color={colors.primary} />
-                    ) : null
-                  }
-                  ListEmptyComponent={empty}
-                  contentContainerStyle={styles.list}
-                  showsVerticalScrollIndicator={false}
-                />
-              )}
-            </View>
-          )}
-        />
-      )}
+      <FlatList
+        data={posts}
+        keyExtractor={(p) => String(p.id)}
+        ListHeaderComponent={header}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        ListFooterComponent={
+          loadingMoreRef.current ? (
+            <ActivityIndicator style={styles.footer} color={colors.primary} />
+          ) : null
+        }
+        ListEmptyComponent={empty}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }
@@ -331,10 +249,6 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  tabsRow: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
   },
   list: {
     padding: 16,

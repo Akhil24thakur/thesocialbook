@@ -20,17 +20,17 @@ export default function TopAppBar({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.bar, { paddingTop: insets.top + 8 }]}>
+<View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
       <TouchableOpacity
         style={styles.iconBtn}
         onPress={onMenu}
         accessibilityLabel="Menu"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Icon name="menu" size={24} color={colors.text} />
+        <Icon name="menu" size={22} color={colors.text} />
       </TouchableOpacity>
       <View style={styles.brand}>
-<Text style={styles.brandText}>
+        <Text style={styles.brandText}>
           <Text style={styles.brandAccent}>Social</Text>
           <Text style={styles.brandDark}>Book</Text>
         </Text>
@@ -41,7 +41,7 @@ export default function TopAppBar({
         accessibilityLabel="Create post"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Icon name="create" size={24} color={colors.primary} />
+        <Icon name="create" size={22} color={colors.primary} />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.iconBtn}
@@ -49,7 +49,7 @@ export default function TopAppBar({
         accessibilityLabel="Notifications"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Icon name="notifications-outline" size={24} color={colors.text} />
+        <Icon name="notifications-outline" size={22} color={colors.text} />
         <View style={[styles.badge, { backgroundColor: unreadCount > 0 ? colors.danger : colors.text }]} />
       </TouchableOpacity>
     </View>
@@ -61,15 +61,15 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 8,
+    paddingBottom: 6,
     backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
   iconBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -78,9 +78,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
   },
   brandText: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: "700",
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
     fontFamily: "Caveat_700Bold",
   },
   brandDark: {

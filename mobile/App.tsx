@@ -19,6 +19,7 @@ import TopAppBar from "./src/components/home/TopAppBar";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 import FeedScreen from "./src/screens/FeedScreen";
+import ReelsScreen from "./src/screens/ReelsScreen";
 import CreatePostScreen from "./src/screens/CreatePostScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import PostDetailScreen from "./src/screens/PostDetailScreen";
@@ -308,6 +309,7 @@ function HomeTabs() {
   const MENU_ITEMS: { label: string; icon: string; action: () => void; danger?: boolean }[] = [
     { label: "My Profile", icon: "person-outline", action: () => goTab("Profile") },
     { label: "Stories", icon: "albums-outline", action: () => navigation.navigate("Stories") },
+    { label: "Search", icon: "search", action: () => navigation.navigate("Search") },
     { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTab("Messages") },
     { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
     { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
@@ -368,6 +370,17 @@ function HomeTabs() {
           }}
         />
         <Tab.Screen
+          name="Reels"
+          component={ReelsScreen}
+          options={{
+            headerShown: false,
+            tabBarLabel: "Reels",
+            tabBarIcon: ({ focused, color }) => (
+              <Icon name={focused ? "play-circle" : "play-circle-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
           name="Create"
           component={CreatePlaceholder}
           options={{
@@ -393,16 +406,6 @@ function HomeTabs() {
             headerTitle: "My Profile",
             tabBarIcon: ({ focused, color }) => (
               <Icon name={focused ? "person" : "person-outline"} size={24} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Search"
-          component={SearchScreen}
-          options={{
-            tabBarLabel: "Search",
-            tabBarIcon: ({ focused, color }) => (
-              <Icon name={focused ? "search" : "search"} size={24} color={color} />
             ),
           }}
         />
@@ -513,6 +516,7 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
         <>
           <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: "Create Post" }} />
+          <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: "Post" }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />
