@@ -19,9 +19,8 @@ import TopAppBar from "./src/components/home/TopAppBar";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 import FeedScreen from "./src/screens/FeedScreen";
-import CreateReelScreen from "./src/screens/CreateReelScreen";
-import SearchScreen from "./src/screens/SearchScreen";
 import CreatePostScreen from "./src/screens/CreatePostScreen";
+import SearchScreen from "./src/screens/SearchScreen";
 import PostDetailScreen from "./src/screens/PostDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
@@ -293,10 +292,9 @@ function HomeTabs() {
 
   const goTab = (tab: string) => navigation.navigate("Home", { screen: tab });
 
-  const openCreate = (key: "post" | "photo" | "live" | "reel") => {
+  const openCreate = (key: "post" | "photo" | "live") => {
     if (key === "post") navigation.navigate("CreatePost", {});
     else if (key === "photo") navigation.navigate("CreatePost", { withPhoto: true });
-    else if (key === "reel") navigation.navigate("CreateReel", {});
     else navigation.navigate("CreatePost", { prefill: "Going live now!" });
   };
 
@@ -515,7 +513,6 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
         <>
           <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: "Create Post" }} />
-          <Stack.Screen name="CreateReel" component={CreateReelScreen} options={{ title: "Create Reel" }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: "Post" }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />

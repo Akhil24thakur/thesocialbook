@@ -11,14 +11,13 @@ export default function CreateMenu({
 }: {
   visible: boolean;
   onClose: () => void;
-  onSelect: (key: "post" | "photo" | "live" | "reel") => void;
+  onSelect: (key: "post" | "photo" | "live") => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const OPTIONS = [
     { key: "post", label: "Create Post", sub: "Share text, photo and more", icon: "create-outline", color: colors.primary },
     { key: "photo", label: "Upload Photo", sub: "Add a photo to your post", icon: "image-outline", color: colors.green },
-    { key: "reel", label: "Share a Reel", sub: "Add a vertical video", icon: "play-circle-outline", color: colors.pink },
     { key: "live", label: "Go Live", sub: "Broadcast to your followers", icon: "videocam-outline", color: colors.primary },
   ] as const;
 

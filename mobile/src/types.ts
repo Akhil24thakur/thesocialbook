@@ -93,18 +93,10 @@ export interface Conversation {
   unreadCount: number;
 }
 
-export interface Reel {
-  id: number;
-  caption: string;
-  videoUrl: string | null;
-  externalUrl: string | null;
-  posterUrl: string | null;
-  isExternal: boolean;
-  shareCount: number;
-  createdAt: string;
-  author: PostAuthor;
-  likeCount: number;
-  commentCount: number;
-  likedByMe: boolean;
-  followedByMe: boolean;
+export interface ReelFeedItem {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string | null;
+  publishedAt: string | null;
 }
