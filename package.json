@@ -1,6 +1,6 @@
 {
   "name": "thesocialbook",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "SocialBook - a social network for India. Monorepo: backend (Node/Express/Prisma) + mobile (Expo React Native).",
   "workspaces": [
