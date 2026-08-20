@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "../Icon";
 import { type Colors } from "../../theme";
@@ -12,9 +12,28 @@ const TABS: { key: FeedTab; label: string; icon: string }[] = [
   { key: "following", label: "Following", icon: "people-outline" },
 ];
 
-export default function FeedTabs({ active, onChange }: { active: FeedTab; onChange: (t: FeedTab) => void }) {
+export default function FeedTabs({
+  active,
+  onChange,
+  onRefreshReels,
+}: {
+  active: FeedTab;
+  onChange: (t: FeedTab) => void;
+  onRefreshReels?: () => void;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const lastReelsPressRef = useRef(0);
+  const pressReels = () => {
+    const now = Date.now();
+    if (now - lastReelsPressRef.current < 350) {
+      lastReelsPressRef.current = 0;
+      onRefreshReels?.();
+      return;
+    }
+    lastReelsPressRef.current = now;
+    onChange("reels");
+  };
   return (
     <View style={styles.row}>
       {TABS.map((t) => {
@@ -23,7 +42,7 @@ export default function FeedTabs({ active, onChange }: { active: FeedTab; onChan
           <TouchableOpacity
             key={t.key}
             style={styles.tab}
-            onPress={() => onChange(t.key)}
+            onPress={t.key === "reels" ? pressReels : () => onChange(t.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
           >

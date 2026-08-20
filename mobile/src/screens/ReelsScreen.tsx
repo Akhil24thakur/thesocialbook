@@ -24,6 +24,14 @@ const MOUNT_WINDOW = 1;
 const YT_STATE_PLAYING = 1;
 const YT_STATE_PAUSED = 2;
 
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function playerHtml(videoId: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -56,7 +64,7 @@ function playerHtml(videoId: string): string {
         playsinline: 1,
         autoplay: 0,
         mute: 1,
-        controls: 1,
+        controls: 0,
         rel: 0,
         modestbranding: 1,
         disablekb: 1,
@@ -100,34 +108,29 @@ function ShortsItem({
   index,
   activeIndex,
   height,
-  muted,
-  onToggleMute,
   registerPlayer,
 }: {
   item: ReelFeedItem;
   index: number;
   activeIndex: number;
   height: number;
-  muted: boolean;
-  onToggleMute: () => void;
   registerPlayer: (videoId: string, ref: WebView | null) => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const webRef = useRef<WebView | null>(null);
+  const indTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isActive = index === activeIndex;
   const inWindow = Math.abs(index - activeIndex) <= MOUNT_WINDOW;
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [failedCode, setFailedCode] = useState<number | null>(null);
+  const [indicator, setIndicator] = useState<"play" | "pause" | null>(null);
 
-  const send = useCallback(
-    (play: boolean, mute: boolean) => {
-      webRef.current?.postMessage(JSON.stringify({ play, mute }));
-    },
-    []
-  );
+  const send = useCallback((play: boolean) => {
+    webRef.current?.postMessage(JSON.stringify({ play, mute: true }));
+  }, []);
 
   useEffect(() => {
     registerPlayer(item.videoId, inWindow ? webRef.current : null);
@@ -135,8 +138,15 @@ function ShortsItem({
   }, [item.videoId, inWindow, registerPlayer]);
 
   useEffect(() => {
-    send(isActive, muted);
-  }, [isActive, muted, send]);
+    send(isActive);
+  }, [isActive, send]);
+
+  useEffect(
+    () => () => {
+      if (indTimerRef.current) clearTimeout(indTimerRef.current);
+    },
+    []
+  );
 
   const onMessage = useCallback(
     (e: WebViewMessageEvent) => {
@@ -144,7 +154,7 @@ function ShortsItem({
         const m = JSON.parse(e.nativeEvent.data) as { t?: string; s?: number; c?: number };
         if (m.t === "ready") {
           setReady(true);
-          send(isActive, muted);
+          send(isActive);
         } else if (m.t === "state") {
           if (m.s === YT_STATE_PLAYING) setPlaying(true);
           else if (m.s === YT_STATE_PAUSED) setPlaying(false);
@@ -154,12 +164,16 @@ function ShortsItem({
         }
       } catch {}
     },
-    [isActive, muted, send]
+    [isActive, send]
   );
 
-  const togglePlay = useCallback(() => {
-    send(!playing, muted);
-  }, [playing, muted, send]);
+  const tap = useCallback(() => {
+    const next = !playing;
+    setIndicator(next ? "play" : "pause");
+    if (indTimerRef.current) clearTimeout(indTimerRef.current);
+    indTimerRef.current = setTimeout(() => setIndicator(null), 700);
+    send(next);
+  }, [playing, send]);
 
   const openOnYouTube = () => {
     Linking.openURL(`https://youtube.com/shorts/${item.videoId}`).catch(() => {});
@@ -168,7 +182,7 @@ function ShortsItem({
   return (
     <View style={[styles.item, { height }]}>
       {item.thumbnailUrl && (
-        <Image source={{ uri: item.thumbnailUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image source={{ uri: item.thumbnailUrl }} style={styles.thumb} resizeMode="cover" />
       )}
       {inWindow && !failed ? (
         <WebView
@@ -214,15 +228,6 @@ function ShortsItem({
         </View>
       )}
 
-      <TouchableOpacity style={styles.ytChip} onPress={openOnYouTube} activeOpacity={0.85}>
-        <Icon name="logo-youtube" size={18} color={colors.white} />
-        <Text style={styles.ytChipText}>YouTube</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.muteBtn} onPress={onToggleMute} activeOpacity={0.8}>
-        <Icon name={muted ? "volume-mute" : "volume-high"} size={20} color={colors.white} />
-      </TouchableOpacity>
-
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
@@ -233,14 +238,18 @@ function ShortsItem({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.playBtn} onPress={togglePlay} activeOpacity={0.8}>
-        <Icon name={playing ? "pause" : "play"} size={22} color={colors.white} />
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.tapLayer} activeOpacity={1} onPress={tap} />
+
+      {indicator && (
+        <View style={styles.indicatorWrap} pointerEvents="none">
+          <Icon name={indicator} size={56} color={colors.white} />
+        </View>
+      )}
     </View>
   );
 }
 
-export default function ReelsScreen() {
+export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const { token } = useAuth();
   const [items, setItems] = useState<ReelFeedItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
@@ -252,11 +261,15 @@ export default function ReelsScreen() {
   const loadingMoreRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
-  const [muted, setMuted] = useState(true);
   const [height, setHeight] = useState(0);
   const playersRef = useRef<Map<string, WebView | null>>(new Map());
+  const itemsRef = useRef<ReelFeedItem[]>([]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const load = useCallback(
     async (refresh = false) => {
@@ -268,13 +281,13 @@ export default function ReelsScreen() {
       }
       try {
         const res = await api.reels(token, { limit: PAGE_SIZE });
-        const newItems = res.items;
+        hasLoadedRef.current = true;
+        const newItems = refresh ? shuffle([...res.items]) : res.items;
         const unchanged =
-          hasLoadedRef.current &&
+          !refresh &&
           itemsRef.current.length === newItems.length &&
           itemsRef.current.every((it, i) => it.videoId === newItems[i]?.videoId);
         if (!unchanged) {
-          hasLoadedRef.current = true;
           seenRef.current = new Set(newItems.map((it) => it.videoId));
           setItems(newItems);
           setNextPageToken(res.nextPageToken);
@@ -322,24 +335,16 @@ export default function ReelsScreen() {
 
   const pauseAll = useCallback(() => {
     playersRef.current.forEach((ref) => {
-      ref?.postMessage(JSON.stringify({ play: false }));
+      ref?.postMessage(JSON.stringify({ play: false, mute: true }));
     });
   }, []);
-
-  const itemsRef = useRef<ReelFeedItem[]>([]);
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
 
   const resumeActive = useCallback(() => {
     const item = itemsRef.current[activeIndexRef.current];
     if (!item) return;
     const ref = playersRef.current.get(item.videoId);
-    ref?.postMessage(JSON.stringify({ play: true, mute: mutedRef.current }));
+    ref?.postMessage(JSON.stringify({ play: true, mute: true }));
   }, []);
-
-  const mutedRef = useRef(true);
-  mutedRef.current = muted;
 
   useFocusEffect(
     useCallback(() => {
@@ -356,11 +361,16 @@ export default function ReelsScreen() {
       if (state !== "active") {
         pauseAll();
       } else {
+        load(true);
         resumeActive();
       }
     });
     return () => sub.remove();
-  }, [pauseAll, resumeActive]);
+  }, [pauseAll, resumeActive, load]);
+
+  useEffect(() => {
+    if (refreshNonce > 0) load(true);
+  }, [refreshNonce, load]);
 
   const onMomentumEnd = useCallback(
     (e: any) => {
@@ -411,8 +421,6 @@ export default function ReelsScreen() {
               index={index}
               activeIndex={activeIndex}
               height={height}
-              muted={muted}
-              onToggleMute={() => setMuted((m) => !m)}
               registerPlayer={registerPlayer}
             />
           )}
@@ -443,6 +451,13 @@ const createStyles = (colors: Colors) =>
       width: "100%",
       backgroundColor: "#000000",
     },
+    thumb: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
     player: {
       position: "absolute",
       top: 0,
@@ -460,6 +475,7 @@ const createStyles = (colors: Colors) =>
       backgroundColor: "#111318",
       alignItems: "center",
       justifyContent: "center",
+      gap: 12,
     },
     fallbackBtn: {
       flexDirection: "row",
@@ -506,38 +522,10 @@ const createStyles = (colors: Colors) =>
       justifyContent: "center",
       backgroundColor: "#0B0D10",
     },
-    ytChip: {
-      position: "absolute",
-      top: 44,
-      left: 14,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(17,19,24,0.6)",
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      borderRadius: 999,
-    },
-    ytChipText: {
-      color: colors.white,
-      fontSize: 12,
-      fontWeight: "700",
-    },
-    muteBtn: {
-      position: "absolute",
-      top: 44,
-      right: 14,
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: "rgba(17,19,24,0.55)",
-      alignItems: "center",
-      justifyContent: "center",
-    },
     info: {
       position: "absolute",
       left: 14,
-      right: 84,
+      right: 76,
       bottom: 24,
       gap: 5,
     },
@@ -546,6 +534,9 @@ const createStyles = (colors: Colors) =>
       fontSize: 15,
       fontWeight: "700",
       lineHeight: 20,
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
     },
     channelRow: {
       flexDirection: "row",
@@ -555,15 +546,23 @@ const createStyles = (colors: Colors) =>
     channel: {
       color: "#C7CFDA",
       fontSize: 13,
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
     },
-    playBtn: {
+    tapLayer: {
       position: "absolute",
-      right: 14,
-      bottom: 26,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: "rgba(17,19,24,0.55)",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    indicatorWrap: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       alignItems: "center",
       justifyContent: "center",
     },

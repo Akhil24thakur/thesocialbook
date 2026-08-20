@@ -7,6 +7,7 @@ import {
   StyleSheet,
   View,
   Text,
+  useWindowDimensions,
   type ViewToken,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -44,9 +45,30 @@ export default function FeedScreen() {
   const loadingMoreRef = useRef(false);
   const seenRef = useRef(new Set<number>());
   const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pagerRef = useRef<FlatList<string> | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const { width } = useWindowDimensions();
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const changeTab = useCallback(
+    (t: FeedTab) => {
+      setTab(t);
+      if (t === "foryou" || t === "reels") {
+        pagerRef.current?.scrollToOffset({ offset: (t === "reels" ? 1 : 0) * width, animated: true });
+      }
+    },
+    [width]
+  );
+
+  const onPagerMomentumEnd = useCallback(
+    (e: any) => {
+      const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+      setTab(idx >= 1 ? "reels" : "foryou");
+    },
+    [width]
+  );
 
   const load = useCallback(
     async (refresh = false) => {
@@ -229,11 +251,13 @@ export default function FeedScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.tabsRow}>
-        <FeedTabs active={tab} onChange={setTab} />
+        <FeedTabs
+          active={tab}
+          onChange={changeTab}
+          onRefreshReels={() => setRefreshNonce((n) => n + 1)}
+        />
       </View>
-      {tab === "reels" ? (
-        <ReelsScreen />
-      ) : (
+      {tab === "following" ? (
         <FlatList
           data={displayPosts}
           keyExtractor={(p) => String(p.id)}
@@ -254,6 +278,47 @@ export default function FeedScreen() {
           ListEmptyComponent={empty}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          ref={pagerRef}
+          data={["foryou", "reels"]}
+          keyExtractor={(k) => k}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+          onMomentumScrollEnd={onPagerMomentumEnd}
+          renderItem={({ item }) => (
+            <View style={{ width, flex: 1 }}>
+              {item === "reels" ? (
+                <ReelsScreen refreshNonce={refreshNonce} />
+              ) : (
+                <FlatList
+                  data={displayPosts}
+                  keyExtractor={(p) => String(p.id)}
+                  ListHeaderComponent={header}
+                  renderItem={renderItem}
+                  refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
+                  }
+                  onEndReached={loadMore}
+                  onEndReachedThreshold={0.6}
+                  onViewableItemsChanged={onViewableItemsChanged}
+                  viewabilityConfig={viewabilityConfig}
+                  ListFooterComponent={
+                    loadingMoreRef.current ? (
+                      <ActivityIndicator style={styles.footer} color={colors.primary} />
+                    ) : null
+                  }
+                  ListEmptyComponent={empty}
+                  contentContainerStyle={styles.list}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
+            </View>
+          )}
         />
       )}
     </View>
