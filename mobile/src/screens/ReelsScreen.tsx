@@ -5,17 +5,19 @@ import {
   FlatList,
   Image,
   Linking,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
+import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Icon from "../components/Icon";
-import { type Colors } from "../theme";
+import { brandGradient, type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import type { ReelFeedItem } from "../types";
 
@@ -23,6 +25,7 @@ const PAGE_SIZE = 6;
 const MOUNT_WINDOW = 1;
 const YT_STATE_PLAYING = 1;
 const YT_STATE_PAUSED = 2;
+const INDICATOR_MS = 650;
 
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -118,18 +121,29 @@ function ShortsItem({
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const navigation = useNavigation<any>();
   const webRef = useRef<WebView | null>(null);
   const indTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playRef = useRef(false);
   const isActive = index === activeIndex;
   const inWindow = Math.abs(index - activeIndex) <= MOUNT_WINDOW;
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [liked, setLiked] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [failedCode, setFailedCode] = useState<number | null>(null);
   const [indicator, setIndicator] = useState<"play" | "pause" | null>(null);
 
-  const send = useCallback((play: boolean) => {
-    webRef.current?.postMessage(JSON.stringify({ play, mute: true }));
+  const html = useMemo(() => playerHtml(item.videoId), [item.videoId]);
+
+  const hashtags = useMemo(() => {
+    const m = item.title.match(/#\w+/g);
+    return m ? m.slice(0, 3).join(" ") : "";
+  }, [item.title]);
+
+  const send = useCallback((play: boolean, mute: boolean) => {
+    webRef.current?.postMessage(JSON.stringify({ play, mute }));
   }, []);
 
   useEffect(() => {
@@ -138,8 +152,24 @@ function ShortsItem({
   }, [item.videoId, inWindow, registerPlayer]);
 
   useEffect(() => {
-    send(isActive);
-  }, [isActive, send]);
+    playRef.current = false;
+    setPlaying(false);
+    setMuted(true);
+    setLiked(false);
+    setIndicator(null);
+    if (indTimerRef.current) clearTimeout(indTimerRef.current);
+  }, [item.videoId]);
+
+  useEffect(() => {
+    send(isActive, muted);
+  }, [isActive, send, muted]);
+
+  useEffect(() => {
+    if (!isActive) {
+      if (indTimerRef.current) clearTimeout(indTimerRef.current);
+      setIndicator(null);
+    }
+  }, [isActive]);
 
   useEffect(
     () => () => {
@@ -154,29 +184,56 @@ function ShortsItem({
         const m = JSON.parse(e.nativeEvent.data) as { t?: string; s?: number; c?: number };
         if (m.t === "ready") {
           setReady(true);
-          send(isActive);
+          send(isActive, muted);
         } else if (m.t === "state") {
-          if (m.s === YT_STATE_PLAYING) setPlaying(true);
-          else if (m.s === YT_STATE_PAUSED) setPlaying(false);
+          if (m.s === YT_STATE_PLAYING) {
+            playRef.current = true;
+            setPlaying(true);
+          } else if (m.s === YT_STATE_PAUSED) {
+            playRef.current = false;
+            setPlaying(false);
+          }
         } else if (m.t === "error") {
           setFailedCode(m.c ?? null);
           setFailed(true);
         }
       } catch {}
     },
-    [isActive, send]
+    [isActive, send, muted]
   );
 
   const tap = useCallback(() => {
-    const next = !playing;
+    const next = !playRef.current;
+    playRef.current = next;
     setIndicator(next ? "play" : "pause");
     if (indTimerRef.current) clearTimeout(indTimerRef.current);
-    indTimerRef.current = setTimeout(() => setIndicator(null), 700);
-    send(next);
-  }, [playing, send]);
+    indTimerRef.current = setTimeout(() => setIndicator(null), INDICATOR_MS);
+    send(next, muted);
+  }, [send, muted]);
+
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      send(playRef.current, next);
+      return next;
+    });
+  }, [send]);
 
   const openOnYouTube = () => {
     Linking.openURL(`https://youtube.com/shorts/${item.videoId}`).catch(() => {});
+  };
+
+  const onComment = () => {
+    navigation.navigate("CreatePost", {
+      prefill: `Watch this reel: https://youtube.com/shorts/${item.videoId}`,
+    });
+  };
+
+  const onShare = () => {
+    Share.share({
+      title: `${item.title} · SocialBook`,
+      message: `${item.title}\nhttps://youtube.com/shorts/${item.videoId} · SocialBook`,
+    }).catch(() => {});
   };
 
   return (
@@ -189,7 +246,7 @@ function ShortsItem({
           ref={(ref) => {
             webRef.current = ref;
           }}
-          source={{ html: playerHtml(item.videoId), baseUrl: "https://thesocialbook.app" }}
+          source={{ html, baseUrl: "https://thesocialbook.app" }}
           style={styles.player}
           javaScriptEnabled
           domStorageEnabled
@@ -208,16 +265,10 @@ function ShortsItem({
                   ? "This video can't be embedded"
                   : "Couldn't play this video"}
               </Text>
-              <View style={styles.fallbackRow}>
-                <TouchableOpacity style={styles.fallbackBtn} onPress={() => setFailed(false)} activeOpacity={0.85}>
-                  <Icon name="refresh" size={18} color={colors.white} />
-                  <Text style={styles.fallbackBtnText}>Retry</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.fallbackBtnOutline} onPress={openOnYouTube} activeOpacity={0.85}>
-                  <Icon name="logo-youtube" size={18} color={colors.white} />
-                  <Text style={styles.fallbackBtnText}>Open on YouTube</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={styles.fallbackBtn} onPress={() => setFailed(false)} activeOpacity={0.85}>
+                <Icon name="refresh" size={18} color={colors.white} />
+                <Text style={styles.fallbackBtnText}>Retry</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -228,21 +279,65 @@ function ShortsItem({
         </View>
       )}
 
+      <TouchableOpacity style={styles.tapLayer} activeOpacity={1} onPress={tap} />
+
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <View style={styles.channelRow}>
-          <Icon name="person-circle-outline" size={16} color="#C7CFDA" />
-          <Text style={styles.channel}>{item.channelTitle}</Text>
+        <View style={styles.userRow}>
+          <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
+            <Text style={styles.avatarText}>{(item.channelTitle || "?").charAt(0).toUpperCase()}</Text>
+          </LinearGradient>
+          <View style={styles.userText}>
+            <Text style={styles.username} numberOfLines={1}>
+              @{item.channelTitle}
+            </Text>
+            <Text style={styles.caption} numberOfLines={2}>
+              {item.title}
+            </Text>
+            {hashtags ? <Text style={styles.hashtags}>{hashtags}</Text> : null}
+          </View>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.tapLayer} activeOpacity={1} onPress={tap} />
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => setLiked((prev) => !prev)}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityLabel={liked ? "Unlike" : "Like"}
+          accessibilityState={{ selected: liked }}
+        >
+          <Icon name={liked ? "heart" : "heart-outline"} size={32} color={liked ? colors.primary : colors.white} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={onComment}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityLabel="Comment"
+        >
+          <Icon name="chatbubble-outline" size={30} color={colors.white} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={onShare}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityLabel="Share"
+        >
+          <Icon name="arrow-redo-outline" size={30} color={colors.white} />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        style={styles.muteBtn}
+        onPress={toggleMute}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityLabel={muted ? "Unmute" : "Mute"}
+      >
+        <Icon name={muted ? "volume-mute" : "volume-high"} size={24} color={colors.white} />
+      </TouchableOpacity>
 
       {indicator && (
         <View style={styles.indicatorWrap} pointerEvents="none">
-          <Icon name={indicator} size={56} color={colors.white} />
+          <Icon name={indicator} size={60} color={colors.white} />
         </View>
       )}
     </View>
@@ -335,7 +430,7 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
 
   const pauseAll = useCallback(() => {
     playersRef.current.forEach((ref) => {
-      ref?.postMessage(JSON.stringify({ play: false, mute: true }));
+      ref?.postMessage(JSON.stringify({ play: false }));
     });
   }, []);
 
@@ -343,7 +438,7 @@ export default function ReelsScreen({ refreshNonce = 0 }: { refreshNonce?: numbe
     const item = itemsRef.current[activeIndexRef.current];
     if (!item) return;
     const ref = playersRef.current.get(item.videoId);
-    ref?.postMessage(JSON.stringify({ play: true, mute: true }));
+    ref?.postMessage(JSON.stringify({ play: true }));
   }, []);
 
   useFocusEffect(
@@ -475,7 +570,7 @@ const createStyles = (colors: Colors) =>
       backgroundColor: "#111318",
       alignItems: "center",
       justifyContent: "center",
-      gap: 12,
+      gap: 14,
     },
     fallbackBtn: {
       flexDirection: "row",
@@ -486,26 +581,11 @@ const createStyles = (colors: Colors) =>
       paddingVertical: 10,
       borderRadius: 999,
     },
-    fallbackBtnOutline: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 7,
-      borderWidth: 1,
-      borderColor: "#3A4150",
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 999,
-    },
     fallbackText: {
       color: "#C7CFDA",
       fontSize: 14,
       textAlign: "center",
       paddingHorizontal: 32,
-    },
-    fallbackRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
     },
     fallbackBtnText: {
       color: colors.white,
@@ -522,40 +602,90 @@ const createStyles = (colors: Colors) =>
       justifyContent: "center",
       backgroundColor: "#0B0D10",
     },
-    info: {
-      position: "absolute",
-      left: 14,
-      right: 76,
-      bottom: 24,
-      gap: 5,
-    },
-    title: {
-      color: colors.white,
-      fontSize: 15,
-      fontWeight: "700",
-      lineHeight: 20,
-      textShadowColor: "rgba(0,0,0,0.6)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 4,
-    },
-    channelRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    channel: {
-      color: "#C7CFDA",
-      fontSize: 13,
-      textShadowColor: "rgba(0,0,0,0.6)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 4,
-    },
     tapLayer: {
       position: "absolute",
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
+    },
+    info: {
+      position: "absolute",
+      left: 14,
+      right: 64,
+      bottom: 18,
+    },
+    userRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 10,
+    },
+    avatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarText: {
+      color: colors.white,
+      fontSize: 16,
+      fontWeight: "800",
+    },
+    userText: {
+      flex: 1,
+    },
+    username: {
+      color: colors.white,
+      fontSize: 15,
+      fontWeight: "800",
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
+      marginBottom: 2,
+    },
+    caption: {
+      color: colors.white,
+      fontSize: 14,
+      lineHeight: 19,
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
+    },
+    hashtags: {
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 3,
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
+    },
+    actions: {
+      position: "absolute",
+      right: 12,
+      bottom: 64,
+      alignItems: "center",
+      gap: 22,
+    },
+    actionBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.28)",
+    },
+    muteBtn: {
+      position: "absolute",
+      right: 18,
+      bottom: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.28)",
     },
     indicatorWrap: {
       position: "absolute",
