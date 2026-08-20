@@ -341,6 +341,7 @@ function ShortsItem({
 
 export default function ReelsScreen({ active, restartSignal }: { active: boolean; restartSignal: number }) {
   const { token } = useAuth();
+  const navigation = useNavigation<any>();
   const [items, setItems] = useState<ReelFeedItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -467,6 +468,17 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
   useEffect(() => {
     if (active && restartSignal > 0) load(true);
   }, [active, restartSignal, load]);
+
+  useEffect(() => {
+    const onFocus = navigation.addListener("focus", () => {
+      if (active) resumeActive();
+    });
+    const onBlur = navigation.addListener("blur", () => pauseAll());
+    return () => {
+      onFocus();
+      onBlur();
+    };
+  }, [navigation, active, resumeActive, pauseAll]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
