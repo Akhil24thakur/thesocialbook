@@ -323,6 +323,8 @@ function HomeTabs() {
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (menuOpen || themeOpen || createOpen) return false;
+      if (!navigation.isFocused()) return false;
       if (pageRef.current !== 0) {
         pagerRef.current?.setPage(0);
         return true;
@@ -330,7 +332,7 @@ function HomeTabs() {
       return false;
     });
     return () => sub.remove();
-  }, []);
+  }, [navigation, menuOpen, themeOpen, createOpen]);
 
   const onTabPress = useCallback(
     (index: number) => {
