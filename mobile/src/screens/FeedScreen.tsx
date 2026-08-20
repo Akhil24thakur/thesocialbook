@@ -250,13 +250,15 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabsRow}>
-        <FeedTabs
-          active={tab}
-          onChange={changeTab}
-          onRefreshReels={() => setRefreshNonce((n) => n + 1)}
-        />
-      </View>
+      {tab !== "reels" && (
+        <View style={styles.tabsRow}>
+          <FeedTabs
+            active={tab}
+            onChange={changeTab}
+            onRefreshReels={() => setRefreshNonce((n) => n + 1)}
+          />
+        </View>
+      )}
       {tab === "following" ? (
         <FlatList
           data={displayPosts}

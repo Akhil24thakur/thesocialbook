@@ -4,7 +4,6 @@ import {
   AppState,
   FlatList,
   Image,
-  Linking,
   Share,
   StyleSheet,
   Text,
@@ -71,6 +70,8 @@ function playerHtml(videoId: string): string {
         rel: 0,
         modestbranding: 1,
         disablekb: 1,
+        iv_load_policy: 3,
+        showinfo: 0,
         loop: 1,
         playlist: "${videoId}"
       },
@@ -136,11 +137,6 @@ function ShortsItem({
   const [indicator, setIndicator] = useState<"play" | "pause" | null>(null);
 
   const html = useMemo(() => playerHtml(item.videoId), [item.videoId]);
-
-  const hashtags = useMemo(() => {
-    const m = item.title.match(/#\w+/g);
-    return m ? m.slice(0, 3).join(" ") : "";
-  }, [item.title]);
 
   const send = useCallback((play: boolean, mute: boolean) => {
     webRef.current?.postMessage(JSON.stringify({ play, mute }));
@@ -219,10 +215,6 @@ function ShortsItem({
     });
   }, [send]);
 
-  const openOnYouTube = () => {
-    Linking.openURL(`https://youtube.com/shorts/${item.videoId}`).catch(() => {});
-  };
-
   const onComment = () => {
     navigation.navigate("CreatePost", {
       prefill: `Watch this reel: https://youtube.com/shorts/${item.videoId}`,
@@ -282,20 +274,12 @@ function ShortsItem({
       <TouchableOpacity style={styles.tapLayer} activeOpacity={1} onPress={tap} />
 
       <View style={styles.info}>
-        <View style={styles.userRow}>
-          <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
-            <Text style={styles.avatarText}>{(item.channelTitle || "?").charAt(0).toUpperCase()}</Text>
-          </LinearGradient>
-          <View style={styles.userText}>
-            <Text style={styles.username} numberOfLines={1}>
-              @{item.channelTitle}
-            </Text>
-            <Text style={styles.caption} numberOfLines={2}>
-              {item.title}
-            </Text>
-            {hashtags ? <Text style={styles.hashtags}>{hashtags}</Text> : null}
-          </View>
-        </View>
+        <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
+          <Text style={styles.avatarText}>{(item.channelTitle || "?").charAt(0).toUpperCase()}</Text>
+        </LinearGradient>
+        <Text style={styles.username} numberOfLines={1}>
+          @{item.channelTitle}
+        </Text>
       </View>
 
       <View style={styles.actions}>
@@ -612,12 +596,10 @@ const createStyles = (colors: Colors) =>
     info: {
       position: "absolute",
       left: 14,
-      right: 64,
-      bottom: 18,
-    },
-    userRow: {
+      right: 74,
+      bottom: 20,
       flexDirection: "row",
-      alignItems: "flex-end",
+      alignItems: "center",
       gap: 10,
     },
     avatar: {
@@ -632,9 +614,6 @@ const createStyles = (colors: Colors) =>
       fontSize: 16,
       fontWeight: "800",
     },
-    userText: {
-      flex: 1,
-    },
     username: {
       color: colors.white,
       fontSize: 15,
@@ -642,29 +621,11 @@ const createStyles = (colors: Colors) =>
       textShadowColor: "rgba(0,0,0,0.6)",
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 4,
-      marginBottom: 2,
-    },
-    caption: {
-      color: colors.white,
-      fontSize: 14,
-      lineHeight: 19,
-      textShadowColor: "rgba(0,0,0,0.6)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 4,
-    },
-    hashtags: {
-      color: colors.primary,
-      fontSize: 13,
-      fontWeight: "600",
-      marginTop: 3,
-      textShadowColor: "rgba(0,0,0,0.6)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 4,
     },
     actions: {
       position: "absolute",
       right: 12,
-      bottom: 64,
+      bottom: 200,
       alignItems: "center",
       gap: 22,
     },
