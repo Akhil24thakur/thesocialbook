@@ -36,7 +36,6 @@ import StoriesScreen from "./src/screens/StoriesScreen";
 import { brandGradient, darkColors, lightColors, type Colors } from "./src/theme";
 import { ThemeProvider, useTheme } from "./src/theme-context";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
-import { getPushStatus } from "./src/pushStatus";
 import { loadOrCreateKeyPair } from "./src/crypto";
 import { connectWs, onWsEvent } from "./src/ws";
 import { setupCrashLog } from "./src/crashLog";
@@ -46,7 +45,7 @@ setupCrashLog();
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef<any>();
 
-const LOGO_HEADER = require("./assets/brand/logo-header.png");
+const LOGO_MARK = require("./assets/brand/logo-mark.png");
 
 const lightNavTheme = {
   ...DefaultTheme,
@@ -392,14 +391,8 @@ function HomeTabs() {
   };
 
   const MENU_ITEMS: { label: string; icon: string; action: () => void; danger?: boolean }[] = [
-    { label: "My Profile", icon: "person-outline", action: () => goTo(4) },
-    { label: "Stories", icon: "albums-outline", action: () => navigation.navigate("Stories") },
-    { label: "Search", icon: "search", action: () => goTo(3) },
-    { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTo(2) },
-    { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
-    { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
-    { label: "Change Password", icon: "key-outline", action: () => navigation.navigate("ChangePassword") },
     { label: "Theme", icon: "contrast-outline", action: () => setThemeOpen(true) },
+    { label: "Change Password", icon: "key-outline", action: () => navigation.navigate("ChangePassword") },
     { label: "Logout", icon: "log-out-outline", danger: true, action: confirmLogout },
   ];
 
@@ -479,9 +472,8 @@ function HomeTabs() {
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <View style={styles.menuSheet}>
-            <Image source={LOGO_HEADER} style={styles.menuLogo} resizeMode="contain" />
+            <Image source={LOGO_MARK} style={styles.menuLogo} resizeMode="contain" />
             <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "2.0.25"}</Text>
-            <Text style={styles.menuPush}>Push: {getPushStatus()}</Text>
             {MENU_ITEMS.map((m) => (
               <TouchableOpacity
                 key={m.label}
