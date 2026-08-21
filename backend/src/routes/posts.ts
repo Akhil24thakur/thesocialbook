@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { notify, notifyAll } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
+import { deleteObject, isR2Url } from "../lib/storage.js";
 
 const router = Router();
 
@@ -143,6 +144,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
   if (!post) return res.status(404).json({ error: "Post not found" });
   if (post.authorId !== (req as AuthedRequest).userId) {
     return res.status(403).json({ error: "You can only delete your own posts" });
+  }
+  // Delete R2 object if this post's image is an R2 URL — never attempt Supabase delete via R2
+  if (post.imageUrl && isR2Url(post.imageUrl)) {
+    deleteObject(post.imageUrl).catch(() => {});
   }
   await prisma.post.delete({ where: { id: postId } });
   return res.json({ ok: true });

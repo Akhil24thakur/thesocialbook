@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
+import { deleteObject, isR2Url } from "../lib/storage.js";
 
 const router = Router();
 
@@ -23,7 +24,18 @@ const storySelect = {
 
 router.get("/", requireAuth, async (req, res) => {
   const cutoff = new Date(Date.now() - STORY_TTL_MS);
+  // Fetch expired stories first to capture R2 keys before DB delete
+  const expired = await prisma.story.findMany({
+    where: { createdAt: { lt: cutoff } },
+    select: { imageUrl: true },
+  });
   await prisma.story.deleteMany({ where: { createdAt: { lt: cutoff } } });
+  // Delete corresponding R2 objects in background — only R2 URLs, never Supabase
+  if (expired.length) {
+    Promise.allSettled(
+      expired.map((s) => (s.imageUrl && isR2Url(s.imageUrl) ? deleteObject(s.imageUrl) : Promise.resolve()))
+    ).catch(() => {});
+  }
   const stories = await prisma.story.findMany({
     select: storySelect,
     where: { createdAt: { gte: cutoff } },
@@ -77,6 +89,9 @@ router.delete("/:id", requireAuth, async (req, res) => {
   if (!story) return res.status(404).json({ error: "Story not found" });
   if (story.authorId !== (req as AuthedRequest).userId) {
     return res.status(403).json({ error: "You can only delete your own stories" });
+  }
+  if (story.imageUrl && isR2Url(story.imageUrl)) {
+    deleteObject(story.imageUrl).catch(() => {});
   }
   await prisma.story.delete({ where: { id: storyId } });
   return res.json({ ok: true });
