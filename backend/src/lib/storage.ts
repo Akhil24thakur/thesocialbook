@@ -46,7 +46,7 @@ function supabaseClient() {
 }
 
 export function isSupabaseProvider(): boolean {
-  return (process.env.STORAGE_PROVIDER ?? "r2").toLowerCase() === "supabase";
+  return (process.env.STORAGE_PROVIDER ?? "supabase").toLowerCase() === "supabase";
 }
 
 export function isR2Url(url: string): boolean {

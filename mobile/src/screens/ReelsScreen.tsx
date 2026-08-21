@@ -44,7 +44,7 @@ function playerHtml(videoId: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
-  #player { width: 100%; height: 100%; }
+  #player { width: 100%; height: 100%; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -72,10 +72,13 @@ function playerHtml(videoId: string): string {
         rel: 0,
         modestbranding: 1,
         disablekb: 1,
+        fs: 0,
         iv_load_policy: 3,
         showinfo: 0,
-        loop: 1,
-        playlist: "${videoId}"
+        cc_load_policy: 0,
+        origin: "https://thesocialbook.app",
+        widget_referrer: "https://thesocialbook.app",
+        loop: 0
       },
       events: {
         onReady: function () {
@@ -83,6 +86,7 @@ function playerHtml(videoId: string): string {
           apply();
         },
         onStateChange: function (e) {
+          if (e.data === 0) { try { player.seekTo(0, true); player.playVideo(); } catch (err) {} }
           if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: "state", s: e.data }));
         },
         onError: function (e) {
@@ -252,6 +256,7 @@ function ShortsItem({
           mediaPlaybackRequiresUserAction={false}
           onMessage={onMessage}
           onError={() => setFailed(true)}
+          pointerEvents="none"
         />
       ) : (
         <View style={styles.fallbackGradient}>
@@ -315,6 +320,14 @@ function ShortsItem({
             accessibilityLabel="Share"
           >
             <Icon name="arrow-redo-outline" size={30} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate("CreatePost", { prefill: `Report reel: https://youtube.com/shorts/${item.videoId}` })}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityLabel="More"
+          >
+            <Icon name="ellipsis-horizontal" size={28} color={colors.white} />
           </TouchableOpacity>
         </View>
       )}
