@@ -245,7 +245,7 @@ async function checkForUpdates(
     // Silent - update check is best effort
   }
 }
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, onMenu }: { title: string; onMenu?: () => void }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -256,10 +256,26 @@ function SectionHeader({ title }: { title: string }) {
         backgroundColor: colors.card,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.border,
+        flexDirection: "row",
         alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 8,
       }}
     >
+      {onMenu ? (
+        <TouchableOpacity
+          onPress={onMenu}
+          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Menu"
+        >
+          <Icon name="menu" size={22} color={colors.text} />
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 40 }} />
+      )}
       <Text style={{ fontSize: 17, fontWeight: "700", color: colors.text }}>{title}</Text>
+      <View style={{ width: 40 }} />
     </View>
   );
 }
@@ -376,9 +392,9 @@ function HomeTabs() {
   };
 
   const MENU_ITEMS: { label: string; icon: string; action: () => void; danger?: boolean }[] = [
-    { label: "My Profile", icon: "person-outline", action: () => goTo(3) },
+    { label: "My Profile", icon: "person-outline", action: () => goTo(4) },
     { label: "Stories", icon: "albums-outline", action: () => navigation.navigate("Stories") },
-    { label: "Search", icon: "search", action: () => navigation.navigate("Search") },
+    { label: "Search", icon: "search", action: () => goTo(3) },
     { label: "Messages", icon: "chatbubble-ellipses-outline", action: () => goTo(2) },
     { label: "Notifications", icon: "notifications-outline", action: () => navigation.navigate("Notifications") },
     { label: "Create Post", icon: "create-outline", action: () => navigation.navigate("CreatePost", {}) },
@@ -391,7 +407,8 @@ function HomeTabs() {
     { index: 0, label: "Home", icon: "home", iconOutline: "home-outline", badge: 0 },
     { index: 1, label: "Reels", icon: "play-circle", iconOutline: "play-circle-outline", badge: 0 },
     { index: 2, label: "Messages", icon: "chatbubble-ellipses", iconOutline: "chatbubble-ellipses-outline", badge: chatUnread },
-    { index: 3, label: "Profile", icon: "person", iconOutline: "person-outline", badge: 0 },
+    { index: 3, label: "Search", icon: "search", iconOutline: "search-outline", badge: 0 },
+    { index: 4, label: "Profile", icon: "person", iconOutline: "person-outline", badge: 0 },
   ];
 
   const renderTab = (t: (typeof tabItems)[number]) => {
@@ -429,9 +446,8 @@ function HomeTabs() {
         >
           <View style={styles.page} key="feed" collapsable={false}>
             <TopAppBar
-              onMenu={() => setMenuOpen(true)}
               onNotify={() => navigation.navigate("Notifications")}
-              onNewPost={() => navigation.navigate("CreatePost", {})}
+              onNewPost={() => setCreateOpen(true)}
               unreadCount={unreadCount}
             />
             <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
@@ -443,32 +459,20 @@ function HomeTabs() {
             <SectionHeader title="Messages" />
             <MessagesScreen active={page === 2} />
           </View>
+          <View style={styles.page} key="search" collapsable={false}>
+            <SearchScreen />
+          </View>
           <View style={styles.page} key="profile" collapsable={false}>
-            <SectionHeader title="My Profile" />
-            <ProfileScreen active={page === 3} />
+            <SectionHeader title="My Profile" onMenu={() => setMenuOpen(true)} />
+            <ProfileScreen active={page === 4} />
           </View>
         </PagerView>
         <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
           {renderTab(tabItems[0])}
           {renderTab(tabItems[1])}
-          <TouchableOpacity
-            style={styles.createSlot}
-            onPress={() => setCreateOpen(true)}
-            accessibilityLabel="Create"
-          >
-            <View style={styles.createShadow}>
-              <LinearGradient
-                colors={brandGradient(colors)}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.plusButton}
-              >
-                <Icon name="add" size={32} color={colors.white} />
-              </LinearGradient>
-            </View>
-          </TouchableOpacity>
           {renderTab(tabItems[2])}
           {renderTab(tabItems[3])}
+          {renderTab(tabItems[4])}
         </View>
       </View>
       <CreateMenu visible={createOpen} onClose={() => setCreateOpen(false)} onSelect={openCreate} />

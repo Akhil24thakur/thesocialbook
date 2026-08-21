@@ -1,19 +1,18 @@
 import React, { useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import Icon from "../Icon";
-import { type Colors } from "../../theme";
+import { brandGradient, type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
 
 const LOGO_HEADER = require("../../../assets/brand/logo-header.png");
 
 export default function TopAppBar({
-  onMenu,
   onNotify,
   onNewPost,
   unreadCount = 0,
 }: {
-  onMenu: () => void;
   onNotify: () => void;
   onNewPost: () => void;
   unreadCount?: number;
@@ -22,26 +21,25 @@ export default function TopAppBar({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   return (
-<View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
+ <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
       <TouchableOpacity
-        style={styles.iconBtn}
-        onPress={onMenu}
-        accessibilityLabel="Menu"
+        onPress={onNewPost}
+        accessibilityLabel="Create post"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        style={styles.createWrap}
       >
-        <Icon name="menu" size={22} color={colors.text} />
+        <LinearGradient
+          colors={brandGradient(colors)}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.createBtn}
+        >
+          <Icon name="add" size={20} color={colors.white} />
+        </LinearGradient>
       </TouchableOpacity>
       <View style={styles.brand}>
         <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
       </View>
-      <TouchableOpacity
-        style={styles.iconBtn}
-        onPress={onNewPost}
-        accessibilityLabel="Create post"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Icon name="create" size={22} color={colors.primary} />
-      </TouchableOpacity>
       <TouchableOpacity
         style={styles.iconBtn}
         onPress={onNotify}
@@ -72,7 +70,20 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-brand: {
+  createWrap: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+ brand: {
     flex: 1,
     alignItems: "center",
   },
