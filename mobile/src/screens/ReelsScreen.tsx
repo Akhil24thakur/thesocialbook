@@ -119,6 +119,8 @@ function ShortsItem({
   activeIndex,
   height,
   sessionKey,
+  muted,
+  onToggleMute,
   registerPlayer,
 }: {
   item: ReelFeedItem;
@@ -126,19 +128,18 @@ function ShortsItem({
   activeIndex: number;
   height: number;
   sessionKey: number;
+  muted: boolean;
+  onToggleMute: () => void;
   registerPlayer: (videoId: string, ref: WebView | null) => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const navigation = useNavigation<any>();
   const webRef = useRef<WebView | null>(null);
   const indTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playRef = useRef(false);
   const isActive = index === activeIndex;
   const inWindow = index >= activeIndex - BACK_PRELOAD && index <= activeIndex + FORWARD_PRELOAD;
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
-  const [liked, setLiked] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [failedCode, setFailedCode] = useState<number | null>(null);
@@ -158,8 +159,6 @@ function ShortsItem({
   useEffect(() => {
     playRef.current = false;
     setPlaying(false);
-    setMuted(true);
-    setLiked(false);
     setIndicator(null);
     if (indTimerRef.current) clearTimeout(indTimerRef.current);
   }, [item.videoId, sessionKey]);
@@ -217,25 +216,9 @@ function ShortsItem({
   }, [isActive, send, muted]);
 
   const toggleMute = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      send(playRef.current, next);
-      return next;
-    });
-  }, [send]);
-
-  const onComment = () => {
-    navigation.navigate("CreatePost", {
-      prefill: `Watch this reel: https://youtube.com/shorts/${item.videoId}`,
-    });
-  };
-
-  const onShare = () => {
-    Share.share({
-      title: `${item.title} · SocialBook`,
-      message: `${item.title}\nhttps://youtube.com/shorts/${item.videoId} · SocialBook`,
-    }).catch(() => {});
-  };
+    onToggleMute();
+    // send will happen via effect when muted prop changes
+  }, [onToggleMute]);
 
   return (
     <View style={[styles.item, { height }]}>
@@ -284,55 +267,6 @@ function ShortsItem({
       <TouchableOpacity style={styles.tapLayer} activeOpacity={1} onPress={tap} />
 
       {isActive && (
-        <View style={styles.info}>
-          <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
-            <Text style={styles.avatarText}>{(item.channelTitle || "?").charAt(0).toUpperCase()}</Text>
-          </LinearGradient>
-          <Text style={styles.username} numberOfLines={1}>
-            @{item.channelTitle}
-          </Text>
-        </View>
-      )}
-
-      {isActive && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => setLiked((prev) => !prev)}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            accessibilityLabel={liked ? "Unlike" : "Like"}
-            accessibilityState={{ selected: liked }}
-          >
-            <Icon name={liked ? "heart" : "heart-outline"} size={32} color={liked ? colors.primary : colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={onComment}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            accessibilityLabel="Comment"
-          >
-            <Icon name="chatbubble-outline" size={30} color={colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={onShare}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            accessibilityLabel="Share"
-          >
-            <Icon name="arrow-redo-outline" size={30} color={colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate("CreatePost", { prefill: `Report reel: https://youtube.com/shorts/${item.videoId}` })}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            accessibilityLabel="More"
-          >
-            <Icon name="ellipsis-horizontal" size={28} color={colors.white} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {isActive && (
         <TouchableOpacity
           style={styles.muteBtn}
           onPress={toggleMute}
@@ -369,6 +303,8 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
   const activeIndexRef = useRef(0);
   const [height, setHeight] = useState(0);
   const [sessionKey, setSessionKey] = useState(0);
+  const [muted, setMuted] = useState(true);
+  const toggleMute = useCallback(() => setMuted((prev) => !prev), []);
   const playersRef = useRef<Map<string, WebView | null>>(new Map());
   const itemsRef = useRef<ReelFeedItem[]>([]);
   const { colors } = useTheme();
@@ -462,8 +398,8 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
     const item = itemsRef.current[activeIndexRef.current];
     if (!item) return;
     const ref = playersRef.current.get(item.videoId);
-    ref?.postMessage(JSON.stringify({ play: true }));
-  }, []);
+    ref?.postMessage(JSON.stringify({ play: true, mute: muted }));
+  }, [muted]);
 
   const firstActivationRef = useRef(true);
 
@@ -567,6 +503,8 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
               activeIndex={activeIndex}
               height={height}
               sessionKey={sessionKey}
+              muted={muted}
+              onToggleMute={toggleMute}
               registerPlayer={registerPlayer}
             />
           )}
