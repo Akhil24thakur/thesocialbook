@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -213,6 +214,11 @@ const GroupPage = memo(function GroupPage({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const story = group.stories[Math.min(storyIdx, group.stories.length - 1)];
+  const nextStory = group.stories[storyIdx + 1];
+
+  useEffect(() => {
+    if (nextStory?.imageUrl) Image.prefetch(nextStory.imageUrl);
+  }, [nextStory]);
   const name = group.name.split(" · ")[0];
   const dotRef = useRef<View>(null);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
@@ -220,6 +226,7 @@ const GroupPage = memo(function GroupPage({
   const popFade = useRef(new Animated.Value(0)).current;
   const player = useAudioPlayer(null);
   const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [imgLoading, setImgLoading] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -293,7 +300,14 @@ const GroupPage = memo(function GroupPage({
   return (
     <View style={[styles.page, { width, height }]}>
       {story?.imageUrl ? (
-        <Image source={{ uri: story.imageUrl }} style={styles.image} resizeMode="contain" />
+        <>
+          <Image source={{ uri: story.imageUrl }} style={styles.image} resizeMode="contain" onLoadStart={() => setImgLoading(true)} onLoadEnd={() => setImgLoading(false)} />
+          {imgLoading && (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="large" color={colors.white} />
+            </View>
+          )}
+        </>
       ) : (
         <LinearGradient
           colors={storyGradient(colors)}
@@ -448,6 +462,16 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   image: {
     width,
     height,
+  },
+  loadingWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0A0E16",
   },
   textBg: {
     flex: 1,
