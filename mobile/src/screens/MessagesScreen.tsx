@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
@@ -68,18 +68,20 @@ export default function MessagesScreen({ active }: { active: boolean }) {
     [token]
   );
 
-  useEffect(() => {
-    if (!active) return;
-    load();
-    const interval = setInterval(() => load(), 30000);
-    const msgSub = onWsEvent("message", null, () => load());
-    const readSub = onWsEvent("read", null, () => load());
-    return () => {
-      clearInterval(interval);
-      msgSub();
-      readSub();
-    };
-  }, [active, load]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!active) return;
+      load();
+      const interval = setInterval(() => load(), 30000);
+      const msgSub = onWsEvent("message", null, () => load());
+      const readSub = onWsEvent("read", null, () => load());
+      return () => {
+        clearInterval(interval);
+        msgSub();
+        readSub();
+      };
+    }, [active, load])
+  );
 
   const renderItem = ({ item }: { item: Conversation }) => {
     const other = item.other;
