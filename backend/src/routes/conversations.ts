@@ -96,11 +96,10 @@ router.get("/", requireAuth, async (req, res) => {
 
 router.get("/unread-count", requireAuth, async (req, res) => {
   const meId = (req as AuthedRequest).userId;
-  const agg = await prisma.conversationMember.aggregate({
-    where: { userId: meId },
-    _sum: { unreadCount: true },
+  const count = await prisma.conversationMember.count({
+    where: { userId: meId, unreadCount: { gt: 0 } },
   });
-  return res.json({ unreadCount: agg._sum.unreadCount ?? 0 });
+  return res.json({ unreadCount: count });
 });
 
 router.get("/:id", requireAuth, async (req, res) => {

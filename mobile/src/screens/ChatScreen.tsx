@@ -77,6 +77,7 @@ export default function ChatScreen({ route, navigation }: any) {
   );
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
+  const textRef = useRef("");
   const [sending, setSending] = useState(false);
   const [revealedId, setRevealedId] = useState<number | null>(null);
   const [kbPad, setKbPad] = useState(0);
@@ -152,7 +153,13 @@ export default function ChatScreen({ route, navigation }: any) {
       if (!token) return;
       try {
         const res = await api.conversationMessages(token, conversationId);
-        setMessages(res.messages.map((m) => ({ ...m, body: decryptMessageBody(m.body) })));
+        const serverMessages = res.messages.map((m) => ({ ...m, body: decryptMessageBody(m.body) }));
+        setMessages((prev) => {
+          const optimistics = prev.filter((m) => m.id > 1000000000000);
+          const serverIds = new Set(serverMessages.map((m) => m.id));
+          const unconfirmed = optimistics.filter((m) => !serverIds.has(m.id));
+          return [...serverMessages, ...unconfirmed];
+        });
       } catch {
         // silent fail
       } finally {
@@ -192,7 +199,7 @@ export default function ChatScreen({ route, navigation }: any) {
   }, [other?.name, navigation]);
 
   const send = useCallback(async () => {
-    const body = text.trim();
+    const body = textRef.current.trim();
     if (!body || !token || sending) return;
     setSending(true);
     const kp = myKeysRef.current;
@@ -206,6 +213,7 @@ export default function ChatScreen({ route, navigation }: any) {
     };
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+    textRef.current = "";
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
     try {
       const res = await api.sendMessage(token, conversationId, payload);
@@ -213,10 +221,11 @@ export default function ChatScreen({ route, navigation }: any) {
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setText(body);
+      textRef.current = body;
     } finally {
       setSending(false);
     }
-  }, [text, token, sending, conversationId, other?.publicKey]);
+  }, [token, sending, conversationId, other?.publicKey]);
 
   const renderItem = ({ item }: { item: ChatRow }) => {
     if (item.kind === "header") {
@@ -331,7 +340,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <TextInput
             style={styles.input}
             value={text}
-            onChangeText={setText}
+            onChangeText={(v) => { setText(v); textRef.current = v; }}
             placeholder="Message…"
             placeholderTextColor={colors.textSecondary}
             multiline
