@@ -43,12 +43,14 @@ function normalize(raw: Array<{ title?: string; artist?: string; src?: string; c
       id = (src ? slugify(src) : slugify(r.title)) + "-" + Math.abs(hashCode(src || r.title)).toString(36).slice(0, 6);
     }
     used.add(id);
+    const rawAudio = r.audioUrl ?? (r.src ? toAbsUrl(r.src) : "");
+    const rawCover = r.coverUrl ?? (r.cover ? toAbsUrl(r.cover) : "");
     out.push({
       id,
       title: r.title,
       artist: r.artist || "Akhil",
-      audioUrl: r.audioUrl ?? (r.src ? toAbsUrl(r.src) : ""),
-      coverUrl: r.coverUrl ?? (r.cover ? toAbsUrl(r.cover) : ""),
+      audioUrl: rawAudio.startsWith("http") ? rawAudio : rawAudio ? toAbsUrl(rawAudio) : "",
+      coverUrl: rawCover.startsWith("http") ? rawCover : rawCover ? toAbsUrl(rawCover) : "",
     });
   }
   return out;

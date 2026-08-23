@@ -50,8 +50,8 @@ const createStorySchema = z.object({
   musicSongId: z.string().max(200).optional(),
   musicSongTitle: z.string().max(300).optional(),
   musicSongArtist: z.string().max(300).optional(),
-  musicAudioUrl: z.string().url().max(1000).optional(),
-  musicCoverUrl: z.string().url().max(1000).optional(),
+  musicAudioUrl: z.string().max(1000).optional(),
+  musicCoverUrl: z.string().max(1000).optional(),
   musicStartTime: z.number().min(0).max(3600).optional(),
   musicDuration: z.number().min(1).max(120).optional(),
 });
