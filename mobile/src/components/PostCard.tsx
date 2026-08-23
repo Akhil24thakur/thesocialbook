@@ -46,6 +46,27 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [thanksOpen, setThanksOpen] = useState(false);
+  const [followed, setFollowed] = useState(post.author.followedByMe ?? false);
+  const [followBusy, setFollowBusy] = useState(false);
+
+  const isOther = user?.id !== post.author.id;
+
+  const toggleFollow = async () => {
+    if (!token || followBusy) return;
+    setFollowBusy(true);
+    try {
+      if (followed) {
+        await api.unfollow(token, post.author.id);
+      } else {
+        await api.follow(token, post.author.id);
+      }
+      setFollowed((prev) => !prev);
+    } catch {
+      // silent fail
+    } finally {
+      setFollowBusy(false);
+    }
+  };
 
   const onImageLoad = (e: any) => {
     const w = e.nativeEvent?.width ?? e.nativeEvent?.source?.width;
@@ -114,6 +135,18 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
             </View>
           </View>
         </TouchableOpacity>
+        {isOther && (
+          <TouchableOpacity
+            style={[styles.followBtn, followed && styles.followingBtn]}
+            onPress={toggleFollow}
+            disabled={followBusy}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.followBtnText, followed && styles.followingBtnText]}>
+              {followed ? "Following" : "Follow"}
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.menuBtn}
           onPress={postMenu}
@@ -300,6 +333,26 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     height: 32,
     alignItems: "center",
     justifyContent: "center",
+  },
+  followBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    marginRight: 4,
+  },
+  followingBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  followBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  followingBtnText: {
+    color: colors.textSecondary,
   },
   content: {
     fontSize: 16,

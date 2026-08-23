@@ -24,6 +24,7 @@ export interface PostAuthor {
   isVerified?: boolean;
   lastSeenAt?: string | null;
   publicKey?: string | null;
+  followedByMe?: boolean;
 }
 
 export interface Post {

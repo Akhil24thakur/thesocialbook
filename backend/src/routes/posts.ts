@@ -71,21 +71,26 @@ router.get("/feed", requireAuth, async (req, res) => {
   if (ranked.length) {
     const authorIds = [...new Set(ranked.map((p) => p.authorId))];
     const postIds = ranked.map((p) => p.id);
-    const [authors, likes] = await Promise.all([
+    const [authors, likes, follows] = await Promise.all([
       prisma.user.findMany({
         where: { id: { in: authorIds } },
         select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true },
       }),
       prisma.like.findMany({ where: { postId: { in: postIds }, userId } }),
+      prisma.follow.findMany({
+        where: { followerId: userId, followingId: { in: authorIds } },
+        select: { followingId: true },
+      }),
     ]);
     const authorMap = new Map(authors.map((a) => [a.id, a]));
     const likedSet = new Set(likes.map((l) => l.postId));
+    const followedSet = new Set(follows.map((f) => f.followingId));
     posts = ranked.map((p) => ({
       id: p.id,
       content: p.content,
       imageUrl: p.imageUrl,
       createdAt: p.createdAt,
-      author: authorMap.get(p.authorId),
+      author: { ...authorMap.get(p.authorId), followedByMe: followedSet.has(p.authorId) },
       likeCount: p.likeCount,
       commentCount: p.commentCount,
       likedByMe: likedSet.has(p.id),
