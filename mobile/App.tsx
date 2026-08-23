@@ -180,6 +180,14 @@ interface UpdateInfo {
   notes: string;
   apkUrl: string | null;
   apkSize?: number;
+  channel?: "stable" | "beta";
+  migrationDialog?: {
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    isMigration: boolean;
+  };
 }
 
 interface DownloadState {
@@ -205,13 +213,75 @@ async function checkForUpdates(
       if (res.ok) {
         const data = await res.json();
         const upd = data?.update;
-        if (upd && typeof upd.version === "string" && isNewerVersion(upd.version, current)) {
+        const currentChannel = upd?.channel ?? "stable"; // default to stable
+        const isDebugBaseline = current === "3.2.11";
+        const isNewRelease = upd && typeof upd.version === "string" && isNewerVersion(upd.version, current);
+        
+        // Channel gating: users can only update within their channel
+        // Beta users can see beta and stable releases
+        // Stable users only see stable releases (unless forced migration)
+        const isBetaUser = currentChannel === "beta";
+        
+        // Mandatory migration check: v3.2.11 (debug) -> newer release-signed
+        const isReleaseMigration = isDebugBaseline && isNewRelease && upd.channel === "release";
+        
+        // If on debug baseline (v3.2.11) and new version is release-signed, show migration dialog
+        if (isDebugBaseline && isReleaseMigration) {
           setUpdate({
             version: upd.version,
             notes: String(upd.notes ?? ""),
             apkUrl: upd.apkUrl ?? null,
             apkSize: typeof upd.apkSize === "number" ? upd.apkSize : undefined,
+            migrationDialog: {
+              title: "Migration Required",
+              message: "This is a one-time migration from debug-signed to release-signed version.\n\n1. Uninstall \"SocialBook\" from your phone settings.\n2. Restart your phone.\n3. Tap \"Download Latest Version\" below to install v4.0.0.\n4. Launch the new app - future updates will work automatically.",
+              confirmText: "Download Latest Version",
+              cancelText: "Later",
+              isMigration: true,
+            },
           });
+          return;
+        }
+        
+        // Channel gating logic
+        // Beta users can update to any newer version (beta or stable)
+        // Stable users can only update to stable versions (unless migration)
+        const stableUserCanUpdate = !isNewRelease || currentChannel === "stable";
+        const betaUserCanUpdate = isBetaUser || currentChannel === "stable";
+        
+        // Normal update check with channel gating
+        if (upd && typeof upd.version === "string" && isNewerVersion(upd.version, current)) {
+          // Allow update if:
+          // - Beta user, OR
+          // - Stable user and new version is also stable (not beta)
+          if (isBetaUser || currentChannel === "stable") {
+            // If stable user trying to update to beta, show special message
+            if (!isBetaUser && currentChannel === "stable" && upd.channel === "beta") {
+              setUpdate({
+                version: upd.version,
+                notes: String(upd.notes ?? ""),
+                apkUrl: upd.apkUrl ?? null,
+                apkSize: typeof upd.apkSize === "number" ? upd.apkSize : undefined,
+                // Show beta update with warning
+                migrationDialog: {
+                  title: "Beta Update Available",
+                  message: "This is a beta version. Beta builds may contain bugs and are for testing purposes only.\n\nChangelog: " + (upd.notes ?? "New beta features and improvements"),
+                  confirmText: "Update to Beta",
+                  cancelText: "Stay on Stable",
+                  isMigration: false,
+                  isBeta: true,
+                },
+              });
+              return;
+            }
+            setUpdate({
+              version: upd.version,
+              notes: String(upd.notes ?? ""),
+              apkUrl: upd.apkUrl ?? null,
+              apkSize: typeof upd.apkSize === "number" ? upd.apkSize : undefined,
+            });
+            return;
+          }
         }
         return;
       }
@@ -398,10 +468,11 @@ function HomeTabs() {
 
   const tabItems = [
     { index: 0, label: "Home", icon: "home", iconOutline: "home-outline", badge: 0 },
-    { index: 1, label: "Reels", icon: "play-circle", iconOutline: "play-circle-outline", badge: 0 },
-    { index: 2, label: "Messages", icon: "chatbubble-ellipses", iconOutline: "chatbubble-ellipses-outline", badge: chatUnread },
-    { index: 3, label: "Search", icon: "search", iconOutline: "search-outline", badge: 0 },
-    { index: 4, label: "Profile", icon: "person", iconOutline: "person-outline", badge: 0 },
+    { index: 1, label: "Live", icon: "live", iconOutline: "live-outline", badge: 0 },
+    { index: 2, label: "Reels", icon: "play-circle", iconOutline: "play-circle-outline", badge: 0 },
+    { index: 3, label: "Messages", icon: "chatbubble-ellipses", iconOutline: "chatbubble-ellipses-outline", badge: chatUnread },
+    { index: 4, label: "Search", icon: "search", iconOutline: "search-outline", badge: 0 },
+    { index: 5, label: "Profile", icon: "person", iconOutline: "person-outline", badge: 0 },
   ];
 
   const renderTab = (t: (typeof tabItems)[number]) => {
@@ -445,27 +516,29 @@ function HomeTabs() {
             />
             <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
           </View>
+          <LiveStreamScreen active={page === 1} />
           <View style={styles.page} key="reels" collapsable={false}>
-            <ReelsScreen active={page === 1} restartSignal={restartSignal} />
+            <ReelsScreen active={page === 2} restartSignal={restartSignal} />
           </View>
           <View style={styles.page} key="messages" collapsable={false}>
             <SectionHeader title="Messages" />
-            <MessagesScreen active={page === 2} />
+            <MessagesScreen active={page === 3} />
           </View>
           <View style={styles.page} key="search" collapsable={false}>
             <SearchScreen />
           </View>
           <View style={styles.page} key="profile" collapsable={false}>
             <SectionHeader title="My Profile" onMenu={() => setMenuOpen(true)} />
-            <ProfileScreen active={page === 4} />
+            <ProfileScreen active={page === 5} />
           </View>
         </PagerView>
         <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
-          {renderTab(tabItems[0])}
+{renderTab(tabItems[0])}
           {renderTab(tabItems[1])}
           {renderTab(tabItems[2])}
           {renderTab(tabItems[3])}
           {renderTab(tabItems[4])}
+          {renderTab(tabItems[5])}
         </View>
       </View>
       <CreateMenu visible={createOpen} onClose={() => setCreateOpen(false)} onSelect={openCreate} />
@@ -660,6 +733,18 @@ function AppContent() {
     }).catch(() => Linking.openURL(RELEASES_PAGE));
   };
 
+  const handleMigrationDownload = () => {
+    const apkUrl = update?.migrationDialog?.isMigration
+      ? "https://github.com/Akhil24thakur/thesocialbook/releases/download/v3.2.12/app-release.apk"
+      : update?.apkUrl;
+    if (apkUrl) {
+      Linking.openURL(apkUrl).catch(() => {
+        Alert.alert("Error", "Could not open the download link. Please try again.");
+      });
+    }
+    closeUpdate();
+  };
+
   if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
@@ -677,7 +762,49 @@ function AppContent() {
         <StatusBar style={isDark ? "light" : "dark"} />
         <PushTapNavigator />
       </AuthProvider>
-        {update && (
+        {update && update.migrationDialog ? (
+        <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>
+          <View style={styles.updateOverlay}>
+            <View style={styles.updateCard}>
+              <LinearGradient
+                colors={brandGradient(colors)}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.updateHeader}
+              >
+                <View style={styles.updateIconWrap}>
+                  <Icon name="warning-triangle" size={30} color={colors.warning} />
+                </View>
+                <Text style={styles.updateTitle}>{update.migrationDialog.title}</Text>
+                <View style={styles.updatePill}>
+                  <Text style={styles.updatePillText}>v{update.version}</Text>
+                </View>
+              </LinearGradient>
+
+              <View style={styles.updateBody}>
+                <Text style={styles.updateStatus}>{update.migrationDialog.message}</Text>
+              </View>
+
+              <View style={styles.updateRow}>
+                <TouchableOpacity
+                  style={[styles.updateBtn, styles.updateBtnPrimary]}
+                  onPress={handleMigrationDownload}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.updateBtnText}>{update.migrationDialog.confirmText}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.updateBtn, styles.updateBtnGhost]}
+                  onPress={closeUpdate}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.updateBtnGhostText}>{update.migrationDialog.cancelText}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      ) : update && (
         <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>
           <View style={styles.updateOverlay}>
             <View style={styles.updateCard}>
