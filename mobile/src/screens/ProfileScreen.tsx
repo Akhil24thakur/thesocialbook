@@ -401,8 +401,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   stat: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "center",
   },
   statNum: {
