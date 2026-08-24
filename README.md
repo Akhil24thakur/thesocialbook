@@ -5,7 +5,7 @@ A modern social media platform to connect with friends, share moments, and disco
 
 ## Download
 
-- **Android**: [Download APK](https://github.com/Akhil24thakur/thesocialbook/releases/latest/download/app-release.apk)
+- **Android**: [Download APK](https://github.com/Akhil24thakur/thesocialbook/releases/latest/download/SocialBook.apk)
 
 ## Website
 

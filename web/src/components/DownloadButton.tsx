@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 const REPO = "Akhil24thakur/thesocialbook";
-const FALLBACK_URL = `https://github.com/${REPO}/releases/latest/download/app-release.apk`;
+const FALLBACK_URL = `https://github.com/${REPO}/releases/latest/download/SocialBook.apk`;
 const FALLBACK_VERSION = "3.2.12";
 
 export default function DownloadButton() {
@@ -16,7 +16,7 @@ export default function DownloadButton() {
       .then((data) => {
         if (data.tag_name) setVersion(data.tag_name.replace("v", ""));
         const apk = data.assets?.find(
-          (a: { name: string }) => a.name === "app-release.apk"
+          (a: { name: string }) => a.name === "SocialBook.apk"
         );
         if (apk?.browser_download_url) setUrl(apk.browser_download_url);
       })
