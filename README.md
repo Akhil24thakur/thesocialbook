@@ -9,7 +9,7 @@ A modern social media platform to connect with friends, share moments, and disco
 
 ## Website
 
-- **Live**: [https://web-nu-three-39.vercel.app](https://web-nu-three-39.vercel.app)
+- **Live**: [https://akhil24thakur.github.io/thesocialbook](https://akhil24thakur.github.io/thesocialbook)
 
 ## Features
 
@@ -25,5 +25,5 @@ A modern social media platform to connect with friends, share moments, and disco
 
 - **Mobile**: React Native (Expo)
 - **Backend**: Node.js + Prisma + Supabase
-- **Website**: Next.js + Tailwind CSS (Vercel)
+- **Website**: Next.js + Tailwind CSS (GitHub Pages)
 - **Notifications**: Firebase Cloud Messaging
