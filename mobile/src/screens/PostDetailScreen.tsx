@@ -247,6 +247,9 @@ export default function PostDetailScreen({ route, navigation }: any) {
                     >
                       <Text style={styles.commentName}>
                         {r.author.name}
+                        {r.author.isVerified && (
+                          <Icon name="checkmark-circle" size={12} color={colors.primary} />
+                        )}
                         {r.author.id === item.author.id && (
                           <Text style={styles.opTag}> · OP</Text>
                         )}

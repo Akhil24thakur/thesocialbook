@@ -29,7 +29,7 @@ export default function NotificationsScreen({ navigation }: any) {
         api.notifications(token),
         api.notificationsUnreadCount(token),
       ]);
-      setNotifications(notifsRes.notifications);
+      setNotifications(notifsRes.notifications.filter((n: Notification) => n.type !== "message"));
       if (unreadRes.unreadCount > 0) {
         // Opening the screen marks everything as read, but keep the
         // current view highlighted so the user sees what was new.

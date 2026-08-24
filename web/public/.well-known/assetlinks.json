@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.thesocialbook.app",
+    "sha256_cert_fingerprints": [
+      "2A:C1:9A:E4:63:A5:4D:BE:1F:EB:5F:F6:04:B5:DA:A1:CB:B5:56:AD:54:5D:2F:0A:13:3C:A5:5C:8F:A8:4B:50"
+    ]
+  }
+}]

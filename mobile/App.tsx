@@ -661,6 +661,40 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
   );
 }
 
+function DeepLinkHandler() {
+  const { token, user } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const handleDeepLink = (url: string) => {
+      if (!navigationRef.isReady() || !user) return;
+      try {
+        const u = new URL(url);
+        const hosts = ["thesocialbook.app", "www.thesocialbook.app", "web-nu-three-39.vercel.app"];
+        if (!hosts.includes(u.hostname)) return;
+        // Format 1: /p/123  ·  Format 2: /post/?id=123
+        const pathMatch = u.pathname.match(/\/p\/(\d+)/);
+        const postId = pathMatch?.[1] ?? u.searchParams.get("id");
+        if (postId && !isNaN(Number(postId))) {
+          navigationRef.navigate("PostDetail", { postId: Number(postId) });
+        }
+      } catch {}
+    };
+
+    // Handle initial URL
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+
+    // Handle subsequent URLs
+    const sub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
+    return () => sub.remove();
+  }, [user]);
+
+  return null;
+}
+
 function AppContent() {
   const [fontsLoaded] = useFonts({ Caveat_700Bold });
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
@@ -761,6 +795,7 @@ function AppContent() {
         </NavigationContainer>
         <StatusBar style={isDark ? "light" : "dark"} />
         <PushTapNavigator />
+        <DeepLinkHandler />
       </AuthProvider>
         {update && update.migrationDialog ? (
         <Modal visible transparent animationType="fade" onRequestClose={closeUpdate}>

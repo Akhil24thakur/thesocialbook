@@ -221,4 +221,6 @@ export const api = {
     request<{ users: ApiUser[] }>("/api/users/search?q=" + encodeURIComponent(query), token),
   reels: (token: string, params?: { pageToken?: string; limit?: number; query?: string }) =>
     request<{ items: ReelFeedItem[]; nextPageToken: string | null; query?: string }>("/api/reels", token, { params }),
+  shareToStory: (token: string, postId: number) =>
+    request<{ story: StoryItem; imageUrl: string }>(`/api/posts/${postId}/share-story`, token, { method: "POST" }),
 };

@@ -13,3 +13,4 @@ backend/prisma/migrations-sqlite.bak/
 backend/uploads/
 backend/generated/
 mobile/modules/notification-reply/android/build/
+mobile/build_log.txt

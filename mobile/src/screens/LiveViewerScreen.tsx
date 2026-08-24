@@ -265,6 +265,9 @@ export default function LiveViewerScreen() {
                   <View style={styles.commentContent}>
                     <TouchableOpacity onPress={() => navigation.navigate("UserProfile", { userId: item.user.id })}>
                       <Text style={styles.commentUser}>{item.user.name}</Text>
+                      {item.user.isVerified && (
+                        <Icon name="checkmark-circle" size={14} color={colors.primary} />
+                      )}
                     </TouchableOpacity>
                     <Text style={styles.commentText}>{item.content}</Text>
                   </View>

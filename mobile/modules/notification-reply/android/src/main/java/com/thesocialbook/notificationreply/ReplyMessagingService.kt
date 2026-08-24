@@ -14,6 +14,14 @@ import com.google.firebase.messaging.RemoteMessage
 class ReplyMessagingService : FirebaseMessagingService() {
 
   override fun onMessageReceived(message: RemoteMessage) {
+    try {
+      handleMessage(message)
+    } catch (_: Exception) {
+      // Never let a notification crash the app
+    }
+  }
+
+  private fun handleMessage(message: RemoteMessage) {
     val data = message.data
     val type = data["type"] ?: ""
     val title = data["title"] ?: "SocialBook"
@@ -25,7 +33,9 @@ class ReplyMessagingService : FirebaseMessagingService() {
     val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     ensureChannel(nm)
 
-    val appIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+    val appIntent = packageManager.getLaunchIntentForPackage(packageName)
+      ?: Intent().apply { setPackage(packageName) }
+    appIntent.apply {
       if (convId > 0) putExtra("conversationId", convId)
       if (postId > 0) putExtra("postId", postId)
       if (url.isNotEmpty()) putExtra("url", url)

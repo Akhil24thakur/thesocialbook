@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "./Icon";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
+import { api } from "../api";
+import { useAuth } from "../auth/AuthContext";
 
 export default function ShareSheet({
   visible,
@@ -21,9 +23,11 @@ export default function ShareSheet({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<any>();
   const [copied, setCopied] = useState(false);
+  const [sharingToStory, setSharingToStory] = useState(false);
+  const { token } = useAuth();
 
-  const link = `https://thesocialbook.app/p/${postId}`;
-  const message = `${content || "Check out this post"}\n${link} · SocialBook`;
+  const link = `https://akhil24thakur.github.io/thesocialbook/post/?id=${postId}`;
+  const message = `${content || "Check out this post"}\n${link}`;
 
   const copyLink = async () => {
     await Clipboard.setStringAsync(link);
@@ -37,6 +41,20 @@ export default function ShareSheet({
   const shareSocial = () => {
     onClose();
     navigation.navigate("CreatePost", { prefill: `Check out this post: ${link}` });
+  };
+
+  const shareToStory = async () => {
+    if (!token || sharingToStory) return;
+    setSharingToStory(true);
+    try {
+      await api.shareToStory(token, postId);
+      onClose();
+      Alert.alert("Shared!", "Post has been added to your story.");
+    } catch (e: any) {
+      Alert.alert("Failed", e?.message ?? "Could not share to story.");
+    } finally {
+      setSharingToStory(false);
+    }
   };
 
   const openWhatsApp = () => {
@@ -61,6 +79,7 @@ export default function ShareSheet({
 
   const OPTIONS = [
     { label: copied ? "Link copied" : "Copy Link", icon: copied ? "checkmark" : "link-outline", color: colors.primary, action: copyLink },
+    { label: sharingToStory ? "Sharing..." : "Share to Story", icon: "images-outline", color: colors.primary, action: shareToStory },
     { label: "Share to SocialBook", icon: "paper-plane-outline", color: colors.primary, action: shareSocial },
     { label: "WhatsApp", icon: "logo-whatsapp", color: colors.green, action: openWhatsApp },
     { label: "Instagram", icon: "logo-instagram", color: colors.pink, action: openInstagram },

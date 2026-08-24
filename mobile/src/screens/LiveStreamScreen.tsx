@@ -291,7 +291,13 @@ export default function LiveStreamScreen() {
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
                   <View style={styles.commentRow}>
-                    <Text style={styles.commentUser}>{item.user.name}: </Text>
+                    <View style={styles.commentUserRow}>
+                    <Text style={styles.commentUser}>{item.user.name}</Text>
+                    {item.user.isVerified && (
+                      <Icon name="checkmark-circle" size={14} color={colors.primary} />
+                    )}
+                    <Text style={styles.commentUser}>: </Text>
+                  </View>
                     <Text style={styles.commentText}>{item.content}</Text>
                   </View>
                 )}
@@ -390,6 +396,7 @@ function createStyles(colors: Colors) {
     },
     commentRow: { flexDirection: "row", marginBottom: 8, flexWrap: "wrap" },
     commentUser: { fontSize: 14, fontWeight: "700", color: colors.primary },
+    commentUserRow: { flexDirection: "row", alignItems: "center", gap: 4 },
     commentText: { fontSize: 14, color: colors.white, flex: 1 },
     commentInputWrap: { position: "absolute", bottom: insets.bottom + 12, left: 12, right: 12 },
     commentInput: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(10,14,22,0.85)", borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10 },

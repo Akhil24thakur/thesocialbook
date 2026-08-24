@@ -116,7 +116,12 @@ export default function SearchScreen() {
           />
         </View>
         <View style={styles.userDetails}>
-          <Text style={styles.userName}>{item.name}</Text>
+          <View style={styles.userNameRow}>
+            <Text style={styles.userName}>{item.name}</Text>
+            {item.isVerified && (
+              <Icon name="checkmark-circle" size={16} color={colors.primary} />
+            )}
+          </View>
           {!!item.username && (
             <Text style={styles.userUsername}>@{item.username}</Text>
           )}
@@ -313,6 +318,11 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: colors.text,
+  },
+  userNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   userUsername: {
     fontSize: 13,
