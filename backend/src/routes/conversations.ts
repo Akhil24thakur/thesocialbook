@@ -187,7 +187,7 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
         },
       },
     });
-    await notifyMessage(otherMember.userId, meId, id, parsed.data.body);
+    notifyMessage(otherMember.userId, meId, id, parsed.data.body).catch(() => {});
   }
 
   broadcastToConversation(id, "message", { message });

@@ -3,7 +3,10 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { notify, notifyAll } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
-import { deleteObject, isR2Url } from "../lib/storage.js";
+import { deleteObject, isR2Url, putObject } from "../lib/storage.js";
+import { generateStoryImage } from "../bots/imageGenerator.js";
+import { readFileSync } from "node:fs";
+import crypto from "node:crypto";
 
 const router = Router();
 
@@ -143,6 +146,34 @@ router.post("/", requireAuth, async (req, res) => {
   return res.status(201).json({ post });
 });
 
+router.get("/:id/view", async (req, res) => {
+  const postId = Number(req.params.id);
+  if (!Number.isInteger(postId)) return res.status(400).json({ error: "Invalid post id" });
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      content: true,
+      imageUrl: true,
+      createdAt: true,
+      author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true } },
+      _count: { select: { likes: true, comments: true } },
+    },
+  });
+  if (!post) return res.status(404).json({ error: "Post not found" });
+  return res.json({
+    post: {
+      id: post.id,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      author: post.author,
+      likeCount: post._count.likes,
+      commentCount: post._count.comments,
+    },
+  });
+});
+
 router.delete("/:id", requireAuth, async (req, res) => {
   const postId = Number(req.params.id);
   const post = await prisma.post.findUnique({ where: { id: postId } });
@@ -233,6 +264,37 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
     await notify(parentAuthorId, (req as AuthedRequest).userId, "reply", postId);
   }
   return res.status(201).json({ comment });
+});
+
+router.post("/:id/share-story", requireAuth, async (req, res) => {
+  const postId = Number(req.params.id);
+  const userId = (req as AuthedRequest).userId;
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, content: true, author: { select: { name: true } } },
+  });
+  if (!post) return res.status(404).json({ error: "Post not found" });
+
+  try {
+    const filepath = await generateStoryImage({
+      content: post.content,
+      authorName: post.author.name,
+    });
+
+    const fileBuffer = readFileSync(filepath);
+    const key = `stories/${userId}/${Date.now()}-${crypto.randomBytes(4).toString("hex")}.png`;
+    const imageUrl = await putObject(key, fileBuffer, "image/png");
+
+    const story = await prisma.story.create({
+      data: { imageUrl, authorId: userId },
+    });
+
+    return res.status(201).json({ story, imageUrl });
+  } catch (e: any) {
+    console.error("share-story error:", e?.message ?? e);
+    return res.status(500).json({ error: "Failed to create story" });
+  }
 });
 
 export default router;

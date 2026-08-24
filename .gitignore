@@ -11,3 +11,5 @@ backend/prisma/dev.db
 backend/prisma/dev.db-journal
 backend/prisma/migrations-sqlite.bak/
 backend/uploads/
+backend/generated/
+mobile/modules/notification-reply/android/build/

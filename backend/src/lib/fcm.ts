@@ -92,6 +92,7 @@ async function sendToTokens(
         if (native.length) {
           const res = await getMessaging(app).sendEachForMulticast({
             tokens: native.map((t) => t.token),
+            notification: { title: payload.title, body: payload.body },
             data,
             android: { priority: "high" },
           });
