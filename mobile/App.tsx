@@ -33,6 +33,7 @@ import MessagesScreen from "./src/screens/MessagesScreen";
 import ChatScreen from "./src/screens/ChatScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import StoriesScreen from "./src/screens/StoriesScreen";
+import LiveStreamScreen from "./src/screens/LiveStreamScreen";
 import { brandGradient, darkColors, lightColors, type Colors } from "./src/theme";
 import { ThemeProvider, useTheme } from "./src/theme-context";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
