@@ -237,6 +237,6 @@ export const api = {
     postComment: (token: string, id: number, body: string) =>
       request<{ ok: boolean }>(`/api/live/${id}/comments`, token, { method: "POST", body: { body } }),
     viewerCount: (token: string, id: number) => request<{ count: number }>(`/api/live/${id}/viewer-count`, token),
-    viewers: (token: string, id: number) => request<{ users: ApiUser[] }>(`/api/live/${id}/viewers`, token),
+    viewers: (token: string, id: number) => request<{ viewers: any[] }>(`/api/live/${id}/viewers`, token),
   },
 };

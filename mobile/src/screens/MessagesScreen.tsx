@@ -98,7 +98,7 @@ export default function MessagesScreen({ active }: { active: boolean }) {
         }
       >
         <View style={styles.avatarWrap}>
-          <Avatar name={other?.name ?? "?"} size={52} imageUrl={other?.avatarUrl} online={isOnline(other?.lastSeenAt)} verified={other?.isVerified} />
+          <Avatar name={other?.name ?? "?"} size={52} imageUrl={other?.avatarUrl} online={isOnline(other?.lastSeenAt)} />
           {item.unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{item.unreadCount > 99 ? "99+" : item.unreadCount}</Text>
@@ -106,9 +106,14 @@ export default function MessagesScreen({ active }: { active: boolean }) {
           )}
         </View>
         <View style={styles.rowBody}>
-          <Text style={styles.name} numberOfLines={1}>
-            {other?.name ?? "Unknown"}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {other?.name ?? "Unknown"}
+            </Text>
+            {other?.isVerified && (
+              <Icon name="checkmark-circle" size={16} color="#1877F2" style={{ marginLeft: 4 }} />
+            )}
+          </View>
           <Text
             style={[styles.preview, item.unreadCount > 0 && styles.previewUnread]}
             numberOfLines={1}
@@ -208,6 +213,10 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: colors.text,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   preview: {
     fontSize: 13,

@@ -8,7 +8,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   SafeAreaView,
@@ -49,8 +48,6 @@ export default function LiveStreamScreen() {
   const [session, setSession] = useState<any>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [showTitleInput, setShowTitleInput] = useState(false);
-  const [liveTitle, setLiveTitle] = useState("");
 
   const [viewersModalVisible, setViewersModalVisible] = useState(false);
   const [viewers, setViewers] = useState<any[]>([]);
@@ -113,10 +110,9 @@ export default function LiveStreamScreen() {
   };
 
   const startNewLive = async () => {
-    setShowTitleInput(false);
     try {
       setStreamStatus("connecting");
-      const res = await api.live.start(token!, liveTitle.trim() || undefined);
+      const res = await api.live.start(token!);
       setSession(res.session);
       streamKeyRef.current = res.session.streamKey ?? "";
       rtmpUrlRef.current = res.session.rtmpUrl ?? "";
@@ -171,7 +167,7 @@ export default function LiveStreamScreen() {
     setViewersLoading(true);
     try {
       const res = await api.live.viewers(token!, session.id);
-      setViewers(res.users);
+      setViewers(res.viewers ?? res.users ?? []);
     } catch {
       setViewers([]);
     } finally {
@@ -234,7 +230,7 @@ export default function LiveStreamScreen() {
 
           {!isStreaming && streamStatus === "idle" && (
             <View style={styles.centerContent}>
-              <TouchableOpacity style={styles.goLiveBtn} onPress={() => setShowTitleInput(true)}>
+              <TouchableOpacity style={styles.goLiveBtn} onPress={startNewLive}>
                 <Icon name="videocam" size={40} color={colors.white} />
                 <Text style={styles.goLiveText}>Go Live</Text>
                 <Text style={styles.goLiveSub}>Tap to start broadcasting</Text>
@@ -280,31 +276,6 @@ export default function LiveStreamScreen() {
           </View>
         </View>
       </CameraView>
-
-      <Modal visible={showTitleInput} transparent animationType="fade" onRequestClose={() => setShowTitleInput(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.titleModal}>
-            <Text style={styles.titleModalHeading}>Start Live Stream</Text>
-            <TextInput
-              style={styles.titleInput}
-              value={liveTitle}
-              onChangeText={setLiveTitle}
-              placeholder="Add a title (optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              maxLength={100}
-              autoFocus
-            />
-            <View style={styles.titleModalActions}>
-              <TouchableOpacity style={styles.titleCancelBtn} onPress={() => { setShowTitleInput(false); setLiveTitle(""); }}>
-                <Text style={styles.titleCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.titleStartBtn} onPress={startNewLive}>
-                <Text style={styles.titleStartText}>Start</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal visible={viewersModalVisible} transparent animationType="slide" onRequestClose={() => setViewersModalVisible(false)}>
         <View style={styles.modalOverlay}>
@@ -393,26 +364,6 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     permissionText: { marginTop: 16, color: colors.white, textAlign: "center" },
 
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
-    titleModal: {
-      width: "85%",
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 24,
-    },
-    titleModalHeading: { fontSize: 18, fontWeight: "700", color: colors.text, textAlign: "center", marginBottom: 16 },
-    titleInput: {
-      backgroundColor: colors.background,
-      borderRadius: 12,
-      padding: 14,
-      fontSize: 16,
-      color: colors.text,
-      marginBottom: 16,
-    },
-    titleModalActions: { flexDirection: "row", gap: 12 },
-    titleCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.background, alignItems: "center" },
-    titleCancelText: { fontSize: 15, fontWeight: "600", color: colors.textSecondary },
-    titleStartBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center" },
-    titleStartText: { fontSize: 15, fontWeight: "700", color: colors.white },
 
     viewersModal: {
       width: "100%",

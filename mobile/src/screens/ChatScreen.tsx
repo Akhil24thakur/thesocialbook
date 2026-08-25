@@ -414,6 +414,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   bubble: {
     maxWidth: "78%",
+    flexShrink: 0,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 9,

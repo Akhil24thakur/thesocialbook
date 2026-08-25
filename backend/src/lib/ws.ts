@@ -31,6 +31,15 @@ export function broadcastToConversation(conversationId: number, type: string, pa
   }
 }
 
+export function broadcastToLive(sessionId: number, type: string, payload: unknown) {
+  const set = rooms.get(`live:${sessionId}`);
+  if (!set || set.size === 0) return;
+  const message = JSON.stringify({ type, sessionId, ...(payload as object) });
+  for (const socket of set) {
+    if (socket.readyState === WebSocket.OPEN) socket.send(message);
+  }
+}
+
 export function initWs(server: Server) {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -57,6 +66,19 @@ export function initWs(server: Server) {
     } catch {
       // Even if room loading fails, keep the socket for future events
     }
+    socket.on("message", async (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString());
+        if (msg.type === "join_live" && msg.sessionId) {
+          join(socket, `live:${msg.sessionId}`);
+        } else if (msg.type === "leave_live" && msg.sessionId) {
+          const set = rooms.get(`live:${msg.sessionId}`);
+          set?.delete(socket);
+          if (set && set.size === 0) rooms.delete(`live:${msg.sessionId}`);
+        }
+      } catch {}
+    });
+
     socket.on("close", () => leaveAll(socket));
   });
 
