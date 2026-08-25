@@ -15,7 +15,7 @@ import {
 import { Camera, CameraType, CameraFlashMode, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Audio } from "expo-av";
+import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
@@ -62,7 +62,7 @@ export default function LiveStreamScreen() {
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      const { status: micStatus } = await Audio.requestPermissionsAsync();
+      const { status: micStatus } = await requestRecordingPermissionsAsync();
       setHasPermission(status === "granted" && micStatus === "granted");
     })();
 
