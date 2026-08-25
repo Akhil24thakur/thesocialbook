@@ -1,7 +1,7 @@
 # SOCIALBOOK - PROJECT BRAIN
 
 > Single source of truth for the entire codebase. Read this first before touching any file.
-> Last updated: v4.1.0 (Aug 25, 2026)
+> Last updated: v4.1.1 (Aug 25, 2026)
 
 ---
 
@@ -432,6 +432,7 @@ Theme persisted via AsyncStorage. Supports System/Dark/Light modes.
 6. **ADB is slow:** USB connection takes 3-4 min per command. Use long timeouts (300000ms).
 7. **PagerView tabs:** Bottom tabs are custom PagerView implementation, NOT @react-navigation/bottom-tabs.
 8. **Web is NOT a workspace:** `web/` has independent `npm ci`, not part of root workspaces.
+9. **broadcastToLive must be exported from ws.ts:** Live routes import it. If missing, all `/api/live/*` routes return 404.
 
 ---
 
@@ -444,3 +445,4 @@ Theme persisted via AsyncStorage. Supports System/Dark/Light modes.
 | v4.0.1 | Added missing LiveStreamScreen import |
 | v4.0.2 | Fixed LiveStreamScreen crash (insets, CameraView, sendWs, flash icon) |
 | v4.1.0 | Live feature (start/stop, viewer list), removed Live from tabs, fixed follower/following truncation, mounted backend live routes + DB models |
+| v4.1.1 | Removed live title popup (starts immediately), fixed 'Route not found' (broadcastToLive missing from ws.ts), fixed chat bubble text truncation, moved blue tick after name in messages list, added WS join_live/leave_live handling |
