@@ -198,15 +198,15 @@ export default function ProfileScreen({ active }: { active: boolean }) {
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{posts.length}</Text>
-            <Text style={styles.statLabel}>Posts</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Posts</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{counts.followerCount}</Text>
-            <Text style={styles.statLabel}>Followers</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Followers</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{counts.followingCount}</Text>
-            <Text style={styles.statLabel}>Following</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Following</Text>
           </View>
         </View>
         <View style={styles.actionsRow}>
@@ -410,9 +410,10 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     color: colors.text,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginLeft: 4,
+    textAlign: "center",
+    flexShrink: 1,
   },
   actionsRow: {
     flexDirection: "row",

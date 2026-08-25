@@ -232,4 +232,17 @@ router.get("/:id/viewer-count", requireAuth, async (req, res) => {
   return res.json({ count });
 });
 
+router.get("/:id/viewers", requireAuth, async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const viewers = await prisma.liveViewer.findMany({
+    where: { sessionId, leftAt: null },
+    include: {
+      user: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true } },
+    },
+    orderBy: { joinedAt: "asc" },
+    take: 200,
+  });
+  return res.json({ viewers: viewers.map((v) => v.user) });
+});
+
 export default router;

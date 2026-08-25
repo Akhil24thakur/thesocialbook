@@ -82,6 +82,18 @@ export function connectWs(token: string | null) {
   if (!socket) open();
 }
 
+export function sendWs(payload: unknown): boolean {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    try {
+      socket.send(JSON.stringify(payload));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 export function onWsEvent(
   event: string,
   conversationId: number | null,

@@ -38,6 +38,9 @@ model User {
   reels        Reel[]
   reelLikes    ReelLike[]
   reelComments ReelComment[]
+  liveSessions LiveSession[]
+  liveViewers  LiveViewer[]
+  liveComments LiveComment[]
 
   @@index([createdAt])
 }
@@ -251,4 +254,47 @@ model OtpCode {
   createdAt DateTime  @default(now())
 
   @@index([target])
+}
+
+model LiveSession {
+  id          Int       @id @default(autoincrement())
+  hostId      Int
+  host        User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  title       String?
+  status      String    @default("live")
+  streamKey   String
+  rtmpUrl     String?
+  playbackUrl String?
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  viewers     LiveViewer[]
+  comments    LiveComment[]
+
+  @@index([hostId])
+  @@index([status])
+}
+
+model LiveViewer {
+  id        Int       @id @default(autoincrement())
+  sessionId Int
+  userId    Int
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+}
+
+model LiveComment {
+  id        Int       @id @default(autoincrement())
+  sessionId Int
+  userId    Int
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime  @default(now())
+
+  @@index([sessionId])
 }

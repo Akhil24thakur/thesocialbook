@@ -223,4 +223,20 @@ export const api = {
     request<{ items: ReelFeedItem[]; nextPageToken: string | null; query?: string }>("/api/reels", token, { params }),
   shareToStory: (token: string, postId: number) =>
     request<{ story: StoryItem; imageUrl: string }>(`/api/posts/${postId}/share-story`, token, { method: "POST" }),
+  live: {
+    start: (token: string, title?: string) =>
+      request<{ session: any }>("/api/live/start", token, { method: "POST", body: { title } }),
+    get: (token: string, id: number) => request<{ session: any }>(`/api/live/${id}`, token),
+    join: (token: string, id: number) => request<{ ok: boolean }>(`/api/live/${id}/join`, token, { method: "POST" }),
+    leave: (token: string, id: number) => request<{ ok: boolean }>(`/api/live/${id}/leave`, token, { method: "POST" }),
+    end: (token: string, id: number) => request<{ ok: boolean }>(`/api/live/${id}/end`, token, { method: "POST" }),
+    comments: (token: string, id: number, cursor?: string, limit?: number) =>
+      request<{ comments: any[]; nextCursor: string | null }>(`/api/live/${id}/comments`, token, {
+        params: { cursor, limit },
+      }),
+    postComment: (token: string, id: number, body: string) =>
+      request<{ ok: boolean }>(`/api/live/${id}/comments`, token, { method: "POST", body: { body } }),
+    viewerCount: (token: string, id: number) => request<{ count: number }>(`/api/live/${id}/viewer-count`, token),
+    viewers: (token: string, id: number) => request<{ users: ApiUser[] }>(`/api/live/${id}/viewers`, token),
+  },
 };

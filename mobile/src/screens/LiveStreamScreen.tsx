@@ -1,31 +1,31 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   BackHandler,
   Dimensions,
+  FlatList,
+  Modal,
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   SafeAreaView,
-  Image,
   ActivityIndicator,
 } from "react-native";
-import { Camera, CameraType, CameraFlashMode, useCameraPermissions } from "expo-camera";
-import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CameraView, Camera, useCameraPermissions, type CameraType, type FlashMode } from "expo-camera";
+import { useSafeAreaInsets, type EdgeInsets } from "react-native-safe-area-context";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
-import { api as wsApi, onWsEvent } from "../ws";
+import { onWsEvent, sendWs } from "../ws";
 import Icon from "../components/Icon";
-import { formatTime, brandGradient, type Colors } from "../theme";
+import Avatar from "../components/Avatar";
+import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import { connectWs } from "../ws";
-
-const { width, height } = Dimensions.get("window");
 
 type RouteParams = {
   sessionId?: number;
@@ -38,25 +38,27 @@ export default function LiveStreamScreen() {
   const { token, user } = useAuth();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, insets), [colors, insets]);
 
   const [hasPermission, setHasPermission] = useState(false);
   const [cameraType, setCameraType] = useState<CameraType>("back");
-  const [flashMode, setFlashMode] = useState<CameraFlashMode>("off");
+  const [flashMode, setFlashMode] = useState<FlashMode>("off");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamStatus, setStreamStatus] = useState<"idle" | "connecting" | "live" | "error">("idle");
   const [viewerCount, setViewerCount] = useState(0);
-  const [comments, setComments] = useState<Array<{ id: number; user: any; content: string; createdAt: string }>>([]);
-  const [newComment, setNewComment] = useState("");
   const [session, setSession] = useState<any>(null);
-  const [showComments, setShowComments] = useState(true);
   const [micMuted, setMicMuted] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [showTitleInput, setShowTitleInput] = useState(false);
+  const [liveTitle, setLiveTitle] = useState("");
 
-  const cameraRef = useRef<Camera>(null);
+  const [viewersModalVisible, setViewersModalVisible] = useState(false);
+  const [viewers, setViewers] = useState<any[]>([]);
+  const [viewersLoading, setViewersLoading] = useState(false);
+
+  const cameraRef = useRef<CameraView>(null);
   const streamKeyRef = useRef<string>("");
   const rtmpUrlRef = useRef<string>("");
-  const commentEndRef = useRef<View>(null);
   const wsConnectedRef = useRef(false);
 
   useEffect(() => {
@@ -70,12 +72,6 @@ export default function LiveStreamScreen() {
 
     const unsubscribeViewerCount = onWsEvent("viewer_count", null, (payload: any) => {
       setViewerCount(payload?.count ?? 0);
-    });
-
-    const unsubscribeComment = onWsEvent("new_comment", null, (payload: any) => {
-      if (payload?.comment) {
-        setComments((prev) => [...prev, payload.comment].slice(-100));
-      }
     });
 
     const unsubscribeLiveStarted = onWsEvent("live_started", null, (payload: any) => {
@@ -92,7 +88,6 @@ export default function LiveStreamScreen() {
 
     return () => {
       unsubscribeViewerCount();
-      unsubscribeComment();
       unsubscribeLiveStarted();
       unsubscribeLiveEnded();
     };
@@ -101,8 +96,6 @@ export default function LiveStreamScreen() {
   useEffect(() => {
     if (route.params?.sessionId) {
       joinExistingSession(route.params.sessionId);
-    } else if (route.params?.title) {
-      startNewLive(route.params.title);
     }
   }, []);
 
@@ -119,10 +112,11 @@ export default function LiveStreamScreen() {
     }
   };
 
-  const startNewLive = async (title: string) => {
+  const startNewLive = async () => {
+    setShowTitleInput(false);
     try {
       setStreamStatus("connecting");
-      const res = await api.live.start(token!, title);
+      const res = await api.live.start(token!, liveTitle.trim() || undefined);
       setSession(res.session);
       streamKeyRef.current = res.session.streamKey ?? "";
       rtmpUrlRef.current = res.session.rtmpUrl ?? "";
@@ -136,46 +130,22 @@ export default function LiveStreamScreen() {
   const joinLive = async (sessionId: number) => {
     try {
       await api.live.join(token!, sessionId);
-      wsApi.send(JSON.stringify({ type: "join_live", sessionId }));
+      sendWs({ type: "join_live", sessionId });
       wsConnectedRef.current = true;
       setIsStreaming(true);
       setStreamStatus("live");
-      startRtmpStream();
-      loadComments(sessionId);
     } catch (e: any) {
       setStreamStatus("error");
       setStreamError(e.message ?? "Failed to join live");
     }
   };
 
-  const loadComments = async (sessionId: number) => {
-    try {
-      const res = await api.live.comments(token!, sessionId, undefined, 50);
-      setComments(res.comments);
-    } catch {}
-  };
-
-  const startRtmpStream = async () => {
-    if (!streamKeyRef.current || !rtmpUrlRef.current) return;
-    try {
-      if (Platform.OS === "android") {
-      }
-    } catch (e: any) {
-      setStreamError(e.message);
-      setStreamStatus("error");
-    }
-  };
-
-  const stopRtmpStream = async () => {
-  };
-
   const endLive = async () => {
     if (!session) return;
     try {
       await api.live.end(token!, session.id);
-      wsApi.send(JSON.stringify({ type: "leave_live", sessionId: session.id }));
+      sendWs({ type: "leave_live", sessionId: session.id });
       wsConnectedRef.current = false;
-      await stopRtmpStream();
       setIsStreaming(false);
       navigation.goBack();
     } catch (e: any) {
@@ -183,25 +153,30 @@ export default function LiveStreamScreen() {
     }
   };
 
-  const sendComment = async () => {
-    if (!newComment.trim() || !session) return;
-    const content = newComment.trim();
-    setNewComment("");
-    try {
-      await api.live.postComment(token!, session.id, content);
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Failed to send comment");
-    }
-  };
-
   const toggleFlash = () => {
-    const modes: CameraFlashMode[] = ["off", "on", "auto"];
+    const modes: FlashMode[] = ["off", "on", "auto"];
     const currentIndex = modes.indexOf(flashMode);
     setFlashMode(modes[(currentIndex + 1) % modes.length]);
   };
 
+  const toggleMic = () => setMicMuted((m) => !m);
+
   const switchCamera = () => {
     setCameraType((prev) => (prev === "back" ? "front" : "back"));
+  };
+
+  const loadViewers = async () => {
+    if (!session) return;
+    setViewersModalVisible(true);
+    setViewersLoading(true);
+    try {
+      const res = await api.live.viewers(token!, session.id);
+      setViewers(res.users);
+    } catch {
+      setViewers([]);
+    } finally {
+      setViewersLoading(false);
+    }
   };
 
   const handleBackPress = () => {
@@ -212,7 +187,8 @@ export default function LiveStreamScreen() {
       ]);
       return true;
     }
-    return false;
+    navigation.goBack();
+    return true;
   };
 
   useEffect(() => {
@@ -231,15 +207,12 @@ export default function LiveStreamScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Camera
+      <CameraView
         ref={cameraRef}
         style={styles.camera}
-        type={cameraType}
-        flashMode={flashMode}
-        ratio="16:9"
-        autoFocus={Camera.Constants.AutoFocus.on}
-        whiteBalance={Camera.Constants.WhiteBalance.auto}
-        videoStabilization={Camera.Constants.VideoStabilization.standard}
+        facing={cameraType}
+        flash={flashMode}
+        videoStabilizationMode="standard"
       >
         <View style={styles.overlay}>
           <View style={styles.topBar}>
@@ -253,11 +226,38 @@ export default function LiveStreamScreen() {
                 <Text style={styles.liveText}>{streamStatus === "live" ? "LIVE" : streamStatus.toUpperCase()}</Text>
               </View>
             </View>
-            <View style={styles.viewerWrap}>
+            <TouchableOpacity style={styles.viewerWrap} onPress={loadViewers} disabled={!isStreaming}>
               <Icon name="people" size={18} color={colors.white} />
               <Text style={styles.viewerCount}>{viewerCount}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
+
+          {!isStreaming && streamStatus === "idle" && (
+            <View style={styles.centerContent}>
+              <TouchableOpacity style={styles.goLiveBtn} onPress={() => setShowTitleInput(true)}>
+                <Icon name="videocam" size={40} color={colors.white} />
+                <Text style={styles.goLiveText}>Go Live</Text>
+                <Text style={styles.goLiveSub}>Tap to start broadcasting</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {streamStatus === "connecting" && (
+            <View style={styles.centerContent}>
+              <ActivityIndicator size="large" color={colors.white} />
+              <Text style={styles.connectingText}>Connecting...</Text>
+            </View>
+          )}
+
+          {streamError && (
+            <View style={styles.centerContent}>
+              <Icon name="alert-circle" size={48} color={colors.danger} />
+              <Text style={styles.errorText}>{streamError}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => { setStreamError(null); setStreamStatus("idle"); }}>
+                <Text style={styles.retryText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={styles.bottomBar}>
             <TouchableOpacity style={styles.controlBtn} onPress={switchCamera} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -265,7 +265,7 @@ export default function LiveStreamScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "flash-auto" : "flash-off"} size={26} color={colors.white} />
+              <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "aperture" : "flash-off"} size={26} color={colors.white} />
             </TouchableOpacity>
 
             {isStreaming && (
@@ -277,84 +277,74 @@ export default function LiveStreamScreen() {
             <TouchableOpacity style={styles.controlBtn} onPress={toggleMic} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name={micMuted ? "mic-off" : "mic"} size={26} color={colors.white} />
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.controlBtn} onPress={() => setShowComments(!showComments)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name={showComments ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={26} color={colors.white} />
-            </TouchableOpacity>
           </View>
+        </View>
+      </CameraView>
 
-          {showComments && comments.length > 0 && (
-            <View style={styles.commentsContainer}>
-              <View ref={commentEndRef} />
+      <Modal visible={showTitleInput} transparent animationType="fade" onRequestClose={() => setShowTitleInput(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.titleModal}>
+            <Text style={styles.titleModalHeading}>Start Live Stream</Text>
+            <TextInput
+              style={styles.titleInput}
+              value={liveTitle}
+              onChangeText={setLiveTitle}
+              placeholder="Add a title (optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              maxLength={100}
+              autoFocus
+            />
+            <View style={styles.titleModalActions}>
+              <TouchableOpacity style={styles.titleCancelBtn} onPress={() => { setShowTitleInput(false); setLiveTitle(""); }}>
+                <Text style={styles.titleCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.titleStartBtn} onPress={startNewLive}>
+                <Text style={styles.titleStartText}>Start</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={viewersModalVisible} transparent animationType="slide" onRequestClose={() => setViewersModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.viewersModal}>
+            <View style={styles.viewersHeader}>
+              <Text style={styles.viewersTitle}>Viewers ({viewerCount})</Text>
+              <TouchableOpacity onPress={() => setViewersModalVisible(false)}>
+                <Icon name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {viewersLoading ? (
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 32 }} />
+            ) : viewers.length === 0 ? (
+              <Text style={styles.noViewers}>No viewers yet</Text>
+            ) : (
               <FlatList
-                data={comments}
+                data={viewers}
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
-                  <View style={styles.commentRow}>
-                    <View style={styles.commentUserRow}>
-                    <Text style={styles.commentUser}>{item.user.name}</Text>
-                    {item.user.isVerified && (
-                      <Icon name="checkmark-circle" size={14} color={colors.primary} />
-                    )}
-                    <Text style={styles.commentUser}>: </Text>
-                  </View>
-                    <Text style={styles.commentText}>{item.content}</Text>
+                  <View style={styles.viewerRow}>
+                    <Avatar name={item.name} size={36} imageUrl={item.avatarUrl} />
+                    <View style={styles.viewerInfo}>
+                      <View style={styles.viewerNameRow}>
+                        <Text style={styles.viewerName}>{item.name}</Text>
+                        {item.isVerified && <Icon name="checkmark-circle" size={14} color={colors.primary} />}
+                      </View>
+                      <Text style={styles.viewerUsername}>@{item.username}</Text>
+                    </View>
                   </View>
                 )}
-                inverted
-                onContentSizeChange={() => commentEndRef.current?.scrollIntoView()}
-                maxToRenderPerBatch={10}
-                windowSize={5}
               />
-            </View>
-          )}
-
-          {showComments && (
-            <View style={styles.commentInputWrap}>
-              <TouchableOpacity
-                style={styles.commentInput}
-                onPress={() => setShowComments(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Icon name="chatbubble" size={20} color="rgba(255,255,255,0.7)" />
-                <Text style={styles.commentPlaceholder}>Add a comment...</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {showComments && (
-            <View style={styles.commentInputActive}>
-              <TextInput
-                style={styles.textInput}
-                value={newComment}
-                onChangeText={setNewComment}
-                onSubmitEditing={sendComment}
-                placeholder="Add a comment..."
-                maxLength={500}
-                autoFocus
-                blurOnSubmit={false}
-                returnKeyType="send"
-              />
-              <TouchableOpacity style={styles.sendBtn} onPress={sendComment} disabled={!newComment.trim()}>
-                <Icon name="send" size={22} color={newComment.trim() ? colors.primary : "rgba(255,255,255,0.4)"} />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {streamError && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{streamError}</Text>
-            </View>
-          )}
+            )}
+          </View>
         </View>
-      </Camera>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const { useMemo, TextInput } = React;
-
-function createStyles(colors: Colors) {
+function createStyles(colors: Colors, insets: EdgeInsets) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: "#000" },
     camera: { flex: 1 },
@@ -375,6 +365,22 @@ function createStyles(colors: Colors) {
     liveText: { fontSize: 11, fontWeight: "800", color: colors.white },
     viewerWrap: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
     viewerCount: { fontSize: 14, fontWeight: "700", color: colors.white },
+    centerContent: { flex: 1, alignItems: "center", justifyContent: "center" },
+    goLiveBtn: {
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    goLiveText: { fontSize: 20, fontWeight: "800", color: colors.white },
+    goLiveSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", textAlign: "center" },
+    connectingText: { fontSize: 16, color: colors.white, marginTop: 12 },
+    errorText: { fontSize: 14, color: colors.white, marginTop: 8, textAlign: "center", paddingHorizontal: 32 },
+    retryBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 },
+    retryText: { fontSize: 14, fontWeight: "700", color: colors.white },
     bottomBar: {
       flexDirection: "row",
       alignItems: "center",
@@ -384,28 +390,46 @@ function createStyles(colors: Colors) {
     },
     controlBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(10,14,22,0.6)", alignItems: "center", justifyContent: "center" },
     endBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" },
-    commentsContainer: {
-      position: "absolute",
-      bottom: insets.bottom + 120,
-      left: 12,
-      right: 12,
-      maxHeight: height * 0.4,
-      backgroundColor: "rgba(10,14,22,0.85)",
-      borderRadius: 16,
-      padding: 12,
-    },
-    commentRow: { flexDirection: "row", marginBottom: 8, flexWrap: "wrap" },
-    commentUser: { fontSize: 14, fontWeight: "700", color: colors.primary },
-    commentUserRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-    commentText: { fontSize: 14, color: colors.white, flex: 1 },
-    commentInputWrap: { position: "absolute", bottom: insets.bottom + 12, left: 12, right: 12 },
-    commentInput: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(10,14,22,0.85)", borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10 },
-    commentPlaceholder: { fontSize: 16, color: "rgba(255,255,255,0.6)" },
-    commentInputActive: { position: "absolute", bottom: insets.bottom + 12, left: 12, right: 12, flexDirection: "row", gap: 8, alignItems: "center" },
-    textInput: { flex: 1, backgroundColor: "rgba(10,14,22,0.9)", borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, color: colors.white, maxHeight: 100 },
-    sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-    errorBanner: { position: "absolute", top: insets.top + 8, left: 16, right: 16, backgroundColor: colors.danger, borderRadius: 12, padding: 12 },
-    errorText: { color: colors.white, fontSize: 14, textAlign: "center" },
     permissionText: { marginTop: 16, color: colors.white, textAlign: "center" },
+
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
+    titleModal: {
+      width: "85%",
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 24,
+    },
+    titleModalHeading: { fontSize: 18, fontWeight: "700", color: colors.text, textAlign: "center", marginBottom: 16 },
+    titleInput: {
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 14,
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 16,
+    },
+    titleModalActions: { flexDirection: "row", gap: 12 },
+    titleCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.background, alignItems: "center" },
+    titleCancelText: { fontSize: 15, fontWeight: "600", color: colors.textSecondary },
+    titleStartBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center" },
+    titleStartText: { fontSize: 15, fontWeight: "700", color: colors.white },
+
+    viewersModal: {
+      width: "100%",
+      maxHeight: "60%",
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      marginTop: "auto",
+    },
+    viewersHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+    viewersTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
+    noViewers: { fontSize: 15, color: colors.textSecondary, textAlign: "center", marginTop: 32 },
+    viewerRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 12 },
+    viewerInfo: { flex: 1 },
+    viewerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+    viewerName: { fontSize: 15, fontWeight: "600", color: colors.text },
+    viewerUsername: { fontSize: 13, color: colors.textSecondary },
   });
 }
