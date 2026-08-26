@@ -12,7 +12,6 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import { onWsEvent } from "../ws";
 import PostCard from "../components/PostCard";
 import { EmptyFeed, ErrorFeed } from "../components/home/FeedStates";
 import SkeletonFeed from "../components/home/SkeletonFeed";
@@ -130,22 +129,16 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
 
   useEffect(() => {
     if (!active || !token) return;
+    let cancelled = false;
     const pollLive = setInterval(async () => {
       try {
         const liveRes = await api.live.list(token);
-        setLiveSessions(liveRes.sessions ?? []);
+        if (!cancelled) setLiveSessions(liveRes.sessions ?? []);
       } catch {}
-    }, 10000);
-    const liveStartSub = onWsEvent("live_started", null, () => {
-      api.live.list(token).then((r) => setLiveSessions(r.sessions ?? [])).catch(() => {});
-    });
-    const liveEndSub = onWsEvent("live_ended", null, () => {
-      api.live.list(token).then((r) => setLiveSessions(r.sessions ?? [])).catch(() => {});
-    });
+    }, 15000);
     return () => {
+      cancelled = true;
       clearInterval(pollLive);
-      liveStartSub();
-      liveEndSub();
     };
   }, [active, token]);
 
