@@ -20,6 +20,7 @@ import Icon from "../components/Icon";
 import { brandGradient, type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import type { ReelFeedItem } from "../types";
+import * as KeepAwake from "expo-keep-awake";
 
 const PAGE_SIZE = 6;
 const BACK_PRELOAD = 1;
@@ -405,9 +406,11 @@ export default function ReelsScreen({ active, restartSignal }: { active: boolean
 
   useEffect(() => {
     if (!active) {
+      KeepAwake.deactivateKeepAwakeAsync();
       pauseAll();
       return;
     }
+    KeepAwake.activateKeepAwakeAsync();
     if (firstActivationRef.current) {
       firstActivationRef.current = false;
       load(true);
