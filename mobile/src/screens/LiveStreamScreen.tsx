@@ -26,7 +26,6 @@ import Avatar from "../components/Avatar";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import { connectWs } from "../ws";
-import * as KeepAwake from "expo-keep-awake";
 
 type RouteParams = {
   sessionId?: number;
@@ -65,8 +64,6 @@ export default function LiveStreamScreen() {
   const isHost = session?.hostId === user?.id;
 
   useEffect(() => {
-    KeepAwake.activateKeepAwakeAsync();
-
     if (!isViewer) {
       (async () => {
         const { status } = await Camera.requestCameraPermissionsAsync();
@@ -99,7 +96,6 @@ export default function LiveStreamScreen() {
     });
 
     return () => {
-      KeepAwake.deactivateKeepAwakeAsync();
       unsubscribeViewerCount();
       unsubscribeLiveStarted();
       unsubscribeLiveEnded();
