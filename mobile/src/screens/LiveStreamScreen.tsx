@@ -107,10 +107,15 @@ export default function LiveStreamScreen() {
   }, [token, navigation, session?.id, route.params?.sessionId, isViewer]);
 
   useEffect(() => {
-    if (route.params?.sessionId) {
-      joinExistingSession(route.params.sessionId);
-    }
-  }, []);
+    if (!route.params?.sessionId) return;
+    joinExistingSession(route.params.sessionId);
+    const interval = setInterval(() => {
+      if (session?.id) {
+        api.live.viewerCount(token!, session.id).then((r) => setViewerCount(r.count)).catch(() => {});
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [session?.id]);
 
   const joinExistingSession = async (sessionId: number) => {
     try {
@@ -193,15 +198,15 @@ export default function LiveStreamScreen() {
   };
 
   const handleBackPress = () => {
-    if (isStreaming) {
-      if (isHost) {
-        Alert.alert("End Live?", "Are you sure you want to end the live stream?", [
-          { text: "Cancel", style: "cancel" },
-          { text: "End Live", style: "destructive", onPress: endLive },
-        ]);
-      } else {
-        endLive();
-      }
+    if (isStreaming && isHost) {
+      Alert.alert("End Live?", "Are you sure you want to end the live stream?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "End Live", style: "destructive", onPress: endLive },
+      ]);
+      return true;
+    }
+    if (isStreaming && !isHost) {
+      endLive();
       return true;
     }
     navigation.goBack();
@@ -259,9 +264,14 @@ export default function LiveStreamScreen() {
 
           {streamStatus === "live" && (
             <View style={styles.centerContent}>
-              <Avatar name={hostName} size={120} imageUrl={hostAvatar} />
+              <View style={styles.pulseRing}>
+                <Avatar name={hostName} size={120} imageUrl={hostAvatar} />
+              </View>
               <Text style={styles.viewerLiveText}>{hostName} is live</Text>
-              <Text style={styles.viewerCountText}>{viewerCount} watching</Text>
+              <View style={styles.viewerWatchingRow}>
+                <Icon name="people" size={16} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.viewerCountText}>{viewerCount} watching</Text>
+              </View>
             </View>
           )}
 
@@ -471,7 +481,17 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     goLiveSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", textAlign: "center" },
     connectingText: { fontSize: 16, color: colors.white, marginTop: 12 },
     viewerLiveText: { fontSize: 20, fontWeight: "700", color: colors.white, marginTop: 12 },
+    viewerWatchingRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
     viewerCountText: { fontSize: 14, color: "rgba(255,255,255,0.7)" },
+    pulseRing: {
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      borderWidth: 3,
+      borderColor: "#FF3B30",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     errorText: { fontSize: 14, color: colors.white, marginTop: 8, textAlign: "center", paddingHorizontal: 32 },
     retryBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 },
     retryText: { fontSize: 14, fontWeight: "700", color: colors.white },

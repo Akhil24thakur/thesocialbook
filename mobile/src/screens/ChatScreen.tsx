@@ -413,8 +413,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     justifyContent: "flex-start",
   },
   bubble: {
-    maxWidth: "78%",
-    flexShrink: 0,
+    maxWidth: "80%",
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -422,10 +421,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   bubbleMine: {
     backgroundColor: colors.primary,
     borderBottomRightRadius: 6,
+    alignSelf: "flex-end",
   },
   bubbleTheirs: {
     backgroundColor: colors.card,
     borderBottomLeftRadius: 6,
+    alignSelf: "flex-start",
   },
   bubbleText: {
     fontSize: 15,
