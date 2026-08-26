@@ -20,10 +20,8 @@ import { useTheme } from "../theme-context";
 
 export default function SignupScreen({ navigation }: any) {
   const { register } = useAuth();
-  const [mode, setMode] = useState<"phone" | "email">("phone");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [contact, setContact] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -49,12 +47,15 @@ export default function SignupScreen({ navigation }: any) {
       setError("Please enter your full name");
       return;
     }
-    if (mode === "phone" && !/^[6-9]\d{9}$/.test(phone)) {
-      setError("Enter a valid 10-digit Indian mobile number");
+    const val = contact.trim();
+    if (!val) {
+      setError("Enter phone number or email");
       return;
     }
-    if (mode === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("Enter a valid email address");
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    const isPhone = /^[6-9]\d{9}$/.test(val);
+    if (!isEmail && !isPhone) {
+      setError("Enter a valid phone number or email");
       return;
     }
     if (password.length < 8) {
@@ -66,7 +67,7 @@ export default function SignupScreen({ navigation }: any) {
       await register(
         name.trim(),
         password,
-        mode === "phone" ? { phone } : { email: email.trim().toLowerCase() }
+        isPhone ? { phone: val } : { email: val.toLowerCase() }
       );
     } catch (e: any) {
       setError(e.message ?? "Signup failed");
@@ -86,7 +87,7 @@ export default function SignupScreen({ navigation }: any) {
           <View style={[styles.brand, compact && styles.brandCompact]}>
             <BrandLogo size={compact ? 46 : 76} />
             <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
-            <Text style={[styles.tagline, compact && styles.taglineCompact]}>Join India's social network</Text>
+            <Text style={[styles.tagline, compact && styles.taglineCompact]}>Join India's social</Text>
             <View style={styles.tricolor}>
               <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
               <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
@@ -95,21 +96,6 @@ export default function SignupScreen({ navigation }: any) {
           </View>
 
           <View style={styles.form}>
-            <View style={styles.modeRow}>
-              <TouchableOpacity
-                style={[styles.modeBtn, mode === "phone" && styles.modeBtnActive]}
-                onPress={() => setMode("phone")}
-              >
-                <Text style={[styles.modeText, mode === "phone" && styles.modeTextActive]}>Phone</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modeBtn, mode === "email" && styles.modeBtnActive]}
-                onPress={() => setMode("email")}
-              >
-                <Text style={[styles.modeText, mode === "email" && styles.modeTextActive]}>Email</Text>
-              </TouchableOpacity>
-            </View>
-
             <View style={styles.inputWrap}>
               <Icon name="person-outline" size={18} color={colors.textSecondary} />
               <TextInput
@@ -121,36 +107,18 @@ export default function SignupScreen({ navigation }: any) {
               />
             </View>
 
-            {mode === "phone" && (
-              <View style={styles.inputWrap}>
-                <Icon name="call-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Mobile number (10 digits)"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-            )}
-
-            {mode === "email" && (
-              <View style={styles.inputWrap}>
-                <Icon name="mail-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={setEmail}
-                />
-              </View>
-            )}
+            <View style={styles.inputWrap}>
+              <Icon name="call-outline" size={18} color={colors.textSecondary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Phone number or email"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={contact}
+                onChangeText={setContact}
+              />
+            </View>
 
             <View style={styles.inputWrap}>
               <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
@@ -165,7 +133,6 @@ export default function SignupScreen({ navigation }: any) {
               <TouchableOpacity
                 onPress={() => setShowPassword((v) => !v)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               >
                 <Icon
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -192,7 +159,7 @@ export default function SignupScreen({ navigation }: any) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.goBack()}>
               <Text style={styles.linkText}>
-                Already have an account? <Text style={styles.linkStrong}>Log in</Text>
+                Already have an account? <Text style={styles.linkStrong}>Login</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -270,30 +237,6 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
     backgroundColor: colors.background,
-  },
-  modeRow: {
-    flexDirection: "row",
-    marginBottom: 14,
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    padding: 4,
-  },
-  modeBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  modeBtnActive: {
-    backgroundColor: colors.primary,
-  },
-  modeText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  modeTextActive: {
-    color: colors.white,
   },
   input: {
     flex: 1,

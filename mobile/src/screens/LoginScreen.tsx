@@ -18,14 +18,9 @@ import Icon from "../components/Icon";
 import { brandGradient, type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
-type Mode = "phone" | "username" | "email";
-
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
-  const [mode, setMode] = useState<Mode>("phone");
-  const [phone, setPhone] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -45,30 +40,17 @@ export default function LoginScreen({ navigation }: any) {
 
   const compact = kbHeight > 0;
 
-  const submitPhone = async () => {
-    setError("");
-    if (!/^[6-9]\d{9}$/.test(phone)) {
-      setError("Enter a valid 10-digit Indian mobile number");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-    setBusy(true);
-    try {
-      await login(phone, password, "phone");
-    } catch (e: any) {
-      setError(e.message ?? "Login failed");
-    } finally {
-      setBusy(false);
-    }
+  const detectType = (val: string): "phone" | "email" | "username" => {
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) return "email";
+    if (/^[6-9]\d{9}$/.test(val)) return "phone";
+    return "username";
   };
 
-  const submitUsername = async () => {
+  const submit = async () => {
     setError("");
-    if (!username.trim()) {
-      setError("Enter your username");
+    const val = identifier.trim();
+    if (!val) {
+      setError("Enter phone number, email, or username");
       return;
     }
     if (password.length < 8) {
@@ -77,27 +59,8 @@ export default function LoginScreen({ navigation }: any) {
     }
     setBusy(true);
     try {
-      await login(username, password, "username");
-    } catch (e: any) {
-      setError(e.message ?? "Login failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitEmail = async () => {
-    setError("");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("Enter a valid email address");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-    setBusy(true);
-    try {
-      await login(email.trim().toLowerCase(), password, "email");
+      const type = detectType(val);
+      await login(type === "email" ? val.toLowerCase() : val, password, type);
     } catch (e: any) {
       setError(e.message ?? "Login failed");
     } finally {
@@ -117,194 +80,80 @@ export default function LoginScreen({ navigation }: any) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        <View style={[styles.brand, compact && styles.brandCompact]}>
-          <BrandLogo size={compact ? 46 : 76} />
-          <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
-          <Text style={[styles.tagline, compact && styles.taglineCompact]}>India's own social network</Text>
-          <View style={styles.tricolor}>
-            <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
-            <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
-            <View style={[styles.tricolorBar, { backgroundColor: colors.green }]} />
+          <View style={[styles.brand, compact && styles.brandCompact]}>
+            <BrandLogo size={compact ? 46 : 76} />
+            <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
+            <Text style={[styles.tagline, compact && styles.taglineCompact]}>India's own social</Text>
+            <View style={styles.tricolor}>
+              <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
+              <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
+              <View style={[styles.tricolorBar, { backgroundColor: colors.green }]} />
+            </View>
           </View>
-        </View>
 
-        <View style={styles.form}>
-          {mode === "phone" && (
-            <>
-              <View style={styles.inputWrap}>
-                <Icon name="call-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Mobile number (10 digits)"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-              <View style={styles.inputWrap}>
-                <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor={colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword((v) => !v)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                >
-                  <Icon
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+          <View style={styles.form}>
+            <View style={styles.inputWrap}>
+              <Icon name="person-outline" size={18} color={colors.textSecondary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Phone, email, or username"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={identifier}
+                onChangeText={setIdentifier}
+              />
+            </View>
 
-          {mode === "username" && (
-            <>
-              <View style={styles.inputWrap}>
-                <Icon name="person-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Username"
-                  placeholderTextColor={colors.textSecondary}
-                  autoCapitalize="none"
-                  value={username}
-                  onChangeText={setUsername}
+            <View style={styles.inputWrap}>
+              <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              >
+                <Icon
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={colors.textSecondary}
                 />
-              </View>
-              <View style={styles.inputWrap}>
-                <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor={colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword((v) => !v)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                >
-                  <Icon
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+              </TouchableOpacity>
+            </View>
 
-          {mode === "email" && (
-            <>
-              <View style={styles.inputWrap}>
-                <Icon name="mail-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={setEmail}
-                />
-              </View>
-              <View style={styles.inputWrap}>
-                <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor={colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword((v) => !v)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                >
-                  <Icon
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+            {!!error && <Text style={styles.error}>{error}</Text>}
+            <TouchableOpacity style={styles.button} onPress={submit} disabled={busy} activeOpacity={0.85}>
+              <LinearGradient
+                colors={brandGradient(colors)}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.buttonGradient}
+              >
+                {busy ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.buttonText}>Login</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
-          {!!error && <Text style={styles.error}>{error}</Text>}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={mode === "phone" ? submitPhone : mode === "username" ? submitUsername : submitEmail}
-            disabled={busy}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={brandGradient(colors)}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.buttonText}>Log In</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
+              <Text style={styles.linkText}>Forgot password?</Text>
+            </TouchableOpacity>
 
-          {mode === "phone" && (
-            <>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("email")}>
-                <Text style={styles.linkText}>
-                  Log in with email instead
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("username")}>
-                <Text style={styles.linkText}>
-                  Log in with username instead
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
-                <Text style={styles.linkText}>
-                  Forgot password?
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Signup")}>
-                <Text style={styles.linkText}>
-                  New to SocialBook? <Text style={styles.linkStrong}>Create an account</Text>
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {(mode === "username" || mode === "email") && (
-            <>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
-                <Text style={styles.linkText}>
-                  Forgot password?
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => setMode("phone")}>
-                <Text style={styles.linkText}>Back to phone login</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+            <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Signup")}>
+              <Text style={styles.linkText}>
+                New to SocialBook? <Text style={styles.linkStrong}>Create an account</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
