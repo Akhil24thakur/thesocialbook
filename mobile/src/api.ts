@@ -224,6 +224,8 @@ export const api = {
   shareToStory: (token: string, postId: number) =>
     request<{ story: StoryItem; imageUrl: string }>(`/api/posts/${postId}/share-story`, token, { method: "POST" }),
   live: {
+    list: (token: string) =>
+      request<{ sessions: any[] }>("/api/live", token),
     start: (token: string, title?: string) =>
       request<{ session: any }>("/api/live/start", token, { method: "POST", body: { title } }),
     get: (token: string, id: number) => request<{ session: any }>(`/api/live/${id}`, token),

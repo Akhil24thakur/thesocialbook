@@ -8,6 +8,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   SafeAreaView,
@@ -28,7 +29,9 @@ import { connectWs } from "../ws";
 
 type RouteParams = {
   sessionId?: number;
-  title?: string;
+  name?: string;
+  avatarUrl?: string;
+  otherId?: number;
 };
 
 export default function LiveStreamScreen() {
@@ -38,6 +41,8 @@ export default function LiveStreamScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, insets), [colors, insets]);
+
+  const isViewer = !!route.params?.sessionId && route.params.sessionId > 0;
 
   const [hasPermission, setHasPermission] = useState(false);
   const [cameraType, setCameraType] = useState<CameraType>("back");
@@ -54,16 +59,20 @@ export default function LiveStreamScreen() {
   const [viewersLoading, setViewersLoading] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
-  const streamKeyRef = useRef<string>("");
-  const rtmpUrlRef = useRef<string>("");
   const wsConnectedRef = useRef(false);
 
+  const isHost = session?.hostId === user?.id;
+
   useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      const { status: micStatus } = await requestRecordingPermissionsAsync();
-      setHasPermission(status === "granted" && micStatus === "granted");
-    })();
+    if (!isViewer) {
+      (async () => {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        const { status: micStatus } = await requestRecordingPermissionsAsync();
+        setHasPermission(status === "granted" && micStatus === "granted");
+      })();
+    } else {
+      setHasPermission(true);
+    }
 
     connectWs(token);
 
@@ -76,9 +85,12 @@ export default function LiveStreamScreen() {
     });
 
     const unsubscribeLiveEnded = onWsEvent("live_ended", null, (payload: any) => {
-      if (payload?.sessionId === session?.id) {
+      if (payload?.sessionId === (session?.id ?? route.params?.sessionId)) {
         setIsStreaming(false);
         setStreamStatus("idle");
+        if (isViewer) {
+          Alert.alert("Live Ended", "The live stream has ended.");
+        }
         navigation.goBack();
       }
     });
@@ -88,7 +100,7 @@ export default function LiveStreamScreen() {
       unsubscribeLiveStarted();
       unsubscribeLiveEnded();
     };
-  }, [token, navigation, session?.id]);
+  }, [token, navigation, session?.id, route.params?.sessionId, isViewer]);
 
   useEffect(() => {
     if (route.params?.sessionId) {
@@ -98,14 +110,13 @@ export default function LiveStreamScreen() {
 
   const joinExistingSession = async (sessionId: number) => {
     try {
+      setStreamStatus("connecting");
       const res = await api.live.get(token!, sessionId);
       setSession(res.session);
-      streamKeyRef.current = res.session.streamKey ?? "";
-      rtmpUrlRef.current = res.session.rtmpUrl ?? "";
       await joinLive(sessionId);
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Failed to join live");
-      navigation.goBack();
+      setStreamStatus("error");
+      setStreamError(e.message ?? "Failed to join live");
     }
   };
 
@@ -114,8 +125,6 @@ export default function LiveStreamScreen() {
       setStreamStatus("connecting");
       const res = await api.live.start(token!);
       setSession(res.session);
-      streamKeyRef.current = res.session.streamKey ?? "";
-      rtmpUrlRef.current = res.session.rtmpUrl ?? "";
       await joinLive(res.session.id);
     } catch (e: any) {
       setStreamStatus("error");
@@ -139,7 +148,11 @@ export default function LiveStreamScreen() {
   const endLive = async () => {
     if (!session) return;
     try {
-      await api.live.end(token!, session.id);
+      if (isHost) {
+        await api.live.end(token!, session.id);
+      } else {
+        await api.live.leave(token!, session.id);
+      }
       sendWs({ type: "leave_live", sessionId: session.id });
       wsConnectedRef.current = false;
       setIsStreaming(false);
@@ -177,10 +190,14 @@ export default function LiveStreamScreen() {
 
   const handleBackPress = () => {
     if (isStreaming) {
-      Alert.alert("End Live?", "Are you sure you want to end the live stream?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "End Live", style: "destructive", onPress: endLive },
-      ]);
+      if (isHost) {
+        Alert.alert("End Live?", "Are you sure you want to end the live stream?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "End Live", style: "destructive", onPress: endLive },
+        ]);
+      } else {
+        endLive();
+      }
       return true;
     }
     navigation.goBack();
@@ -190,7 +207,7 @@ export default function LiveStreamScreen() {
   useEffect(() => {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
     return () => backHandler.remove();
-  }, [isStreaming]);
+  }, [isStreaming, isHost]);
 
   if (!hasPermission) {
     return (
@@ -198,6 +215,104 @@ export default function LiveStreamScreen() {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.permissionText}>Requesting camera & microphone permissions...</Text>
       </View>
+    );
+  }
+
+  const hostName = route.params?.name || session?.host?.name || "Live";
+  const hostAvatar = route.params?.avatarUrl || session?.host?.avatarUrl || null;
+
+  if (isViewer) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.viewerBg}>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.backBtn} onPress={handleBackPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Icon name="chevron-back" size={28} color={colors.white} />
+            </TouchableOpacity>
+            <View style={styles.titleWrap}>
+              <View style={styles.hostInfo}>
+                <Avatar name={hostName} size={28} imageUrl={hostAvatar} />
+                <Text style={styles.liveTitle}>{hostName}</Text>
+              </View>
+              <View style={styles.liveBadge}>
+                <View style={[styles.liveDot, { backgroundColor: streamStatus === "live" ? "#00FF00" : colors.danger }]} />
+                <Text style={styles.liveText}>{streamStatus === "live" ? "LIVE" : streamStatus.toUpperCase()}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.viewerWrap} onPress={loadViewers} disabled={!isStreaming}>
+              <Icon name="people" size={18} color={colors.white} />
+              <Text style={styles.viewerCount}>{viewerCount}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {streamStatus === "connecting" && (
+            <View style={styles.centerContent}>
+              <Avatar name={hostName} size={100} imageUrl={hostAvatar} />
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
+              <Text style={styles.connectingText}>Joining live...</Text>
+            </View>
+          )}
+
+          {streamStatus === "live" && (
+            <View style={styles.centerContent}>
+              <Avatar name={hostName} size={120} imageUrl={hostAvatar} />
+              <Text style={styles.viewerLiveText}>{hostName} is live</Text>
+              <Text style={styles.viewerCountText}>{viewerCount} watching</Text>
+            </View>
+          )}
+
+          {streamError && (
+            <View style={styles.centerContent}>
+              <Icon name="alert-circle" size={48} color={colors.danger} />
+              <Text style={styles.errorText}>{streamError}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => { setStreamError(null); setStreamStatus("idle"); navigation.goBack(); }}>
+                <Text style={styles.retryText}>Go Back</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.bottomBar}>
+            <TouchableOpacity style={styles.leaveBtn} onPress={endLive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Icon name="close-circle" size={56} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <Modal visible={viewersModalVisible} transparent animationType="slide" onRequestClose={() => setViewersModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.viewersModal}>
+              <View style={styles.viewersHeader}>
+                <Text style={styles.viewersTitle}>Viewers ({viewerCount})</Text>
+                <TouchableOpacity onPress={() => setViewersModalVisible(false)}>
+                  <Icon name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              {viewersLoading ? (
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 32 }} />
+              ) : viewers.length === 0 ? (
+                <Text style={styles.noViewers}>No viewers yet</Text>
+              ) : (
+                <FlatList
+                  data={viewers}
+                  keyExtractor={(item) => String(item.id)}
+                  renderItem={({ item }) => (
+                    <View style={styles.viewerRow}>
+                      <Avatar name={item.name} size={36} imageUrl={item.avatarUrl} />
+                      <View style={styles.viewerInfo}>
+                        <View style={styles.viewerNameRow}>
+                          <Text style={styles.viewerName}>{item.name}</Text>
+                          {item.isVerified && <Icon name="checkmark-circle" size={14} color="#1877F2" />}
+                        </View>
+                        <Text style={styles.viewerUsername}>@{item.username}</Text>
+                      </View>
+                    </View>
+                  )}
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
     );
   }
 
@@ -300,7 +415,7 @@ export default function LiveStreamScreen() {
                     <View style={styles.viewerInfo}>
                       <View style={styles.viewerNameRow}>
                         <Text style={styles.viewerName}>{item.name}</Text>
-                        {item.isVerified && <Icon name="checkmark-circle" size={14} color={colors.primary} />}
+                        {item.isVerified && <Icon name="checkmark-circle" size={14} color="#1877F2" />}
                       </View>
                       <Text style={styles.viewerUsername}>@{item.username}</Text>
                     </View>
@@ -319,6 +434,7 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: "#000" },
     camera: { flex: 1 },
+    viewerBg: { flex: 1, backgroundColor: "#1A1A2E" },
     overlay: { flex: 1, backgroundColor: "transparent" },
     topBar: {
       flexDirection: "row",
@@ -330,13 +446,14 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     },
     backBtn: { padding: 4 },
     titleWrap: { flex: 1, alignItems: "center" },
+    hostInfo: { flexDirection: "row", alignItems: "center", gap: 8 },
     liveTitle: { fontSize: 17, fontWeight: "700", color: colors.white },
     liveBadge: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
     liveDot: { width: 6, height: 6, borderRadius: 3 },
     liveText: { fontSize: 11, fontWeight: "800", color: colors.white },
     viewerWrap: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
     viewerCount: { fontSize: 14, fontWeight: "700", color: colors.white },
-    centerContent: { flex: 1, alignItems: "center", justifyContent: "center" },
+    centerContent: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
     goLiveBtn: {
       width: 160,
       height: 160,
@@ -349,6 +466,8 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     goLiveText: { fontSize: 20, fontWeight: "800", color: colors.white },
     goLiveSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", textAlign: "center" },
     connectingText: { fontSize: 16, color: colors.white, marginTop: 12 },
+    viewerLiveText: { fontSize: 20, fontWeight: "700", color: colors.white, marginTop: 12 },
+    viewerCountText: { fontSize: 14, color: "rgba(255,255,255,0.7)" },
     errorText: { fontSize: 14, color: colors.white, marginTop: 8, textAlign: "center", paddingHorizontal: 32 },
     retryBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 },
     retryText: { fontSize: 14, fontWeight: "700", color: colors.white },
@@ -361,6 +480,7 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     },
     controlBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(10,14,22,0.6)", alignItems: "center", justifyContent: "center" },
     endBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" },
+    leaveBtn: { alignItems: "center", justifyContent: "center" },
     permissionText: { marginTop: 16, color: colors.white, textAlign: "center" },
 
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },

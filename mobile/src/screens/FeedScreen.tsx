@@ -20,7 +20,7 @@ import { Story, StoryGroup } from "../components/home/StoryViewer";
 import { storyGroupsFromApi } from "../data/stories";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
-import type { Post, StoryItem } from "../types";
+import type { Post, StoryItem, LiveSession } from "../types";
 
 const FEED_PAGE_SIZE = 15;
 
@@ -33,6 +33,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   const { token, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [storyItems, setStoryItems] = useState<StoryItem[]>([]);
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -51,13 +52,15 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
       refresh ? setRefreshing(true) : setLoading(true);
       try {
         if (refresh) seedRef.current = newSeed();
-        const [feedRes, storiesRes] = await Promise.all([
+        const [feedRes, storiesRes, liveRes] = await Promise.all([
           api.feed(token, { seed: seedRef.current, offset: 0, limit: FEED_PAGE_SIZE }),
           api.stories(token),
+          api.live.list(token).catch(() => ({ sessions: [] })),
         ]);
         setPosts(feedRes.posts);
         setHasMore(feedRes.total > feedRes.posts.length);
         setStoryItems(storiesRes.stories);
+        setLiveSessions(liveRes.sessions ?? []);
         setError("");
       } catch (e: any) {
         setError(e.message ?? "Could not load feed");
@@ -195,15 +198,17 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         <StoriesStrip
           groups={friendGroups}
           myStoryGroup={myStoryGroup}
+          liveSessions={liveSessions.filter((s) => s.hostId !== user?.id)}
           userName={user?.name ?? "?"}
           userAvatarUrl={user?.avatarUrl}
           onRefresh={load}
           onDeleteStory={onDeleteStory}
           onProfile={(id) => navigation.navigate("UserProfile", { userId: id })}
+          onPressLive={(session) => navigation.navigate("Live", { sessionId: session.id, name: session.host.name, avatarUrl: session.host.avatarUrl, otherId: session.hostId })}
         />
       </View>
     ),
-    [friendGroups, myStoryGroup, user?.name, user?.avatarUrl, load, onDeleteStory, navigation, colors]
+    [friendGroups, myStoryGroup, liveSessions, user, load, onDeleteStory, navigation, colors]
   );
 
   const renderItem = useCallback(

@@ -17,23 +17,28 @@ import MusicPickerModal from "./MusicPickerModal";
 import { useStoryUpload } from "./useStoryUpload";
 import { storyGradient, type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
+import type { LiveSession } from "../../types";
 
 export default function StoriesStrip({
   groups,
   myStoryGroup,
+  liveSessions,
   userName,
   userAvatarUrl,
   onRefresh,
   onDeleteStory,
   onProfile,
+  onPressLive,
 }: {
   groups: StoryGroup[];
   myStoryGroup: StoryGroup | null;
+  liveSessions: LiveSession[];
   userName: string;
   userAvatarUrl?: string | null;
   onRefresh: () => Promise<void>;
   onDeleteStory: (id: number) => Promise<void>;
   onProfile?: (userId: number) => void;
+  onPressLive?: (session: LiveSession) => void;
 }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { addOpen, setAddOpen, previewUri, setPreviewUri, uploading, musicOpen, setMusicOpen, music, setMusic, pickCamera, pickGallery, openMusic, confirmUpload } =
@@ -62,15 +67,25 @@ export default function StoriesStrip({
     }
   };
 
+  type StripItem =
+    | { kind: "live"; session: LiveSession }
+    | { kind: "story"; group: StoryGroup; index: number };
+
+  const stripData = useMemo<StripItem[]>(() => {
+    const items: StripItem[] = liveSessions.map((s) => ({ kind: "live", session: s }));
+    groups.forEach((g, i) => items.push({ kind: "story", group: g, index: i }));
+    return items;
+  }, [liveSessions, groups]);
+
   const ownRingImage = myStoryGroup?.stories[0]?.imageUrl ?? null;
 
   return (
     <View style={styles.card}>
       <FlatList
-        data={groups}
+        data={stripData}
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, i) => String(i)}
+        keyExtractor={(item) => item.kind === "live" ? `live-${item.session.id}` : `story-${item.index}`}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.item}>
@@ -100,22 +115,47 @@ export default function StoriesStrip({
             <Text style={styles.name}>Yours</Text>
           </View>
         }
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={styles.item}
-            onPress={() => setViewerIndex(index + (myStoryGroup ? 1 : 0))}
-            accessibilityLabel={`${item.name}'s story`}
-          >
-            <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
-              <View style={styles.avatarPad}>
-                <Avatar name={item.name} size={50} imageUrl={item.avatarUrl} />
-              </View>
-            </LinearGradient>
-            <Text style={styles.name} numberOfLines={1}>
-              {item.name.split(" ")[0]}
-            </Text>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          if (item.kind === "live") {
+            const s = item.session;
+            return (
+              <TouchableOpacity
+                style={styles.item}
+                onPress={() => onPressLive?.(s)}
+                accessibilityLabel={`${s.host.name} is live`}
+              >
+                <View style={styles.liveRing}>
+                  <View style={styles.avatarPad}>
+                    <Avatar name={s.host.name} size={50} imageUrl={s.host.avatarUrl} />
+                  </View>
+                  <View style={styles.liveBadge}>
+                    <Text style={styles.liveBadgeText}>LIVE</Text>
+                  </View>
+                </View>
+                <Text style={[styles.name, styles.liveName]} numberOfLines={1}>
+                  {s.host.name.split(" ")[0]}
+                </Text>
+              </TouchableOpacity>
+            );
+          }
+          const group = item.group;
+          return (
+            <TouchableOpacity
+              style={styles.item}
+              onPress={() => setViewerIndex(item.index + (myStoryGroup ? 1 : 0))}
+              accessibilityLabel={`${group.name}'s story`}
+            >
+              <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
+                <View style={styles.avatarPad}>
+                  <Avatar name={group.name} size={50} imageUrl={group.avatarUrl} />
+                </View>
+              </LinearGradient>
+              <Text style={styles.name} numberOfLines={1}>
+                {group.name.split(" ")[0]}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
       />
 
       <AddStorySheet
@@ -205,6 +245,29 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     borderRadius: 32,
     padding: 2.5,
   },
+  liveRing: {
+    borderRadius: 32,
+    padding: 2.5,
+    borderWidth: 2.5,
+    borderColor: "#FF3B30",
+    position: "relative",
+  },
+  liveBadge: {
+    position: "absolute",
+    bottom: -2,
+    left: "50%",
+    marginLeft: -14,
+    backgroundColor: "#FF3B30",
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  liveBadgeText: {
+    color: "#FFF",
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
   avatarPad: {
     borderRadius: 28,
     overflow: "hidden",
@@ -224,5 +287,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     fontWeight: "500",
     color: colors.text,
     maxWidth: 64,
+  },
+  liveName: {
+    color: "#FF3B30",
+    fontWeight: "700",
   },
 });

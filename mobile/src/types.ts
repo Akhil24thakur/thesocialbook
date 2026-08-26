@@ -101,3 +101,23 @@ export interface ReelFeedItem {
   thumbnailUrl: string | null;
   publishedAt: string | null;
 }
+
+export interface LiveSession {
+  id: number;
+  hostId: number;
+  title: string | null;
+  status: string;
+  streamKey: string;
+  rtmpUrl: string;
+  playbackUrl: string;
+  startedAt: string;
+  endedAt: string | null;
+  host: {
+    id: number;
+    name: string;
+    username?: string;
+    avatarUrl: string | null;
+    isVerified?: boolean;
+  };
+  viewerCount?: number;
+}
