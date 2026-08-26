@@ -16,7 +16,7 @@ export default function DownloadButton() {
       .then((data) => {
         if (data.tag_name) setVersion(data.tag_name.replace("v", ""));
         const apk = data.assets?.find(
-          (a: { name: string }) => a.name === "SocialBook.apk"
+          (a: { name: string }) => a.name.endsWith(".apk")
         );
         if (apk?.browser_download_url) setUrl(apk.browser_download_url);
       })
