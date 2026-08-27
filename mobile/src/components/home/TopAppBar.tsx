@@ -21,35 +21,36 @@ export default function TopAppBar({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   return (
- <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
-      <TouchableOpacity
-        onPress={onNewPost}
-        accessibilityLabel="Create post"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        style={styles.createWrap}
-      >
-        <LinearGradient
-          colors={brandGradient(colors)}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.createBtn}
+    <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+      <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
+        <TouchableOpacity
+          onPress={onNewPost}
+          accessibilityLabel="Create post"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.createWrap}
         >
-          <Icon name="add" size={20} color={colors.white} />
-        </LinearGradient>
-      </TouchableOpacity>
-      <View style={styles.brand}>
-        <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
+          <View style={styles.createBtn}>
+            <Icon name="add" size={22} color={colors.white} />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.brand}>
+          <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
+        </View>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={onNotify}
+          accessibilityLabel="Notifications"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Icon name="notifications-outline" size={22} color={colors.white} />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.iconBtn}
-        onPress={onNotify}
-        accessibilityLabel="Notifications"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Icon name="notifications-outline" size={22} color={colors.text} />
-        <View style={[styles.badge, { backgroundColor: unreadCount > 0 ? colors.danger : colors.text }]} />
-      </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -58,47 +59,54 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingBottom: 6,
-    backgroundColor: colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 21,
   },
   createWrap: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     alignItems: "center",
     justifyContent: "center",
   },
   createBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
   },
- brand: {
+  brand: {
     flex: 1,
     alignItems: "center",
   },
   brandImg: {
     width: 132,
     height: 34,
+    tintColor: "#FFFFFF",
   },
   badge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    borderWidth: 1.5,
-    borderColor: colors.card,
+    top: 4,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: "800",
   },
 });

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -13,13 +14,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { api, uploadImage } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import RichPasteModal from "../components/RichPasteModal";
-import { type Colors } from "../theme";
+import { brandGradient, type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
 export default function CreatePostScreen({ navigation, route }: any) {
@@ -49,7 +51,6 @@ export default function CreatePostScreen({ navigation, route }: any) {
     const start = selection?.start ?? content.length;
     const end = selection?.end ?? start;
     if (end < start) {
-      // normalize reverse selection
       const t = start;
       selection.start = end;
       selection.end = t;
@@ -135,7 +136,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
 
   const onWrapLayout = (e: any) => {
     const w = e.nativeEvent.layout.width;
-    if (w > 0 && ratio) setImgH(Math.max(160, Math.min(480, w * ratio)));
+    if (w > 0 && ratio) setImgH(Math.max(180, Math.min(440, w * ratio)));
   };
 
   const submit = async () => {
@@ -163,19 +164,25 @@ export default function CreatePostScreen({ navigation, route }: any) {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} disabled={busy || uploading}>
-          <Text style={styles.cancel}>Cancel</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Create Post</Text>
-        <TouchableOpacity onPress={submit} disabled={!canPost}>
-          {busy || uploading ? (
-            <ActivityIndicator color={colors.primary} size="small" />
-          ) : (
-            <Text style={[styles.postBtn, !canPost && styles.postBtnDisabled]}>Post</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} disabled={busy || uploading} style={styles.headerBtn}>
+            <Icon name="close" size={22} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Post</Text>
+          <TouchableOpacity
+            onPress={submit}
+            disabled={!canPost}
+            style={[styles.headerBtn, styles.postBtn, !canPost && styles.postBtnDisabled]}
+          >
+            {busy || uploading ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <Text style={styles.postBtnText}>Share</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.bodyScroll}
@@ -183,15 +190,21 @@ export default function CreatePostScreen({ navigation, route }: any) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.row}>
-          <Avatar name={user?.name ?? "?"} size={40} />
-          <Text style={styles.name}>{user?.name}</Text>
+        <View style={styles.authorRow}>
+          <Avatar name={user?.name ?? "?"} size={44} />
+          <View style={styles.authorInfo}>
+            <Text style={styles.authorName}>{user?.name}</Text>
+            <View style={styles.audienceRow}>
+              <Icon name="globe-outline" size={12} color={colors.textSecondary} />
+              <Text style={styles.audienceText}>Public</Text>
+            </View>
+          </View>
         </View>
 
         <TextInput
           style={styles.input}
           placeholder="What's on your mind?"
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={colors.textSecondary + "99"}
           multiline
           autoFocus
           maxLength={5000}
@@ -205,42 +218,76 @@ export default function CreatePostScreen({ navigation, route }: any) {
           }
         />
 
-        <View style={styles.toolbar}>
-          <TouchableOpacity
-            style={styles.toolBtn}
-            onPress={() => wrap("**", "**")}
-            accessibilityLabel="Bold"
-          >
-            <Text style={[styles.toolText, styles.toolBold]}>B</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toolBtn}
-            onPress={() => wrap("*", "*")}
-            accessibilityLabel="Italic"
-          >
-            <Text style={[styles.toolText, styles.toolItalic]}>I</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toolBtn}
-            onPress={() => wrap("_", "_")}
-            accessibilityLabel="Underline"
-          >
-            <Text style={[styles.toolText, styles.toolUnderline]}>U</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toolBtn}
-            onPress={openLinkDialog}
-            accessibilityLabel="Add link"
-          >
-            <Icon name="link-outline" size={19} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toolBtn}
-            onPress={() => setPasteOpen(true)}
-            accessibilityLabel="Paste rich text"
-          >
-            <Icon name="clipboard-outline" size={19} color={colors.text} />
-          </TouchableOpacity>
+        {photo && (
+          <View style={styles.photoPreview} onLayout={onWrapLayout}>
+            <Image
+              source={{ uri: photo.uri }}
+              style={[styles.photo, imgH ? { height: imgH } : null]}
+              resizeMode="cover"
+              onLoad={onImageLoad}
+            />
+            <TouchableOpacity
+              style={styles.removePhoto}
+              onPress={() => setPhoto(null)}
+              disabled={uploading}
+            >
+              <Icon name="close-circle" size={28} color={colors.white} />
+            </TouchableOpacity>
+            {uploading && (
+              <View style={styles.uploadOverlay}>
+                <ActivityIndicator size="large" color={colors.white} />
+                <Text style={styles.uploadText}>Uploading...</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.actionsCard}>
+          <Text style={styles.addLabel}>Add to your post</Text>
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionItem} onPress={pickPhoto} disabled={busy || uploading}>
+              <View style={[styles.actionIconWrap, { backgroundColor: "#FEF3C7" }]}>
+                <Icon name="image" size={22} color="#F59E0B" />
+              </View>
+              <Text style={styles.actionLabel}>Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={() => wrap("**", "**")}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: "#EDE9FE" }]}>
+                <Text style={[styles.actionBold, { color: colors.primary }]}>B</Text>
+              </View>
+              <Text style={styles.actionLabel}>Bold</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={() => wrap("*", "*")}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: "#DBEAFE" }]}>
+                <Text style={[styles.actionItalic, { color: "#3B82F6" }]}>I</Text>
+              </View>
+              <Text style={styles.actionLabel}>Italic</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={openLinkDialog}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: "#D1FAE5" }]}>
+                <Icon name="link" size={20} color="#10B981" />
+              </View>
+              <Text style={styles.actionLabel}>Link</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={() => setPasteOpen(true)}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: "#FCE7F3" }]}>
+                <Icon name="clipboard" size={20} color="#EC4899" />
+              </View>
+              <Text style={styles.actionLabel}>Paste</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <RichPasteModal
@@ -257,7 +304,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
         >
           <View style={styles.modalBackdrop}>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Add Link</Text>
+              <Text style={styles.modalTitle}>Insert Link</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="https://example.com"
@@ -270,53 +317,25 @@ export default function CreatePostScreen({ navigation, route }: any) {
                 autoFocus
               />
               <View style={styles.modalBtns}>
-                <TouchableOpacity style={styles.modalBtn} onPress={() => setLinkOpen(false)}>
-                  <Text style={styles.modalCancel}>Cancel</Text>
+                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setLinkOpen(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalBtn} onPress={insertLink}>
-                  <Text style={styles.modalOk}>Insert</Text>
+                <TouchableOpacity style={styles.modalOkBtn} onPress={insertLink}>
+                  <Text style={styles.modalOkText}>Insert</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         </Modal>
 
-        {photo && (
-          <View style={styles.photoWrap} onLayout={onWrapLayout}>
-            <Image
-              source={{ uri: photo.uri }}
-              style={[styles.photo, imgH ? { height: imgH } : null]}
-              resizeMode="contain"
-              onLoad={onImageLoad}
-            />
-            <TouchableOpacity
-              style={styles.removePhoto}
-              onPress={() => setPhoto(null)}
-              disabled={uploading}
-            >
-              <Icon name="close" size={16} color={colors.white} />
-            </TouchableOpacity>
+        {!!error && (
+          <View style={styles.errorRow}>
+            <Icon name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.error}>{error}</Text>
           </View>
         )}
 
-        {uploading && (
-          <View style={styles.uploadingRow}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.uploadingText}>Uploading photo…</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[styles.photoBtn, (busy || uploading) && styles.photoBtnDisabled]}
-          onPress={pickPhoto}
-          disabled={busy || uploading}
-        >
-          <Icon name="image-outline" size={20} color={colors.primary} />
-          <Text style={styles.photoBtnText}>Add Photo</Text>
-        </TouchableOpacity>
-
-        {!!error && <Text style={styles.error}>{error}</Text>}
-        <Text style={styles.counter}>{content.length}/5000</Text>
+        <Text style={styles.counter}>{content.length} / 5000</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -331,28 +350,35 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 8,
+    paddingTop: 50,
+    paddingBottom: 12,
   },
-  cancel: {
-    fontSize: 15,
-    color: colors.textSecondary,
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  title: {
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 17,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.white,
   },
   postBtn: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.primary,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    width: "auto",
   },
   postBtnDisabled: {
     opacity: 0.4,
+  },
+  postBtnText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "700",
   },
   bodyScroll: {
     flex: 1,
@@ -360,53 +386,116 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   body: {
     padding: 16,
   },
-  row: {
+  authorRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  name: {
-    marginLeft: 10,
-    fontSize: 15,
+  authorInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  authorName: {
+    fontSize: 16,
     fontWeight: "700",
     color: colors.text,
   },
-  input: {
-    fontSize: 17,
-    lineHeight: 24,
-    color: colors.text,
-    minHeight: 90,
-    maxHeight: 240,
-    textAlignVertical: "top",
-  },
-  toolbar: {
+  audienceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    gap: 4,
+    marginTop: 2,
+  },
+  audienceText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: "500",
+  },
+  input: {
+    fontSize: 18,
+    lineHeight: 26,
+    color: colors.text,
+    minHeight: 120,
+    maxHeight: 280,
+    textAlignVertical: "top",
+    marginBottom: 12,
+  },
+  photoPreview: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: colors.border,
+  },
+  photo: {
+    width: "100%",
+    height: 220,
+    borderRadius: 16,
+  },
+  removePhoto: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
-  toolBtn: {
-    width: 38,
-    height: 34,
-    borderRadius: 8,
+  uploadText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  actionsCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
+  },
+  addLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  actionItem: {
+    alignItems: "center",
+    gap: 6,
+  },
+  actionIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
-  toolText: {
-    fontSize: 17,
-    color: colors.text,
+  actionLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.textSecondary,
   },
-  toolBold: {
+  actionBold: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  actionItalic: {
+    fontSize: 20,
     fontWeight: "700",
-  },
-  toolItalic: {
     fontStyle: "italic",
-  },
-  toolUnderline: {
-    textDecorationLine: "underline",
   },
   modalBackdrop: {
     flex: 1,
@@ -417,21 +506,21 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   modalCard: {
     width: "84%",
     backgroundColor: colors.card,
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: 20,
+    padding: 20,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   modalInput: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
     color: colors.text,
     backgroundColor: colors.background,
@@ -439,78 +528,43 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   modalBtns: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 16,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  modalOkBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+  },
+  modalOkText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    marginTop: 14,
-  },
-  modalBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  modalCancel: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  modalOk: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  photoWrap: {
     marginTop: 10,
-  },
-  photo: {
-    width: "100%",
-    height: 220,
-    borderRadius: 10,
-    backgroundColor: colors.border,
-  },
-  removePhoto: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  uploadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  uploadingText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  photoBtn: {
-    marginTop: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 11,
-  },
-  photoBtnDisabled: {
-    opacity: 0.5,
-  },
-  photoBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.primary,
   },
   error: {
     color: colors.danger,
     fontSize: 13,
-    marginTop: 8,
   },
   counter: {
-    marginTop: 12,
+    marginTop: 14,
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: "right",

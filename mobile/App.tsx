@@ -319,34 +319,33 @@ function SectionHeader({ title, onMenu }: { title: string; onMenu?: () => void }
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <View
-      style={{
-        paddingTop: insets.top + 4,
-        paddingBottom: 12,
-        backgroundColor: colors.card,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: colors.border,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 8,
-      }}
-    >
-      {onMenu ? (
-        <TouchableOpacity
-          onPress={onMenu}
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityLabel="Menu"
-        >
-          <Icon name="menu" size={22} color={colors.text} />
-        </TouchableOpacity>
-      ) : (
+    <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+      <View
+        style={{
+          paddingTop: insets.top + 4,
+          paddingBottom: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 12,
+        }}
+      >
+        {onMenu ? (
+          <TouchableOpacity
+            onPress={onMenu}
+            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Menu"
+          >
+            <Icon name="menu" size={22} color={colors.white} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+        <Text style={{ fontSize: 17, fontWeight: "700", color: colors.white }}>{title}</Text>
         <View style={{ width: 40 }} />
-      )}
-      <Text style={{ fontSize: 17, fontWeight: "700", color: colors.text }}>{title}</Text>
-      <View style={{ width: 40 }} />
-    </View>
+      </View>
+    </LinearGradient>
   );
 }
 
@@ -480,20 +479,24 @@ function HomeTabs() {
     return (
       <TouchableOpacity
         key={t.index}
-        style={styles.tabItem}
+        style={[styles.tabItem, active && styles.tabItemActive]}
         onPress={() => onTabPress(t.index)}
         accessibilityLabel={t.label}
         accessibilityState={{ selected: active }}
       >
-        <View>
-          <Icon name={active ? (t.icon as any) : (t.iconOutline as any)} size={24} color={active ? colors.primary : colors.textSecondary} />
-          {t.badge > 0 && (
-            <View style={[styles.tabBadgeDot, { backgroundColor: colors.danger }]}>
-              <Text style={styles.tabBadgeText}>{t.badge > 99 ? "99+" : t.badge}</Text>
-            </View>
-          )}
-        </View>
-        <Text style={[styles.tabLabel, { color: active ? colors.primary : colors.textSecondary }]}>{t.label}</Text>
+        {active ? (
+          <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.tabIconActive}>
+            <Icon name={t.icon as any} size={22} color={colors.white} />
+          </LinearGradient>
+        ) : (
+          <Icon name={t.iconOutline as any} size={22} color={colors.textSecondary} />
+        )}
+        {t.badge > 0 && (
+          <View style={[styles.tabBadgeDot, { backgroundColor: colors.danger }]}>
+            <Text style={styles.tabBadgeText}>{t.badge > 99 ? "99+" : t.badge}</Text>
+          </View>
+        )}
+        <Text style={[styles.tabLabel, { color: active ? colors.primary : colors.textSecondary, fontWeight: active ? "700" : "600" }]}>{t.label}</Text>
       </TouchableOpacity>
     );
   };
@@ -643,7 +646,7 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
       ) : (
         <>
           <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: "Create Post" }} />
+          <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: "Post" }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
@@ -959,32 +962,47 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   tabBar: {
     flexDirection: "row",
     alignItems: "center",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
     backgroundColor: colors.card,
-    paddingTop: 6,
+    paddingTop: 8,
+    paddingBottom: 4,
+    borderTopWidth: 0,
+    shadowColor: "#172033",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 1,
-    paddingVertical: 2,
+    gap: 2,
+    paddingVertical: 4,
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: "600",
   },
-  tabBadgeDot: {
-    position: "absolute",
-    top: -2,
-    right: -16,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+  tabItemActive: {
+    gap: 3,
+  },
+  tabIconActive: {
+    width: 40,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+  },
+  tabBadgeDot: {
+    position: "absolute",
+    top: -4,
+    right: -18,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
   },
   tabBadgeText: {
     color: colors.white,

@@ -95,13 +95,13 @@ export default function StoriesStrip({
               accessibilityLabel={myStoryGroup ? "Watch your story" : "Add to your story"}
             >
               {ownRingImage ? (
-                <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownRing}>
+                <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
                   <View style={styles.avatarPad}>
                     <Image source={{ uri: ownRingImage }} style={styles.ownAvatar} />
                   </View>
                 </LinearGradient>
               ) : (
-                <Avatar name={userName} size={56} gradient imageUrl={userAvatarUrl} />
+                <Avatar name={userName} size={58} gradient imageUrl={userAvatarUrl} />
               )}
               <TouchableOpacity
                 style={styles.plusBadge}
@@ -112,7 +112,7 @@ export default function StoriesStrip({
                 <Icon name="add" size={14} color={colors.white} />
               </TouchableOpacity>
             </TouchableOpacity>
-            <Text style={styles.name}>Yours</Text>
+            <Text style={styles.name} numberOfLines={1}>Yours</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -126,7 +126,7 @@ export default function StoriesStrip({
               >
                 <View style={styles.liveRing}>
                   <View style={styles.avatarPad}>
-                    <Avatar name={s.host.name} size={50} imageUrl={s.host.avatarUrl} />
+                    <Avatar name={s.host.name} size={52} imageUrl={s.host.avatarUrl} />
                   </View>
                   <View style={styles.liveBadge}>
                     <Text style={styles.liveBadgeText}>LIVE</Text>
@@ -147,7 +147,7 @@ export default function StoriesStrip({
             >
               <LinearGradient colors={storyGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ring}>
                 <View style={styles.avatarPad}>
-                  <Avatar name={group.name} size={50} imageUrl={group.avatarUrl} />
+                  <Avatar name={group.name} size={52} imageUrl={group.avatarUrl} />
                 </View>
               </LinearGradient>
               <Text style={styles.name} numberOfLines={1}>
@@ -208,9 +208,9 @@ export default function StoriesStrip({
 const createStyles = (colors: Colors) => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: 22,
-    paddingVertical: 12,
-    marginBottom: 12,
+    borderRadius: 24,
+    paddingVertical: 14,
+    marginBottom: 14,
     shadowColor: "#172033",
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -218,12 +218,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     elevation: 2,
   },
   list: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   item: {
     alignItems: "center",
-    marginHorizontal: 3,
-    width: 64,
+    marginHorizontal: 4,
+    width: 68,
   },
   avatarWrap: {
     marginBottom: 5,
@@ -232,9 +232,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: colors.card,
@@ -242,11 +242,11 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     justifyContent: "center",
   },
   ring: {
-    borderRadius: 32,
+    borderRadius: 34,
     padding: 2.5,
   },
   liveRing: {
-    borderRadius: 32,
+    borderRadius: 34,
     padding: 2.5,
     borderWidth: 2.5,
     borderColor: "#FF3B30",
@@ -269,24 +269,20 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     letterSpacing: 0.5,
   },
   avatarPad: {
-    borderRadius: 28,
+    borderRadius: 30,
     overflow: "hidden",
     backgroundColor: colors.card,
   },
-  ownRing: {
-    borderRadius: 31,
-    padding: 2.5,
-  },
   ownAvatar: {
-    width: 51,
-    height: 51,
+    width: 53,
+    height: 53,
   },
   name: {
     marginTop: 6,
     fontSize: 12,
     fontWeight: "500",
     color: colors.text,
-    maxWidth: 64,
+    maxWidth: 68,
   },
   liveName: {
     color: "#FF3B30",

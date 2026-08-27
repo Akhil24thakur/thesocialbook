@@ -33,10 +33,7 @@ export default function SignupScreen({ navigation }: any) {
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setKbHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
+    return () => { show.remove(); hide.remove(); };
   }, []);
 
   const compact = kbHeight > 0;
@@ -77,42 +74,44 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   return (
-    <LinearGradient colors={[colors.primaryLight, colors.background]} style={styles.container}>
+    <View style={styles.container}>
+      <LinearGradient colors={[colors.primary, colors.pink]} style={styles.topGradient}>
+        <View style={[styles.brand, compact && styles.brandCompact]}>
+          <BrandLogo size={compact ? 48 : 80} />
+          <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
+          <Text style={[styles.tagline, compact && styles.taglineCompact]}>Join India's social network</Text>
+        </View>
+        <View style={styles.tricolor}>
+          <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
+          <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
+          <View style={[styles.tricolorBar, { backgroundColor: colors.green }]} />
+        </View>
+      </LinearGradient>
+
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={styles.formWrap}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={[styles.brand, compact && styles.brandCompact]}>
-            <BrandLogo size={compact ? 46 : 76} />
-            <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
-            <Text style={[styles.tagline, compact && styles.taglineCompact]}>Join India's social</Text>
-            <View style={styles.tricolor}>
-              <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
-              <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
-              <View style={[styles.tricolorBar, { backgroundColor: colors.green }]} />
-            </View>
-          </View>
-
-          <View style={styles.form}>
+          <View style={styles.formCard}>
             <View style={styles.inputWrap}>
-              <Icon name="person-outline" size={18} color={colors.textSecondary} />
+              <Icon name="person-outline" size={20} color={colors.textSecondary} />
               <TextInput
                 style={styles.input}
                 placeholder="Full name"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={colors.textSecondary + "99"}
                 value={name}
                 onChangeText={setName}
               />
             </View>
 
             <View style={styles.inputWrap}>
-              <Icon name="call-outline" size={18} color={colors.textSecondary} />
+              <Icon name="call-outline" size={20} color={colors.textSecondary} />
               <TextInput
                 style={styles.input}
                 placeholder="Phone number or email"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={colors.textSecondary + "99"}
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={contact}
@@ -121,11 +120,11 @@ export default function SignupScreen({ navigation }: any) {
             </View>
 
             <View style={styles.inputWrap}>
-              <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
+              <Icon name="lock-closed-outline" size={20} color={colors.textSecondary} />
               <TextInput
                 style={styles.input}
                 placeholder="Password (min 8 characters)"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={colors.textSecondary + "99"}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -143,6 +142,7 @@ export default function SignupScreen({ navigation }: any) {
             </View>
 
             {!!error && <Text style={styles.error}>{error}</Text>}
+
             <TouchableOpacity style={styles.button} onPress={submit} disabled={busy} activeOpacity={0.85}>
               <LinearGradient
                 colors={brandGradient(colors)}
@@ -157,52 +157,58 @@ export default function SignupScreen({ navigation }: any) {
                 )}
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.goBack()}>
-              <Text style={styles.linkText}>
-                Already have an account? <Text style={styles.linkStrong}>Login</Text>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+              <Text style={styles.loginText}>
+                Already have an account? <Text style={styles.loginStrong}>Login</Text>
               </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
+  topGradient: {
+    paddingTop: 80,
+    paddingBottom: 40,
+    alignItems: "center",
   },
   brand: {
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 16,
   },
   brandCompact: {
-    marginBottom: 10,
+    marginBottom: 6,
   },
   logo: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: "800",
-    color: colors.primaryDark,
-    letterSpacing: 0.2,
-    marginTop: 8,
+    color: colors.white,
+    letterSpacing: 0.3,
+    marginTop: 10,
   },
   logoCompact: {
-    fontSize: 22,
+    fontSize: 24,
     marginTop: 4,
   },
   tagline: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 15,
+    color: "rgba(255,255,255,0.85)",
     marginTop: 6,
+    fontWeight: "500",
   },
   taglineCompact: {
     fontSize: 12,
@@ -210,7 +216,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   tricolor: {
     flexDirection: "row",
-    marginTop: 12,
+    marginTop: 14,
     borderRadius: 3,
     overflow: "hidden",
   },
@@ -218,30 +224,39 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 28,
     height: 4,
   },
-  form: {
+  formWrap: {
+    flex: 1,
+    marginTop: -20,
+  },
+  scroll: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 30,
+  },
+  formCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 24,
+    padding: 22,
     shadowColor: "#000",
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    marginBottom: 14,
     backgroundColor: colors.background,
+    height: 52,
   },
   input: {
     flex: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
     fontSize: 15,
     color: colors.text,
   },
@@ -252,28 +267,47 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     textAlign: "center",
   },
   button: {
-    borderRadius: 10,
+    borderRadius: 14,
     marginTop: 4,
     overflow: "hidden",
   },
   buttonGradient: {
-    paddingVertical: 13,
+    paddingVertical: 15,
     alignItems: "center",
   },
   buttonText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
   },
-  linkBtn: {
+  divider: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
+    marginVertical: 20,
+    gap: 12,
   },
-  linkText: {
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: "600",
     color: colors.textSecondary,
-    fontSize: 14,
   },
-  linkStrong: {
+  loginBtn: {
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  loginText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  loginStrong: {
     color: colors.primary,
     fontWeight: "700",
   },
