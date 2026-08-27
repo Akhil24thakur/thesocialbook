@@ -104,8 +104,22 @@ router.get("/:id", requireAuth, async (req, res) => {
   });
 });
 
+const LIVE_SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+
 router.get("/", requireAuth, async (req, res) => {
   const status = req.query.status as string;
+
+  const staleCutoff = new Date(Date.now() - LIVE_SESSION_TTL_MS);
+  const staleSessions = await prisma.liveSession.findMany({
+    where: { status: "live", startedAt: { lt: staleCutoff } },
+    select: { id: true },
+  });
+  if (staleSessions.length > 0) {
+    const staleIds = staleSessions.map((s) => s.id);
+    await prisma.liveSession.updateMany({ where: { id: { in: staleIds } }, data: { status: "ended", endedAt: new Date() } });
+    await prisma.liveViewer.updateMany({ where: { sessionId: { in: staleIds }, leftAt: null }, data: { leftAt: new Date() } });
+  }
+
   const where = status ? { status } : { status: "live" };
 
   const sessions = await prisma.liveSession.findMany({

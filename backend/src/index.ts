@@ -31,4 +31,12 @@ setInterval(() => {
   prisma.otpCode
     .deleteMany({ where: { expiresAt: { lt: new Date() } } })
     .catch(() => {});
+
+  const staleCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  prisma.liveSession
+    .updateMany({ where: { status: "live", startedAt: { lt: staleCutoff } }, data: { status: "ended", endedAt: new Date() } })
+    .then((r) => {
+      if (r.count > 0) console.log(`Auto-ended ${r.count} stale live sessions`);
+    })
+    .catch(() => {});
 }, 60 * 60 * 1000);
