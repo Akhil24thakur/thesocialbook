@@ -64,7 +64,7 @@ async function getGh() {
 
 router.get("/update-info", requireAuth, async (req, res) => {
   const userId = (req as AuthedRequest).userId;
-  const isBeta = BETA_USER_IDS.includes(userId);
+  const isBeta = BETA_USER_IDS.length === 0 || BETA_USER_IDS.includes(userId);
   const { latest, newestWithAsset } = await getGh();
   const release = isBeta ? newestWithAsset : latest;
   const apk = release?.assets?.find((a) => a.name.endsWith(".apk"));
