@@ -90,7 +90,6 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   brandImg: {
     width: 120,
     height: 30,
-    tintColor: "#FFFFFF",
   },
   badge: {
     position: "absolute",

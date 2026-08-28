@@ -235,8 +235,13 @@ export default function CreatePostScreen({ navigation, route }: any) {
             </TouchableOpacity>
             {uploading && (
               <View style={styles.uploadOverlay}>
-                <ActivityIndicator size="large" color={colors.white} />
-                <Text style={styles.uploadText}>Uploading...</Text>
+                <View style={styles.uploadCard}>
+                  <ActivityIndicator size="small" color={colors.white} />
+                  <Text style={styles.uploadText}>Uploading photo...</Text>
+                  <View style={styles.uploadProgressBar}>
+                    <View style={styles.uploadProgressFill} />
+                  </View>
+                </View>
               </View>
             )}
           </View>
@@ -442,16 +447,37 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+  },
+  uploadCard: {
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    alignItems: "center",
+    gap: 12,
+    minWidth: 160,
   },
   uploadText: {
     color: colors.white,
     fontSize: 14,
     fontWeight: "600",
+  },
+  uploadProgressBar: {
+    width: "100%",
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    overflow: "hidden",
+  },
+  uploadProgressFill: {
+    width: "60%",
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: colors.white,
   },
   actionsCard: {
     backgroundColor: colors.card,
