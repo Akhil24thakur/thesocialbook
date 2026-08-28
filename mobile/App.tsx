@@ -167,14 +167,19 @@ const RELEASES_URL = "https://api.github.com/repos/Akhil24thakur/thesocialbook/r
 const RELEASES_PAGE = "https://github.com/Akhil24thakur/thesocialbook/releases/latest";
 
 function isNewerVersion(latest: string, current: string) {
-  const a = latest.split(".").map(Number);
-  const b = current.split(".").map(Number);
+  const strip = (v: string) => v.replace(/-.*$/, "");
+  const a = strip(latest).split(".").map(Number);
+  const b = strip(current).split(".").map(Number);
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
     const x = a[i] ?? 0;
     const y = b[i] ?? 0;
     if (x !== y) return x > y;
   }
-  return false;
+  const aPre = latest.includes("-") ? latest.split("-")[1] : "";
+  const bPre = current.includes("-") ? current.split("-")[1] : "";
+  if (aPre && !bPre) return false;
+  if (!aPre && bPre) return true;
+  return aPre > bPre;
 }
 
 interface UpdateInfo {
