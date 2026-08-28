@@ -12,48 +12,62 @@ export class ApiError extends Error {
   }
 }
 
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 30000;
 
 async function request<T>(
   path: string,
   token: string | null,
   options: { method?: string; body?: unknown; params?: Record<string, string | number | undefined> } = {}
 ): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let res: Response;
-  try {
-    const query = options.params
-      ? "?" +
-        Object.entries(options.params)
-          .filter(([, v]) => v !== undefined)
-          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-          .join("&")
-      : "";
-    res = await fetch(`${API_URL}${path}${query}`, {
-      method: options.method ?? "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-      signal: controller.signal,
-    });
-  } catch {
-    throw new ApiError(0, "Network error. Check your connection.");
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
+  let lastError: any;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let res: Response;
     try {
-      const data = await res.json();
-      if (data?.error) message = data.error;
-    } catch {}
-    throw new ApiError(res.status, message);
+      const query = options.params
+        ? "?" +
+          Object.entries(options.params)
+            .filter(([, v]) => v !== undefined)
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+            .join("&")
+        : "";
+      res = await fetch(`${API_URL}${path}${query}`, {
+        method: options.method ?? "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (e: any) {
+      clearTimeout(timer);
+      lastError = new ApiError(0, "Network error. Check your connection.");
+      if (attempt === 0) continue;
+      throw lastError;
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (res.status === 503 || res.status === 502 || res.status === 429) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
+    }
+
+    if (!res.ok) {
+      let message = `Request failed (${res.status})`;
+      try {
+        const data = await res.json();
+        if (data?.error) message = data.error;
+      } catch {}
+      throw new ApiError(res.status, message);
+    }
+    return res.json() as Promise<T>;
   }
-  return res.json() as Promise<T>;
+  throw lastError;
 }
 
 const MAX_IMAGE_DIMENSION = 1600;
