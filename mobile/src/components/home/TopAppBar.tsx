@@ -22,7 +22,7 @@ export default function TopAppBar({
   const insets = useSafeAreaInsets();
   return (
     <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-      <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
+      <View style={[styles.bar, { paddingTop: insets.top + 2 }]}>
         <TouchableOpacity
           onPress={onNewPost}
           accessibilityLabel="Create post"
@@ -30,7 +30,7 @@ export default function TopAppBar({
           style={styles.createWrap}
         >
           <View style={styles.createBtn}>
-            <Icon name="add" size={22} color={colors.white} />
+            <Icon name="add" size={20} color={colors.white} />
           </View>
         </TouchableOpacity>
         <View style={styles.brand}>
@@ -42,7 +42,7 @@ export default function TopAppBar({
           accessibilityLabel="Notifications"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Icon name="notifications-outline" size={22} color={colors.white} />
+          <Icon name="notifications-outline" size={21} color={colors.white} />
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
@@ -59,26 +59,26 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
   },
   iconBtn: {
-    width: 42,
-    height: 42,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 21,
+    borderRadius: 18,
   },
   createWrap: {
-    width: 42,
-    height: 42,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
   },
   createBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
@@ -88,25 +88,25 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
   },
   brandImg: {
-    width: 132,
-    height: 34,
+    width: 120,
+    height: 30,
     tintColor: "#FFFFFF",
   },
   badge: {
     position: "absolute",
-    top: 4,
-    right: 2,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 2,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 3,
   },
   badgeText: {
     color: colors.primary,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "800",
   },
 });

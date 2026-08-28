@@ -31,7 +31,7 @@ async function main() {
   const deletedLikes = await prisma.like.deleteMany({ where: { userId: { in: botIds } } });
   console.log(`  Deleted ${deletedLikes.count} likes`);
 
-  const deletedCommentsPost = await prisma.comment.deleteMany({ where: { userId: { in: botIds } } });
+  const deletedCommentsPost = await prisma.comment.deleteMany({ where: { authorId: { in: botIds } } });
   console.log(`  Deleted ${deletedCommentsPost.count} post comments`);
 
   const deletedStories = await prisma.story.deleteMany({ where: { authorId: { in: botIds } } });
@@ -46,13 +46,13 @@ async function main() {
   const deletedFollowsAsFollowing = await prisma.follow.deleteMany({ where: { followingId: { in: botIds } } });
   console.log(`  Deleted ${deletedFollowsAsFollowing.count} follows (as following)`);
 
-  const deletedConversations = await prisma.conversationParticipant.deleteMany({ where: { userId: { in: botIds } } });
+  const deletedConversations = await prisma.conversationMember.deleteMany({ where: { userId: { in: botIds } } });
   console.log(`  Deleted ${deletedConversations.count} conversation participants`);
 
   const deletedMessages = await prisma.message.deleteMany({ where: { senderId: { in: botIds } } });
   console.log(`  Deleted ${deletedMessages.count} messages`);
 
-  const deletedNotifications = await prisma.notification.deleteMany({ where: { userId: { in: botIds } } });
+  const deletedNotifications = await prisma.notification.deleteMany({ where: { OR: [{ userId: { in: botIds } }, { actorId: { in: botIds } }] } });
   console.log(`  Deleted ${deletedNotifications.count} notifications`);
 
   const deletedUsers = await prisma.user.deleteMany({ where: { id: { in: botIds } } });

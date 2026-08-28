@@ -319,11 +319,11 @@ function SectionHeader({ title, onMenu }: { title: string; onMenu?: () => void }
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+      <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
       <View
         style={{
-          paddingTop: insets.top + 4,
-          paddingBottom: 12,
+          paddingTop: insets.top + 2,
+          paddingBottom: 8,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
