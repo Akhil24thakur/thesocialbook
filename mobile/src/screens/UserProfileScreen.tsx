@@ -147,14 +147,20 @@ export default function UserProfileScreen({ route }: any) {
             <Text style={styles.statNum}>{user.postCount ?? posts.length}</Text>
             <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Posts</Text>
           </View>
-          <View style={styles.stat}>
+          <TouchableOpacity
+            style={styles.stat}
+            onPress={() => navigation.navigate("FollowersFollowing", { userId: user.id, userName: user.name, mode: "followers" })}
+          >
             <Text style={styles.statNum}>{user.followerCount ?? 0}</Text>
             <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Followers</Text>
-          </View>
-          <View style={styles.stat}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.stat}
+            onPress={() => navigation.navigate("FollowersFollowing", { userId: user.id, userName: user.name, mode: "following" })}
+          >
             <Text style={styles.statNum}>{user.followingCount ?? 0}</Text>
             <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Following</Text>
-          </View>
+          </TouchableOpacity>
         </View>
         {!isMe && (
           <View style={styles.actionsRow}>

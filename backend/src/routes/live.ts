@@ -84,6 +84,9 @@ router.post("/:id/end", requireAuth, async (req, res) => {
 
 router.get("/:id", requireAuth, async (req, res) => {
   const sessionId = Number(req.params.id);
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    return res.status(400).json({ error: "Invalid session id" });
+  }
   const session = await prisma.liveSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -94,12 +97,23 @@ router.get("/:id", requireAuth, async (req, res) => {
   if (!session) return res.status(404).json({ error: "Live session not found" });
 
   const viewerCount = await prisma.liveViewer.count({ where: { sessionId, leftAt: null } });
+  const isHost = session.hostId === (req as AuthedRequest).userId;
 
   return res.json({
     session: {
-      ...session,
+      id: session.id,
+      hostId: session.hostId,
+      title: session.title,
+      status: session.status,
+      playbackUrl: session.playbackUrl,
+      startedAt: session.startedAt,
+      endedAt: session.endedAt,
+      createdAt: session.createdAt,
+      host: session.host,
+      _count: session._count,
       viewerCount,
-      isHost: session.hostId === (req as AuthedRequest).userId,
+      isHost,
+      ...(isHost ? { streamKey: session.streamKey, rtmpUrl: session.rtmpUrl } : {}),
     },
   });
 });
@@ -177,6 +191,12 @@ router.post("/:id/join", requireAuth, async (req, res) => {
 router.post("/:id/leave", requireAuth, async (req, res) => {
   const userId = (req as AuthedRequest).userId;
   const sessionId = Number(req.params.id);
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    return res.status(400).json({ error: "Invalid session id" });
+  }
+
+  const session = await prisma.liveSession.findUnique({ where: { id: sessionId } });
+  if (!session) return res.status(404).json({ error: "Live session not found" });
 
   await prisma.liveViewer.updateMany({
     where: { sessionId, userId, leftAt: null },
@@ -225,10 +245,12 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
   const session = await prisma.liveSession.findUnique({ where: { id: sessionId } });
   if (!session || session.status !== "live") return res.status(400).json({ error: "Live not active" });
 
-  const viewer = await prisma.liveViewer.findUnique({
-    where: { sessionId_userId: { sessionId, userId } },
-  });
-  if (!viewer || viewer.leftAt) return res.status(403).json({ error: "Not in live session" });
+  if (session.hostId !== userId) {
+    const viewer = await prisma.liveViewer.findUnique({
+      where: { sessionId_userId: { sessionId, userId } },
+    });
+    if (!viewer || viewer.leftAt) return res.status(403).json({ error: "Not in live session" });
+  }
 
   const comment = await prisma.liveComment.create({
     data: { sessionId, userId, content: parsed.data.content },
@@ -242,12 +264,22 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
 
 router.get("/:id/viewer-count", requireAuth, async (req, res) => {
   const sessionId = Number(req.params.id);
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    return res.status(400).json({ error: "Invalid session id" });
+  }
+  const session = await prisma.liveSession.findUnique({ where: { id: sessionId }, select: { id: true } });
+  if (!session) return res.status(404).json({ error: "Live session not found" });
   const count = await prisma.liveViewer.count({ where: { sessionId, leftAt: null } });
   return res.json({ count });
 });
 
 router.get("/:id/viewers", requireAuth, async (req, res) => {
   const sessionId = Number(req.params.id);
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    return res.status(400).json({ error: "Invalid session id" });
+  }
+  const session = await prisma.liveSession.findUnique({ where: { id: sessionId }, select: { id: true } });
+  if (!session) return res.status(404).json({ error: "Live session not found" });
   const viewers = await prisma.liveViewer.findMany({
     where: { sessionId, leftAt: null },
     include: {

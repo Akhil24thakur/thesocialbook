@@ -152,6 +152,10 @@ export const api = {
     request<{ user: ApiUser }>(`/api/users/${id}/follow`, token, { method: "POST" }),
   unfollow: (token: string, id: number) =>
     request<{ user: ApiUser }>(`/api/users/${id}/follow`, token, { method: "DELETE" }),
+  followers: (token: string, id: number) =>
+    request<{ users: ApiUser[] }>(`/api/users/${id}/followers`, token),
+  following: (token: string, id: number) =>
+    request<{ users: ApiUser[] }>(`/api/users/${id}/following`, token),
   stories: (token: string) => request<{ stories: StoryItem[] }>("/api/stories", token),
   createStory: (
     token: string,
@@ -236,8 +240,8 @@ export const api = {
       request<{ comments: any[]; nextCursor: string | null }>(`/api/live/${id}/comments`, token, {
         params: { cursor, limit },
       }),
-    postComment: (token: string, id: number, body: string) =>
-      request<{ ok: boolean }>(`/api/live/${id}/comments`, token, { method: "POST", body: { body } }),
+    postComment: (token: string, id: number, content: string) =>
+      request<{ comment: any }>(`/api/live/${id}/comments`, token, { method: "POST", body: { content } }),
     viewerCount: (token: string, id: number) => request<{ count: number }>(`/api/live/${id}/viewer-count`, token),
     viewers: (token: string, id: number) => request<{ viewers: any[] }>(`/api/live/${id}/viewers`, token),
   },

@@ -175,6 +175,60 @@ router.delete("/:id/follow", requireAuth, async (req, res) => {
   return res.json({ user: serialize(user!) });
 });
 
+router.get("/:id/followers", requireAuth, async (req, res) => {
+  const me = (req as AuthedRequest).userId;
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ error: "Invalid user id" });
+  }
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const follows = await prisma.follow.findMany({
+    where: { followingId: userId },
+    include: {
+      follower: {
+        select: {
+          ...publicSelect,
+          followers: { select: { id: true }, where: { followerId: me } },
+          _count: { select: { posts: true, followers: true, following: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  return res.json({ users: follows.map((f) => serialize(f.follower)) });
+});
+
+router.get("/:id/following", requireAuth, async (req, res) => {
+  const me = (req as AuthedRequest).userId;
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ error: "Invalid user id" });
+  }
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const follows = await prisma.follow.findMany({
+    where: { followerId: userId },
+    include: {
+      following: {
+        select: {
+          ...publicSelect,
+          followers: { select: { id: true }, where: { followerId: me } },
+          _count: { select: { posts: true, followers: true, following: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  return res.json({ users: follows.map((f) => serialize(f.following)) });
+});
+
 router.get("/:id/posts", requireAuth, async (req, res) => {
   const userId = (req as AuthedRequest).userId;
   const authorId = Number(req.params.id);

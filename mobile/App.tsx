@@ -26,6 +26,7 @@ import PostDetailScreen from "./src/screens/PostDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
 import EditProfileScreen from "./src/screens/EditProfileScreen";
+import FollowersFollowingScreen from "./src/screens/FollowersFollowingScreen";
 import Constants from "expo-constants";
 import ChangePasswordScreen from "./src/screens/ChangePasswordScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
@@ -651,6 +652,7 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: "Post" }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />
+          <Stack.Screen name="FollowersFollowing" component={FollowersFollowingScreen} options={{ title: "Followers" }} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Change Password" }} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notifications" }} />

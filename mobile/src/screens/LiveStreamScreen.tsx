@@ -53,21 +53,30 @@ export default function LiveStreamScreen() {
   const [session, setSession] = useState<any>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [permDenied, setPermDenied] = useState(false);
 
   const [viewersModalVisible, setViewersModalVisible] = useState(false);
   const [viewers, setViewers] = useState<any[]>([]);
   const [viewersLoading, setViewersLoading] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
-  const wsConnectedRef = useRef(false);
+  const sessionRef = useRef<any>(null);
+  const hasJoinedRef = useRef(false);
 
   const isHost = session?.hostId === user?.id;
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     if (!isViewer) {
       (async () => {
         const { status } = await Camera.requestCameraPermissionsAsync();
         const { status: micStatus } = await requestRecordingPermissionsAsync();
+        if (status === "denied" || micStatus === "denied") {
+          setPermDenied(true);
+        }
         setHasPermission(status === "granted" && micStatus === "granted");
       })();
     } else {
@@ -77,15 +86,19 @@ export default function LiveStreamScreen() {
     connectWs(token);
 
     const unsubscribeViewerCount = onWsEvent("viewer_count", null, (payload: any) => {
+      if (payload?.sessionId && payload.sessionId !== (sessionRef.current?.id ?? route.params?.sessionId)) return;
       setViewerCount(payload?.count ?? 0);
     });
 
     const unsubscribeLiveStarted = onWsEvent("live_started", null, (payload: any) => {
-      if (payload?.session) setSession(payload.session);
+      if (payload?.session && payload.session.id === route.params?.sessionId) {
+        setSession(payload.session);
+      }
     });
 
     const unsubscribeLiveEnded = onWsEvent("live_ended", null, (payload: any) => {
-      if (payload?.sessionId === (session?.id ?? route.params?.sessionId)) {
+      const currentSessionId = sessionRef.current?.id ?? route.params?.sessionId;
+      if (payload?.sessionId === currentSessionId) {
         setIsStreaming(false);
         setStreamStatus("idle");
         if (isViewer) {
@@ -99,16 +112,20 @@ export default function LiveStreamScreen() {
       unsubscribeViewerCount();
       unsubscribeLiveStarted();
       unsubscribeLiveEnded();
+      hasJoinedRef.current = false;
     };
-  }, [token, navigation, session?.id, route.params?.sessionId, isViewer]);
+  }, [token, navigation, route.params?.sessionId, isViewer]);
 
   useEffect(() => {
-    if (!route.params?.sessionId) return;
+    if (!route.params?.sessionId || hasJoinedRef.current) return;
+    hasJoinedRef.current = true;
     joinExistingSession(route.params.sessionId);
+  }, [route.params?.sessionId]);
+
+  useEffect(() => {
+    if (!session?.id) return;
     const interval = setInterval(() => {
-      if (session?.id) {
-        api.live.viewerCount(token!, session.id).then((r) => setViewerCount(r.count)).catch(() => {});
-      }
+      api.live.viewerCount(token!, session.id).then((r) => setViewerCount(r.count)).catch(() => {});
     }, 5000);
     return () => clearInterval(interval);
   }, [session?.id]);
@@ -141,7 +158,6 @@ export default function LiveStreamScreen() {
     try {
       await api.live.join(token!, sessionId);
       sendWs({ type: "join_live", sessionId });
-      wsConnectedRef.current = true;
       setIsStreaming(true);
       setStreamStatus("live");
     } catch (e: any) {
@@ -159,7 +175,6 @@ export default function LiveStreamScreen() {
         await api.live.leave(token!, session.id);
       }
       sendWs({ type: "leave_live", sessionId: session.id });
-      wsConnectedRef.current = false;
       setIsStreaming(false);
       navigation.goBack();
     } catch (e: any) {
@@ -217,8 +232,20 @@ export default function LiveStreamScreen() {
   if (!hasPermission) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.permissionText}>Requesting camera & microphone permissions...</Text>
+        {permDenied ? (
+          <>
+            <Icon name="camera-outline" size={64} color={colors.textSecondary} />
+            <Text style={styles.permissionText}>Camera & microphone permissions are required for live streaming.</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 }}>
+              <Text style={styles.retryText}>Go Back</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.permissionText}>Requesting camera & microphone permissions...</Text>
+          </>
+        )}
       </View>
     );
   }
