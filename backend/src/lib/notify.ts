@@ -86,12 +86,7 @@ export async function notifyAll(actorId: number, postId: number) {
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
     const body = `${actor?.name ?? "Someone"} posted something new`;
     await sendBroadcast(actorId, { title: "SocialBook", body, type: "post", postId });
-    await prisma.notification.createMany({
-      data: (
-        await prisma.user.findMany({ where: { id: { not: actorId } }, select: { id: true } })
-      ).map((u) => ({ userId: u.id, actorId, type: "post", postId })),
-    });
   } catch {
-    // Push delivery + bell rows are best-effort
+    // Push delivery is best-effort
   }
 }

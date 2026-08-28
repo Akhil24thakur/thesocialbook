@@ -65,6 +65,7 @@ model ConversationMember {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
+  @@index([userId])
 }
 
 model Message {
@@ -176,6 +177,7 @@ model Like {
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([postId])
 }
 
 model Comment {
@@ -222,6 +224,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([userId, read])
 }
 
 model DeviceToken {
@@ -231,6 +234,8 @@ model DeviceToken {
   token     String   @unique
   type      String   @default("expo")
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model CrashReport {
@@ -285,6 +290,7 @@ model LiveViewer {
 
   @@unique([sessionId, userId])
   @@index([sessionId])
+  @@index([sessionId, leftAt])
 }
 
 model LiveComment {

@@ -10,6 +10,33 @@ import { useTheme } from "../theme-context";
 import { setPendingPush } from "../pushBadge";
 import type { Notification } from "../types";
 
+const TYPE_ICONS: Record<string, IconName> = {
+  like: "heart-outline",
+  comment: "chatbox-ellipses-outline",
+  reply: "arrow-undo-outline",
+  follow: "person-add-outline",
+  post: "megaphone-outline",
+  message: "chatbubble-ellipses-outline",
+};
+
+const TYPE_COLOR_KEYS: Record<string, keyof Colors> = {
+  like: "danger",
+  comment: "primary",
+  reply: "primary",
+  follow: "green",
+  post: "amber",
+  message: "primary",
+};
+
+const TYPE_TEXT: Record<string, string> = {
+  like: "liked your post",
+  comment: "commented on your post",
+  reply: "replied to your comment",
+  follow: "started following you",
+  post: "posted something new",
+  message: "sent you a message",
+};
+
 export default function NotificationsScreen({ navigation }: any) {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -50,30 +77,8 @@ export default function NotificationsScreen({ navigation }: any) {
   );
 
   const renderItem = ({ item }: { item: Notification }) => {
-    const typeIcons: Record<string, IconName> = {
-      like: "heart-outline",
-      comment: "chatbox-ellipses-outline",
-      reply: "arrow-undo-outline",
-      follow: "person-add-outline",
-      post: "megaphone-outline",
-      message: "chatbubble-ellipses-outline",
-    };
-    const typeColors: Record<string, string> = {
-      like: colors.danger,
-      comment: colors.primary,
-      reply: colors.primary,
-      follow: colors.green,
-      post: colors.amber,
-      message: colors.primary,
-    };
-    const typeText: Record<string, string> = {
-      like: "liked your post",
-      comment: "commented on your post",
-      reply: "replied to your comment",
-      follow: "started following you",
-      post: "posted something new",
-      message: "sent you a message",
-    };
+    const colorKey = TYPE_COLOR_KEYS[item.type] ?? "primary";
+    const itemColor = colors[colorKey] ?? colors.primary;
 
     const isMessage = item.type === "message";
 
@@ -103,16 +108,16 @@ export default function NotificationsScreen({ navigation }: any) {
           activeOpacity={0.7}
         >
           <View style={styles.iconWrap}>
-            <View
+              <View
               style={[
                 styles.iconBg,
-                { backgroundColor: typeColors[item.type] + "20" },
+                { backgroundColor: itemColor + "20" },
               ]}
             >
               <Icon
-                name={typeIcons[item.type]}
+                name={TYPE_ICONS[item.type]}
                 size={20}
-                color={typeColors[item.type]}
+                color={itemColor}
               />
             </View>
             {!item.read && <View style={styles.unreadDot} />}
@@ -129,7 +134,7 @@ export default function NotificationsScreen({ navigation }: any) {
             {item.actor.isVerified && (
               <Text style={styles.verified}> ✓</Text>
             )}{" "}
-            {typeText[item.type] ?? "posted something new"}
+            {TYPE_TEXT[item.type] ?? "posted something new"}
           </Text>
           {item.messageBody ? (
             <Text style={styles.rowPreview} numberOfLines={2}>
@@ -196,6 +201,10 @@ export default function NotificationsScreen({ navigation }: any) {
           </View>
         }
         contentContainerStyle={styles.list}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={11}
+        initialNumToRender={10}
       />
     </View>
   );

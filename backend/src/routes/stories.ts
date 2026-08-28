@@ -22,20 +22,28 @@ const storySelect = {
   author: { select: { id: true, name: true, username: true, avatarUrl: true, isVerified: true, lastSeenAt: true } },
 } as const;
 
-router.get("/", requireAuth, async (req, res) => {
-  const cutoff = new Date(Date.now() - STORY_TTL_MS);
-  // Fetch expired stories first to capture R2 keys before DB delete
+let lastCleanup = 0;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+async function cleanupExpiredStories() {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+  const cutoff = new Date(now - STORY_TTL_MS);
   const expired = await prisma.story.findMany({
     where: { createdAt: { lt: cutoff } },
     select: { imageUrl: true },
   });
+  if (expired.length === 0) return;
   await prisma.story.deleteMany({ where: { createdAt: { lt: cutoff } } });
-  // Delete corresponding R2 objects in background — only R2 URLs, never Supabase
-  if (expired.length) {
-    Promise.allSettled(
-      expired.map((s) => (s.imageUrl && isR2Url(s.imageUrl) ? deleteObject(s.imageUrl) : Promise.resolve()))
-    ).catch(() => {});
-  }
+  Promise.allSettled(
+    expired.map((s) => (s.imageUrl && isR2Url(s.imageUrl) ? deleteObject(s.imageUrl) : Promise.resolve()))
+  ).catch(() => {});
+}
+
+router.get("/", requireAuth, async (req, res) => {
+  cleanupExpiredStories().catch(() => {});
+  const cutoff = new Date(Date.now() - STORY_TTL_MS);
   const stories = await prisma.story.findMany({
     select: storySelect,
     where: { createdAt: { gte: cutoff } },

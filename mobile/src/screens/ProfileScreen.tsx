@@ -277,6 +277,10 @@ export default function ProfileScreen({ active }: { active: boolean }) {
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
         }
         contentContainerStyle={styles.list}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={11}
+        initialNumToRender={5}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>You haven't posted anything yet.</Text>

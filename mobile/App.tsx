@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { ActivityIndicator, Alert, BackHandler, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Caveat_700Bold } from "@expo-google-fonts/caveat";
@@ -22,19 +22,19 @@ import FeedScreen from "./src/screens/FeedScreen";
 import ReelsScreen from "./src/screens/ReelsScreen";
 import CreatePostScreen from "./src/screens/CreatePostScreen";
 import SearchScreen from "./src/screens/SearchScreen";
-import PostDetailScreen from "./src/screens/PostDetailScreen";
+const PostDetailScreen = lazy(() => import("./src/screens/PostDetailScreen"));
 import ProfileScreen from "./src/screens/ProfileScreen";
-import UserProfileScreen from "./src/screens/UserProfileScreen";
-import EditProfileScreen from "./src/screens/EditProfileScreen";
-import FollowersFollowingScreen from "./src/screens/FollowersFollowingScreen";
+const UserProfileScreen = lazy(() => import("./src/screens/UserProfileScreen"));
+const EditProfileScreen = lazy(() => import("./src/screens/EditProfileScreen"));
+const FollowersFollowingScreen = lazy(() => import("./src/screens/FollowersFollowingScreen"));
 import Constants from "expo-constants";
-import ChangePasswordScreen from "./src/screens/ChangePasswordScreen";
-import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
+const ChangePasswordScreen = lazy(() => import("./src/screens/ChangePasswordScreen"));
+const ForgotPasswordScreen = lazy(() => import("./src/screens/ForgotPasswordScreen"));
 import MessagesScreen from "./src/screens/MessagesScreen";
-import ChatScreen from "./src/screens/ChatScreen";
-import NotificationsScreen from "./src/screens/NotificationsScreen";
-import StoriesScreen from "./src/screens/StoriesScreen";
-import LiveStreamScreen from "./src/screens/LiveStreamScreen";
+const ChatScreen = lazy(() => import("./src/screens/ChatScreen"));
+const NotificationsScreen = lazy(() => import("./src/screens/NotificationsScreen"));
+const StoriesScreen = lazy(() => import("./src/screens/StoriesScreen"));
+const LiveStreamScreen = lazy(() => import("./src/screens/LiveStreamScreen"));
 import { brandGradient, darkColors, lightColors, type Colors } from "./src/theme";
 import { ThemeProvider, useTheme } from "./src/theme-context";
 import { setPendingPush, usePendingPush } from "./src/pushBadge";
@@ -632,6 +632,7 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
   }
 
   return (
+    <Suspense fallback={<View style={{ flex: 1, backgroundColor: colors.background }}><ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 80 }} /></View>}>
     <Stack.Navigator
       screenOptions={{
         headerTitleAlign: "center",
@@ -662,6 +663,7 @@ function RootNavigator({ onCheckUpdate }: { onCheckUpdate?: (token: string | nul
         </>
       )}
     </Stack.Navigator>
+    </Suspense>
   );
 }
 

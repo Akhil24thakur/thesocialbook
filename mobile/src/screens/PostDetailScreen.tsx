@@ -68,8 +68,8 @@ export default function PostDetailScreen({ route, navigation }: any) {
   const loadPost = useCallback(async () => {
     if (!token || post) return;
     try {
-      const res = await api.feed(token);
-      setPost(res.posts.find((p) => p.id === postId) ?? null);
+      const res = await api.postView(token, postId);
+      setPost(res.post);
     } catch {}
   }, [token, postId, post]);
 
@@ -276,6 +276,10 @@ export default function PostDetailScreen({ route, navigation }: any) {
         )}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={11}
+        initialNumToRender={10}
       />
 
       <View style={[styles.composer, kb > 0 && { paddingBottom: kb + 28 }]}>

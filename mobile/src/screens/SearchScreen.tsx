@@ -27,6 +27,9 @@ type SearchUser = {
 };
 
 const DEBOUNCE_MS = 300;
+const SEARCH_CACHE_MAX = 20;
+const searchCache = new Map<string, { users: SearchUser[]; ts: number }>();
+const CACHE_TTL_MS = 60_000;
 
 export default function SearchScreen() {
   const { token } = useAuth();
@@ -52,6 +55,14 @@ export default function SearchScreen() {
         setLoading(false);
         return;
       }
+      const cacheKey = trimmed.toLowerCase();
+      const cached = searchCache.get(cacheKey);
+      if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+        if (seq !== seqRef.current) return;
+        setUsers(cached.users);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -62,7 +73,13 @@ export default function SearchScreen() {
         if (!res.ok) throw new Error("Network error");
         const data = await res.json();
         if (seq !== seqRef.current) return;
-        setUsers(Array.isArray(data.users) ? data.users : []);
+        const result = Array.isArray(data.users) ? data.users : [];
+        setUsers(result);
+        if (searchCache.size >= SEARCH_CACHE_MAX) {
+          const oldest = searchCache.keys().next().value;
+          if (oldest) searchCache.delete(oldest);
+        }
+        searchCache.set(cacheKey, { users: result, ts: Date.now() });
       } catch {
         if (seq !== seqRef.current) return;
         setUsers([]);
@@ -213,6 +230,10 @@ export default function SearchScreen() {
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={11}
+          initialNumToRender={10}
         />
       )}
     </View>

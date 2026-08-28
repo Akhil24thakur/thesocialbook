@@ -146,6 +146,8 @@ export const api = {
       body: { content, parentId: parentId ?? null },
     }),
   user: (token: string, id: number) => request<{ user: ApiUser }>(`/api/users/${id}`, token),
+  postView: (token: string, id: number) =>
+    request<{ post: Post }>(`/api/posts/${id}/view`, token),
   userPosts: (token: string, id: number) =>
     request<{ posts: Post[] }>(`/api/users/${id}/posts`, token),
   follow: (token: string, id: number) =>

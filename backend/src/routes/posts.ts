@@ -219,6 +219,9 @@ const commentSelect = {
 
 router.get("/:id/comments", requireAuth, async (req, res) => {
   const postId = Number(req.params.id);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+  const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
+
   const comments = await prisma.comment.findMany({
     where: { postId, parentId: null },
     select: {
@@ -226,11 +229,21 @@ router.get("/:id/comments", requireAuth, async (req, res) => {
       replies: {
         select: commentSelect,
         orderBy: { createdAt: "asc" },
+        take: 20,
       },
     },
     orderBy: { createdAt: "asc" },
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
-  return res.json({ comments });
+
+  let nextCursor: number | undefined;
+  if (comments.length > limit) {
+    const next = comments.pop();
+    nextCursor = next?.id;
+  }
+
+  return res.json({ comments, nextCursor });
 });
 
 const createCommentSchema = z.object({

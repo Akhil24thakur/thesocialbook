@@ -213,6 +213,10 @@ export default function UserProfileScreen({ route }: any) {
         keyExtractor={(p) => String(p.id)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={11}
+        initialNumToRender={5}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No posts yet.</Text>

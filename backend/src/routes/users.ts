@@ -235,6 +235,9 @@ router.get("/:id/posts", requireAuth, async (req, res) => {
   if (!Number.isInteger(authorId) || authorId <= 0) {
     return res.status(400).json({ error: "Invalid user id" });
   }
+  const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 50);
+  const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
+
   const posts = await prisma.post.findMany({
     where: { authorId },
     select: {
@@ -247,7 +250,16 @@ router.get("/:id/posts", requireAuth, async (req, res) => {
       likes: { select: { userId: true }, where: { userId } },
     },
     orderBy: { createdAt: "desc" },
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
+
+  let nextCursor: number | undefined;
+  if (posts.length > limit) {
+    const next = posts.pop();
+    nextCursor = next?.id;
+  }
+
   return res.json({
     posts: posts.map((p) => ({
       id: p.id,
@@ -259,6 +271,7 @@ router.get("/:id/posts", requireAuth, async (req, res) => {
       commentCount: p._count.comments,
       likedByMe: p.likes.some((l) => l.userId === userId),
     })),
+    nextCursor,
   });
 });
 

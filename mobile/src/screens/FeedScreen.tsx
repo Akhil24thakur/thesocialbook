@@ -39,6 +39,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   const [error, setError] = useState("");
   const seedRef = useRef(newSeed());
   const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const seenRef = useRef(new Set<number>());
   const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,6 +76,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   const loadMore = useCallback(async () => {
     if (!token || loadingMoreRef.current || !hasMore || loading || refreshing) return;
     loadingMoreRef.current = true;
+    setLoadingMore(true);
     try {
       const res = await api.feed(token, {
         seed: seedRef.current,
@@ -85,11 +87,12 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         const seen = new Set(prev.map((p) => p.id));
         return [...prev, ...res.posts.filter((p) => !seen.has(p.id))];
       });
-      setHasMore(posts.length + res.posts.length < res.total);
+      setHasMore((prevCount) => posts.length + res.posts.length < res.total);
     } catch {
       // silent - next scroll retries
     } finally {
       loadingMoreRef.current = false;
+      setLoadingMore(false);
     }
   }, [token, hasMore, loading, refreshing, posts.length]);
 
@@ -240,28 +243,36 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
     empty = <EmptyFeed />;
   }
 
+  const keyExtractor = useCallback((p: Post) => String(p.id), []);
+
+  const onRefreshFeed = useCallback(() => load(true), [load]);
+
   return (
     <View style={styles.container}>
       <FlatList
         data={posts}
-        keyExtractor={(p) => String(p.id)}
+        keyExtractor={keyExtractor}
         ListHeaderComponent={header}
         renderItem={renderItem}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefreshFeed} tintColor={colors.primary} />
         }
         onEndReached={loadMore}
-        onEndReachedThreshold={0.6}
+        onEndReachedThreshold={0.3}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         ListFooterComponent={
-          loadingMoreRef.current ? (
+          loadingMore ? (
             <ActivityIndicator style={styles.footer} color={colors.primary} />
           ) : null
         }
         ListEmptyComponent={empty}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={11}
+        initialNumToRender={5}
       />
     </View>
   );
