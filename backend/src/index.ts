@@ -3,7 +3,6 @@ import { app } from "./app.js";
 import { prisma } from "./lib/prisma.js";
 import { initWs } from "./lib/ws.js";
 import { STORY_TTL_MS } from "./routes/stories.js";
-import { startBots } from "./bots/index.js";
 
 if (!process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET is not set. Set it in the environment (never commit it).");
@@ -17,7 +16,6 @@ initWs(server);
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`SocialBook API running on http://0.0.0.0:${PORT}`);
-  startBots();
 });
 
 setInterval(() => {

@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { notify, notifyAll } from "../lib/notify.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { deleteObject, isR2Url, putObject } from "../lib/storage.js";
-import { generateStoryImage } from "../bots/imageGenerator.js";
+import { generateStoryImage } from "../lib/imageGenerator.js";
 import { readFileSync } from "node:fs";
 import crypto from "node:crypto";
 

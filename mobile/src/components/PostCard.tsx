@@ -187,20 +187,6 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         </TouchableOpacity>
       )}
 
-      <View style={styles.statsRow}>
-        {post.likeCount > 0 && (
-          <View style={styles.statItem}>
-            <View style={styles.likeIconSmall}>
-              <Icon name="heart" size={10} color={colors.white} />
-            </View>
-            <Text style={styles.statText}>{formatCount(post.likeCount)}</Text>
-          </View>
-        )}
-        {post.commentCount > 0 && (
-          <Text style={styles.statText}>{formatCount(post.commentCount)} comment{post.commentCount > 1 ? "s" : ""}</Text>
-        )}
-      </View>
-
       <View style={styles.actions}>
         <Pressable
           style={({ pressed }) => [styles.actionBtn, pressed && styles.actionPressed]}
@@ -216,7 +202,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
             color={post.likedByMe ? colors.danger : colors.textSecondary}
           />
           <Text style={[styles.actionText, post.likedByMe && styles.actionTextActiveLike]}>
-            Like
+            {post.likedByMe ? "Liked" : "Like"}{post.likeCount > 0 ? ` ${formatCount(post.likeCount)}` : ""}
           </Text>
         </Pressable>
         <Pressable
@@ -226,7 +212,9 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
           accessibilityLabel="Comment"
         >
           <Icon name="chatbubble-outline" size={20} color={colors.textSecondary} />
-          <Text style={styles.actionText}>Comment</Text>
+          <Text style={styles.actionText}>
+            Comment{post.commentCount > 0 ? ` ${formatCount(post.commentCount)}` : ""}
+          </Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.actionBtn, pressed && styles.actionPressed]}
@@ -397,31 +385,6 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: "100%",
     borderRadius: 0,
     backgroundColor: colors.border,
-  },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 2,
-    paddingVertical: 8,
-    gap: 12,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  likeIconSmall: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.danger,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: "500",
   },
   actions: {
     flexDirection: "row",
