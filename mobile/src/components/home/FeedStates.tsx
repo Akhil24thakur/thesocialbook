@@ -18,16 +18,32 @@ export function EmptyFeed({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function ErrorFeed({ onRetry }: { onRetry: () => void }) {
+export function ErrorFeed({ message, onRetry }: { message?: string; onRetry: () => void }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  let title = "Couldn't load your feed";
+  let subtitle = "Check your connection and try again.";
+  if (message) {
+    if (message.includes("503") || message.includes("502")) {
+      title = "Server is waking up";
+      subtitle = "This takes a few seconds on first launch. Try again in a moment.";
+    } else if (message.includes("Network error")) {
+      title = "No internet connection";
+      subtitle = "Check your WiFi or mobile data and try again.";
+    } else {
+      title = "Something went wrong";
+      subtitle = message.length > 80 ? message.substring(0, 80) + "..." : message;
+    }
+  }
+
   return (
     <View style={[styles.wrap, styles.compact]}>
       <View style={styles.iconCircle}>
         <Icon name="cloud-offline-outline" size={34} color={colors.textSecondary} />
       </View>
-      <Text style={styles.title}>Couldn't load your feed</Text>
-      <Text style={styles.subtitle}>Check your connection and try again.</Text>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
       <TouchableOpacity style={styles.retry} onPress={onRetry} accessibilityLabel="Try again">
         <Text style={styles.retryText}>Try again</Text>
       </TouchableOpacity>

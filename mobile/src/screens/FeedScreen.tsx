@@ -53,18 +53,16 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
       refresh ? setRefreshing(true) : setLoading(true);
       try {
         if (refresh) seedRef.current = newSeed();
-        const [feedRes, storiesRes, liveRes] = await Promise.all([
-          api.feed(token, { seed: seedRef.current, offset: 0, limit: FEED_PAGE_SIZE }),
-          api.stories(token),
-          api.live.list(token).catch(() => ({ sessions: [] })),
-        ]);
+        const feedRes = await api.feed(token, { seed: seedRef.current, offset: 0, limit: FEED_PAGE_SIZE });
         setPosts(feedRes.posts);
         setHasMore(feedRes.total > feedRes.posts.length);
-        setStoryItems(storiesRes.stories);
-        setLiveSessions(liveRes.sessions ?? []);
         setError("");
+        api.stories(token).then((r) => setStoryItems(r.stories)).catch(() => {});
+        api.live.list(token).then((r) => setLiveSessions(r.sessions ?? [])).catch(() => {});
       } catch (e: any) {
         setError(e.message ?? "Could not load feed");
+        api.stories(token).then((r) => setStoryItems(r.stories)).catch(() => {});
+        api.live.list(token).then((r) => setLiveSessions(r.sessions ?? [])).catch(() => {});
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -238,7 +236,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   if (loading) {
     empty = <SkeletonFeed />;
   } else if (error) {
-    empty = <ErrorFeed onRetry={() => load()} />;
+    empty = <ErrorFeed message={error} onRetry={() => load()} />;
   } else {
     empty = <EmptyFeed />;
   }

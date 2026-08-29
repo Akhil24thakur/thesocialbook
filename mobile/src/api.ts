@@ -12,7 +12,7 @@ export class ApiError extends Error {
   }
 }
 
-const REQUEST_TIMEOUT_MS = 30000;
+const REQUEST_TIMEOUT_MS = 45000;
 
 async function request<T>(
   path: string,
@@ -52,7 +52,7 @@ async function request<T>(
 
     if (res.status === 503 || res.status === 502 || res.status === 429) {
       if (attempt === 0) {
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 8000));
         continue;
       }
     }
