@@ -17,6 +17,7 @@ import {
 import { CameraView, Camera, useCameraPermissions, type CameraType, type FlashMode } from "expo-camera";
 import { useSafeAreaInsets, type EdgeInsets } from "react-native-safe-area-context";
 import { requestRecordingPermissionsAsync } from "expo-audio";
+import { Video, ResizeMode } from "expo-av";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
@@ -285,7 +286,35 @@ export default function LiveStreamScreen() {
             </View>
           )}
 
-          {streamStatus === "live" && (
+          {streamStatus === "live" && session?.playbackUrl ? (
+            <View style={styles.viewerBg}>
+              <Video
+                source={{ uri: session.playbackUrl }}
+                style={styles.viewerVideo}
+                resizeMode={ResizeMode.CONTAIN}
+                shouldPlay
+                isMuted={false}
+                useNativeControls={false}
+                onPlaybackStatusUpdate={(status) => {
+                  if (status.isLoaded && status.didJustFinish) {
+                    setStreamStatus("ended");
+                  }
+                }}
+              />
+              <View style={styles.viewerOverlay}>
+                <View style={styles.viewerOverlayTop}>
+                  <View style={styles.hostInfo}>
+                    <Avatar name={hostName} size={28} imageUrl={hostAvatar} />
+                    <Text style={styles.liveTitle}>{hostName}</Text>
+                  </View>
+                  <View style={styles.viewerWatchingRow}>
+                    <Icon name="people" size={16} color="rgba(255,255,255,0.7)" />
+                    <Text style={styles.viewerCountText}>{viewerCount} watching</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          ) : streamStatus === "live" && (
             <View style={styles.centerContent}>
               <View style={styles.pulseRing}>
                 <Avatar name={hostName} size={120} imageUrl={hostAvatar} />
@@ -472,6 +501,16 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     container: { flex: 1, backgroundColor: "#000" },
     camera: { flex: 1 },
     viewerBg: { flex: 1, backgroundColor: "#1A1A2E" },
+    viewerVideo: { flex: 1, backgroundColor: "#000" },
+    viewerOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "space-between" },
+    viewerOverlayTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingTop: insets.top + 8,
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+    },
     overlay: { flex: 1, backgroundColor: "transparent" },
     topBar: {
       flexDirection: "row",
