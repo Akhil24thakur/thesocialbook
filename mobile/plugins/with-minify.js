@@ -6,11 +6,6 @@ const PROGUARD_RULES = `
 # react-native-reanimated
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
-
-# expo-av
--dontwarn expo.modules.core.interfaces.services.KeepAwakeManager
--dontwarn expo.modules.kotlin.types.AnyTypeProvider
--dontwarn expo.modules.kotlin.types.LazyKType
 `;
 
 module.exports = function withMinify(config) {

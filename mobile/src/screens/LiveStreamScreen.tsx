@@ -17,7 +17,7 @@ import {
 import { CameraView, Camera, useCameraPermissions, type CameraType, type FlashMode } from "expo-camera";
 import { useSafeAreaInsets, type EdgeInsets } from "react-native-safe-area-context";
 import { requestRecordingPermissionsAsync } from "expo-audio";
-import { Video, ResizeMode } from "expo-av";
+import { WebView } from "react-native-webview";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
@@ -288,21 +288,14 @@ export default function LiveStreamScreen() {
 
           {streamStatus === "live" && session?.playbackUrl ? (
             <View style={styles.viewerBg}>
-              <Video
-                source={{ uri: session.playbackUrl }}
+              <WebView
+                source={{
+                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"></head><body style="margin:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh"><video id="v" style="width:100%;height:100%;object-fit:contain" autoplay playsinline controls><source src="${session.playbackUrl}" type="application/x-mpegURL"></video><script>var v=document.getElementById("v");v.play();</script></body></html>`,
+                }}
                 style={styles.viewerVideo}
-                resizeMode={ResizeMode.CONTAIN}
-                shouldPlay
-                isMuted={false}
-                useNativeControls={false}
-                onPlaybackStatusUpdate={(status) => {
-                  if (status.isLoaded && status.didJustFinish) {
-                    setStreamStatus("ended");
-                  }
-                }}
-                onError={() => {
-                  setStreamError("Stream unavailable. Try again.");
-                }}
+                mediaPlaybackRequiresUserAction={false}
+                allowsInlineMediaPlayback
+                javaScriptEnabled
               />
               <View style={styles.viewerOverlay}>
                 <View style={styles.viewerOverlayTop}>
