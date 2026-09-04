@@ -15,6 +15,7 @@
     "plugins": [
       "./plugins/with-notification-manifest",
       "./plugins/with-minify",
+      "expo-av",
       [
         "expo-image-picker",
         {

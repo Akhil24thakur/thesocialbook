@@ -300,6 +300,9 @@ export default function LiveStreamScreen() {
                     setStreamStatus("ended");
                   }
                 }}
+                onError={() => {
+                  setStreamError("Stream unavailable. Try again.");
+                }}
               />
               <View style={styles.viewerOverlay}>
                 <View style={styles.viewerOverlayTop}>
