@@ -21,6 +21,7 @@ model User {
   isVerified   Boolean   @default(false)
   publicKey    String?
   appVersion   String?
+  birthday     DateTime?
   lastSeenAt   DateTime?
   createdAt    DateTime  @default(now())
   posts        Post[]
