@@ -311,14 +311,17 @@ export default function LiveStreamScreen() {
 
   const handleBackPress = () => {
     if (isStreaming && isHost) {
-      Alert.alert("End Live?", "Are you sure you want to end the live stream?", [
+      Alert.alert("End Live?", "Are you sure you want to end the live stream? Viewers will be disconnected.", [
         { text: "Cancel", style: "cancel" },
         { text: "End Live", style: "destructive", onPress: endLive },
       ]);
       return true;
     }
     if (isStreaming && !isHost) {
-      endLive();
+      Alert.alert("Leave Live?", "Are you sure you want to leave?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Leave", style: "destructive", onPress: endLive },
+      ]);
       return true;
     }
     cleanupAgora();
@@ -538,6 +541,20 @@ export default function LiveStreamScreen() {
           </View>
         )}
 
+        {isStreaming && isHost && (
+          <View style={styles.hostEndBar}>
+            <TouchableOpacity style={styles.hostEndBtn} onPress={() => {
+              Alert.alert("End Live?", "This will end the live stream for everyone. Viewers will be disconnected.", [
+                { text: "Cancel", style: "cancel" },
+                { text: "End Live", style: "destructive", onPress: endLive },
+              ]);
+            }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Icon name="stop-circle" size={28} color={colors.white} />
+              <Text style={styles.hostEndBtnText}>End Live</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.controlBtn} onPress={switchCamera} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name="camera-reverse" size={26} color={colors.white} />
@@ -546,12 +563,6 @@ export default function LiveStreamScreen() {
           <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "aperture" : "flash-off"} size={26} color={colors.white} />
           </TouchableOpacity>
-
-          {isStreaming && (
-            <TouchableOpacity style={styles.endBtn} onPress={endLive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="stop-circle" size={32} color={colors.white} />
-            </TouchableOpacity>
-          )}
 
           <TouchableOpacity style={styles.controlBtn} onPress={toggleMic} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name={micMuted ? "mic-off" : "mic"} size={26} color={colors.white} />
@@ -667,6 +678,9 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
     },
     controlBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(10,14,22,0.6)", alignItems: "center", justifyContent: "center" },
     endBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" },
+    hostEndBar: { alignItems: "center", paddingBottom: 8 },
+    hostEndBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FF3B30", paddingVertical: 12, paddingHorizontal: 32, borderRadius: 28 },
+    hostEndBtnText: { fontSize: 16, fontWeight: "800", color: colors.white },
     leaveBtn: { alignItems: "center", justifyContent: "center" },
     permissionText: { marginTop: 16, color: colors.white, textAlign: "center" },
 
