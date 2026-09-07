@@ -7,6 +7,44 @@ import { broadcastToLive } from "../lib/ws.js";
 
 const router = Router();
 
+const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID ?? "";
+const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET ?? "";
+const MUX_API = "https://api.mux.com/video/v1";
+
+async function createMuxStream() {
+  const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString("base64");
+  const res = await fetch(`${MUX_API}/live-streams`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      playback_policy: ["public"],
+      new_asset_settings: { playback_policy: ["public"] },
+    }),
+  });
+  if (!res.ok) throw new Error(`Mux API error: ${res.status}`);
+  const data = await res.json() as any;
+  return {
+    streamKey: data.data.stream_key,
+    streamId: data.data.id,
+    playbackUrl: data.data.playback_ids?.[0]?.id
+      ? `https://stream.mux.com/${data.data.playback_ids[0].id}.m3u8`
+      : null,
+  };
+}
+
+async function deleteMuxStream(streamId: string) {
+  try {
+    const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString("base64");
+    await fetch(`${MUX_API}/live-streams/${streamId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Basic ${auth}` },
+    });
+  } catch {}
+}
+
 const createLiveSchema = z.object({
   title: z.string().max(100).optional(),
 });
@@ -25,9 +63,25 @@ router.post("/start", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "You already have an active live session" });
   }
 
-  const streamKey = `live_${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const rtmpUrl = process.env.MUX_RTMP_URL ?? "rtmp://global-live.mux.com/app";
-  const playbackUrl = `https://stream.mux.com/${streamKey}.m3u8`;
+  let streamKey: string;
+  let playbackUrl: string | null;
+  let rtmpUrl: string;
+
+  if (MUX_TOKEN_ID && MUX_TOKEN_SECRET) {
+    try {
+      const mux = await createMuxStream();
+      streamKey = mux.streamKey;
+      playbackUrl = mux.playbackUrl;
+      rtmpUrl = "rtmp://global-live.mux.com/app";
+    } catch (e: any) {
+      console.error("Mux API error:", e.message);
+      return res.status(500).json({ error: "Failed to create live stream" });
+    }
+  } else {
+    streamKey = `live_${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    playbackUrl = `https://stream.mux.com/${streamKey}.m3u8`;
+    rtmpUrl = process.env.MUX_RTMP_URL ?? "rtmp://global-live.mux.com/app";
+  }
 
   const session = await prisma.liveSession.create({
     data: {
@@ -36,7 +90,7 @@ router.post("/start", requireAuth, async (req, res) => {
       status: "live",
       streamKey,
       rtmpUrl: `${rtmpUrl}/${streamKey}`,
-      playbackUrl,
+      playbackUrl: playbackUrl ?? "",
       startedAt: new Date(),
     },
     include: {
@@ -66,6 +120,20 @@ router.post("/:id/end", requireAuth, async (req, res) => {
   });
   if (!session) return res.status(404).json({ error: "Live session not found" });
   if (session.hostId !== userId) return res.status(403).json({ error: "Not authorized" });
+
+  if (MUX_TOKEN_ID && MUX_TOKEN_SECRET && session.streamKey) {
+    try {
+      const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString("base64");
+      const streamsRes = await fetch(`${MUX_API}/live-streams?stream_key=${session.streamKey}`, {
+        headers: { Authorization: `Basic ${auth}` },
+      });
+      if (streamsRes.ok) {
+        const streamsData = await streamsRes.json() as any;
+        const stream = streamsData.data?.[0];
+        if (stream?.id) await deleteMuxStream(stream.id);
+      }
+    } catch {}
+  }
 
   await prisma.liveSession.update({
     where: { id: sessionId },
@@ -126,10 +194,25 @@ router.get("/", requireAuth, async (req, res) => {
   const staleCutoff = new Date(Date.now() - LIVE_SESSION_TTL_MS);
   const staleSessions = await prisma.liveSession.findMany({
     where: { status: "live", startedAt: { lt: staleCutoff } },
-    select: { id: true },
+    select: { id: true, streamKey: true },
   });
   if (staleSessions.length > 0) {
     const staleIds = staleSessions.map((s) => s.id);
+    if (MUX_TOKEN_ID && MUX_TOKEN_SECRET) {
+      for (const s of staleSessions) {
+        try {
+          const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString("base64");
+          const streamsRes = await fetch(`${MUX_API}/live-streams?stream_key=${s.streamKey ?? ""}`, {
+            headers: { Authorization: `Basic ${auth}` },
+          });
+          if (streamsRes.ok) {
+            const streamsData = await streamsRes.json() as any;
+            const stream = streamsData.data?.[0];
+            if (stream?.id) await deleteMuxStream(stream.id);
+          }
+        } catch {}
+      }
+    }
     await prisma.liveSession.updateMany({ where: { id: { in: staleIds } }, data: { status: "ended", endedAt: new Date() } });
     await prisma.liveViewer.updateMany({ where: { sessionId: { in: staleIds }, leftAt: null }, data: { leftAt: new Date() } });
   }
