@@ -2,13 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Alert,
   BackHandler,
-  Dimensions,
   FlatList,
   Modal,
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   SafeAreaView,
@@ -17,7 +15,6 @@ import {
 import { CameraView, Camera, useCameraPermissions, type CameraType, type FlashMode } from "expo-camera";
 import { useSafeAreaInsets, type EdgeInsets } from "react-native-safe-area-context";
 import { requestRecordingPermissionsAsync } from "expo-audio";
-import { WebView } from "react-native-webview";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
@@ -27,6 +24,16 @@ import Avatar from "../components/Avatar";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import { connectWs } from "../ws";
+import {
+  createAgoraRtcEngine,
+  ChannelProfileType,
+  ClientRoleType,
+  AudienceLatencyLevelType,
+  type IRtcEngine,
+  type IRtcEngineEventHandler,
+  RtcSurfaceView,
+  VideoSourceType,
+} from "react-native-agora";
 
 type RouteParams = {
   sessionId?: number;
@@ -55,6 +62,7 @@ export default function LiveStreamScreen() {
   const [micMuted, setMicMuted] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [permDenied, setPermDenied] = useState(false);
+  const [remoteUid, setRemoteUid] = useState(0);
 
   const [viewersModalVisible, setViewersModalVisible] = useState(false);
   const [viewers, setViewers] = useState<any[]>([]);
@@ -63,12 +71,91 @@ export default function LiveStreamScreen() {
   const cameraRef = useRef<CameraView>(null);
   const sessionRef = useRef<any>(null);
   const hasJoinedRef = useRef(false);
+  const agoraEngineRef = useRef<IRtcEngine | null>(null);
+  const agoraEventHandlerRef = useRef<IRtcEngineEventHandler | null>(null);
 
   const isHost = session?.hostId === user?.id;
 
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  const cleanupAgora = useCallback(() => {
+    if (agoraEngineRef.current) {
+      try {
+        if (agoraEventHandlerRef.current) {
+          agoraEngineRef.current.unregisterEventHandler(agoraEventHandlerRef.current);
+        }
+        agoraEngineRef.current.leaveChannel();
+        agoraEngineRef.current.release();
+      } catch {}
+      agoraEngineRef.current = null;
+      agoraEventHandlerRef.current = null;
+    }
+  }, []);
+
+  const initAgora = useCallback(
+    (agoraAppId: string, channelName: string, token: string, asHost: boolean) => {
+      if (!agoraAppId) {
+        throw new Error("Agora App ID not configured");
+      }
+
+      cleanupAgora();
+
+      const engine = createAgoraRtcEngine();
+      engine.initialize({
+        appId: agoraAppId,
+        channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
+      });
+
+      const eventHandler: IRtcEngineEventHandler = {
+        onJoinChannelSuccess: () => {
+          if (asHost) {
+            engine.enableVideo();
+            engine.startPreview();
+          }
+          setStreamStatus("live");
+          setIsStreaming(true);
+        },
+        onUserJoined: (_conn, uid) => {
+          if (!asHost) {
+            setRemoteUid(uid);
+          }
+        },
+        onUserOffline: (_conn, uid) => {
+          if (!asHost && uid === remoteUid) {
+            setRemoteUid(0);
+          }
+        },
+        onError: (errCode) => {
+          console.error("Agora error:", errCode);
+        },
+      };
+
+      engine.registerEventHandler(eventHandler);
+      agoraEventHandlerRef.current = eventHandler;
+      agoraEngineRef.current = engine;
+
+      engine.enableVideo();
+
+      if (asHost) {
+        engine.muteLocalAudioStream(micMuted);
+      }
+
+      engine.joinChannel(token || "", channelName, asHost ? (user?.id ?? 0) : 0, {
+        channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
+        clientRoleType: asHost ? ClientRoleType.ClientRoleBroadcaster : ClientRoleType.ClientRoleAudience,
+        publishMicrophoneTrack: asHost,
+        publishCameraTrack: asHost,
+        autoSubscribeAudio: true,
+        autoSubscribeVideo: true,
+        audienceLatencyLevel: asHost
+          ? undefined
+          : AudienceLatencyLevelType.AudienceLatencyLevelUltraLowLatency,
+      });
+    },
+    [cleanupAgora, micMuted, user?.id, remoteUid]
+  );
 
   useEffect(() => {
     if (!isViewer) {
@@ -100,6 +187,7 @@ export default function LiveStreamScreen() {
     const unsubscribeLiveEnded = onWsEvent("live_ended", null, (payload: any) => {
       const currentSessionId = sessionRef.current?.id ?? route.params?.sessionId;
       if (payload?.sessionId === currentSessionId) {
+        cleanupAgora();
         setIsStreaming(false);
         setStreamStatus("idle");
         if (isViewer) {
@@ -114,8 +202,9 @@ export default function LiveStreamScreen() {
       unsubscribeLiveStarted();
       unsubscribeLiveEnded();
       hasJoinedRef.current = false;
+      cleanupAgora();
     };
-  }, [token, navigation, route.params?.sessionId, isViewer]);
+  }, [token, navigation, route.params?.sessionId, isViewer, cleanupAgora]);
 
   useEffect(() => {
     if (!route.params?.sessionId || hasJoinedRef.current) return;
@@ -137,6 +226,7 @@ export default function LiveStreamScreen() {
       const res = await api.live.get(token!, sessionId);
       setSession(res.session);
       await joinLive(sessionId);
+      initAgora(res.session.agoraAppId, res.session.agoraChannel, res.session.agoraToken, false);
     } catch (e: any) {
       setStreamStatus("error");
       setStreamError(e.message ?? "Failed to join live");
@@ -149,6 +239,7 @@ export default function LiveStreamScreen() {
       const res = await api.live.start(token!);
       setSession(res.session);
       await joinLive(res.session.id);
+      initAgora(res.agoraAppId, res.agoraChannel, res.agoraToken, true);
     } catch (e: any) {
       setStreamStatus("error");
       setStreamError(e.message ?? "Failed to start live");
@@ -159,8 +250,6 @@ export default function LiveStreamScreen() {
     try {
       await api.live.join(token!, sessionId);
       sendWs({ type: "join_live", sessionId });
-      setIsStreaming(true);
-      setStreamStatus("live");
     } catch (e: any) {
       setStreamStatus("error");
       setStreamError(e.message ?? "Failed to join live");
@@ -170,6 +259,7 @@ export default function LiveStreamScreen() {
   const endLive = async () => {
     if (!session) return;
     try {
+      cleanupAgora();
       if (isHost) {
         await api.live.end(token!, session.id);
       } else {
@@ -177,6 +267,7 @@ export default function LiveStreamScreen() {
       }
       sendWs({ type: "leave_live", sessionId: session.id });
       setIsStreaming(false);
+      setStreamStatus("idle");
       navigation.goBack();
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "Failed to end live");
@@ -189,9 +280,18 @@ export default function LiveStreamScreen() {
     setFlashMode(modes[(currentIndex + 1) % modes.length]);
   };
 
-  const toggleMic = () => setMicMuted((m) => !m);
+  const toggleMic = () => {
+    const newMuted = !micMuted;
+    setMicMuted(newMuted);
+    if (agoraEngineRef.current) {
+      agoraEngineRef.current.muteLocalAudioStream(newMuted);
+    }
+  };
 
   const switchCamera = () => {
+    if (agoraEngineRef.current) {
+      agoraEngineRef.current.switchCamera();
+    }
     setCameraType((prev) => (prev === "back" ? "front" : "back"));
   };
 
@@ -221,6 +321,7 @@ export default function LiveStreamScreen() {
       endLive();
       return true;
     }
+    cleanupAgora();
     navigation.goBack();
     return true;
   };
@@ -286,16 +387,11 @@ export default function LiveStreamScreen() {
             </View>
           )}
 
-          {streamStatus === "live" && session?.playbackUrl ? (
+          {streamStatus === "live" && remoteUid > 0 ? (
             <View style={styles.viewerBg}>
-              <WebView
-                source={{
-                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script></head><body style="margin:0;padding:0;background:#000"><video id="v" style="width:100%;height:100%;object-fit:contain" autoplay playsinline muted controls></video><script>var video=document.getElementById("v");var url="${session.playbackUrl}";function startPlay(){if(typeof Hls!=="undefined"&&Hls.isSupported()){var hls=new Hls({enableWorker:true});hls.loadSource(url);hls.attachMedia(video);hls.on(Hls.Events.MANIFEST_PARSED,function(){video.play();});}else{video.src=url;video.addEventListener("loadedmetadata",function(){video.play();});}}startPlay();</script></body></html>`,
-                }}
-                style={styles.viewerVideo}
-                mediaPlaybackRequiresUserAction={false}
-                allowsInlineMediaPlayback
-                javaScriptEnabled
+              <RtcSurfaceView
+                canvas={{ uid: remoteUid, sourceType: VideoSourceType.VideoSourceRemote }}
+                style={StyleSheet.absoluteFill}
               />
               <View style={styles.viewerOverlay}>
                 <View style={styles.viewerOverlayTop}>
@@ -380,79 +476,88 @@ export default function LiveStreamScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={cameraType}
-        flash={flashMode}
-        videoStabilizationMode="standard"
-      >
-        <View style={styles.overlay}>
-          <View style={styles.topBar}>
-            <TouchableOpacity style={styles.backBtn} onPress={handleBackPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="chevron-back" size={28} color={colors.white} />
-            </TouchableOpacity>
-            <View style={styles.titleWrap}>
-              <Text style={styles.liveTitle}>{session?.title || "Live"}</Text>
-              <View style={styles.liveBadge}>
-                <View style={[styles.liveDot, { backgroundColor: streamStatus === "live" ? "#00FF00" : colors.danger }]} />
-                <Text style={styles.liveText}>{streamStatus === "live" ? "LIVE" : streamStatus.toUpperCase()}</Text>
-              </View>
+      {isStreaming && (
+        <RtcSurfaceView
+          canvas={{ uid: 0, sourceType: VideoSourceType.VideoSourceCamera }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+
+      {!isStreaming && (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={cameraType}
+          flash={flashMode}
+          videoStabilizationMode="standard"
+        />
+      )}
+
+      <View style={styles.overlay}>
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backBtn} onPress={handleBackPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Icon name="chevron-back" size={28} color={colors.white} />
+          </TouchableOpacity>
+          <View style={styles.titleWrap}>
+            <Text style={styles.liveTitle}>{session?.title || "Live"}</Text>
+            <View style={styles.liveBadge}>
+              <View style={[styles.liveDot, { backgroundColor: streamStatus === "live" ? "#00FF00" : colors.danger }]} />
+              <Text style={styles.liveText}>{streamStatus === "live" ? "LIVE" : streamStatus.toUpperCase()}</Text>
             </View>
-            <TouchableOpacity style={styles.viewerWrap} onPress={loadViewers} disabled={!isStreaming}>
-              <Icon name="people" size={18} color={colors.white} />
-              <Text style={styles.viewerCount}>{viewerCount}</Text>
-            </TouchableOpacity>
           </View>
-
-          {!isStreaming && streamStatus === "idle" && (
-            <View style={styles.centerContent}>
-              <TouchableOpacity style={styles.goLiveBtn} onPress={startNewLive}>
-                <Icon name="videocam" size={40} color={colors.white} />
-                <Text style={styles.goLiveText}>Go Live</Text>
-                <Text style={styles.goLiveSub}>Tap to start broadcasting</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {streamStatus === "connecting" && (
-            <View style={styles.centerContent}>
-              <ActivityIndicator size="large" color={colors.white} />
-              <Text style={styles.connectingText}>Connecting...</Text>
-            </View>
-          )}
-
-          {streamError && (
-            <View style={styles.centerContent}>
-              <Icon name="alert-circle" size={48} color={colors.danger} />
-              <Text style={styles.errorText}>{streamError}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => { setStreamError(null); setStreamStatus("idle"); }}>
-                <Text style={styles.retryText}>Try Again</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.bottomBar}>
-            <TouchableOpacity style={styles.controlBtn} onPress={switchCamera} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="camera-reverse" size={26} color={colors.white} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "aperture" : "flash-off"} size={26} color={colors.white} />
-            </TouchableOpacity>
-
-            {isStreaming && (
-              <TouchableOpacity style={styles.endBtn} onPress={endLive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Icon name="stop-circle" size={32} color={colors.white} />
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity style={styles.controlBtn} onPress={toggleMic} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name={micMuted ? "mic-off" : "mic"} size={26} color={colors.white} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.viewerWrap} onPress={loadViewers} disabled={!isStreaming}>
+            <Icon name="people" size={18} color={colors.white} />
+            <Text style={styles.viewerCount}>{viewerCount}</Text>
+          </TouchableOpacity>
         </View>
-      </CameraView>
+
+        {!isStreaming && streamStatus === "idle" && (
+          <View style={styles.centerContent}>
+            <TouchableOpacity style={styles.goLiveBtn} onPress={startNewLive}>
+              <Icon name="videocam" size={40} color={colors.white} />
+              <Text style={styles.goLiveText}>Go Live</Text>
+              <Text style={styles.goLiveSub}>Tap to start broadcasting</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {streamStatus === "connecting" && (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={colors.white} />
+            <Text style={styles.connectingText}>Connecting...</Text>
+          </View>
+        )}
+
+        {streamError && (
+          <View style={styles.centerContent}>
+            <Icon name="alert-circle" size={48} color={colors.danger} />
+            <Text style={styles.errorText}>{streamError}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => { setStreamError(null); setStreamStatus("idle"); }}>
+              <Text style={styles.retryText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.controlBtn} onPress={switchCamera} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Icon name="camera-reverse" size={26} color={colors.white} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "aperture" : "flash-off"} size={26} color={colors.white} />
+          </TouchableOpacity>
+
+          {isStreaming && (
+            <TouchableOpacity style={styles.endBtn} onPress={endLive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Icon name="stop-circle" size={32} color={colors.white} />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.controlBtn} onPress={toggleMic} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Icon name={micMuted ? "mic-off" : "mic"} size={26} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Modal visible={viewersModalVisible} transparent animationType="slide" onRequestClose={() => setViewersModalVisible(false)}>
         <View style={styles.modalOverlay}>
