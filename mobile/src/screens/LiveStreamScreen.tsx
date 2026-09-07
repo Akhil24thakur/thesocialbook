@@ -290,7 +290,7 @@ export default function LiveStreamScreen() {
             <View style={styles.viewerBg}>
               <WebView
                 source={{
-                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"></head><body style="margin:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh"><video id="v" style="width:100%;height:100%;object-fit:contain" autoplay playsinline controls><source src="${session.playbackUrl}" type="application/x-mpegURL"></video><script>var v=document.getElementById("v");v.play();</script></body></html>`,
+                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script></head><body style="margin:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden"><video id="v" style="width:100%;height:100%;object-fit:contain" autoplay playsinline muted></video><script>var video=document.getElementById("v");var url="${session.playbackUrl}";if(Hls.isSupported()){var hls=new Hls();hls.loadSource(url);hls.attachMedia(video);hls.on(Hls.Events.MANIFEST_PARSED,function(){video.play();});}else if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=url;video.addEventListener("loadedmetadata",function(){video.play();});}</script></body></html>`,
                 }}
                 style={styles.viewerVideo}
                 mediaPlaybackRequiresUserAction={false}
