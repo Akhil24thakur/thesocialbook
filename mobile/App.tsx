@@ -41,6 +41,7 @@ import { setPendingPush, usePendingPush } from "./src/pushBadge";
 import { loadOrCreateKeyPair } from "./src/crypto";
 import { connectWs, onWsEvent } from "./src/ws";
 import { setupCrashLog } from "./src/crashLog";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 setupCrashLog();
 
@@ -223,6 +224,9 @@ async function checkForUpdates(
         const currentChannel = upd?.channel ?? "stable"; // default to stable
         const isDebugBaseline = current === "3.2.11";
         const isNewRelease = upd && typeof upd.version === "string" && isNewerVersion(upd.version, current);
+
+        const skippedVersion = await AsyncStorage.getItem("skippedVersion");
+        if (skippedVersion && upd?.version === skippedVersion) return;
         
         // Channel gating: users can only update within their channel
         // Beta users can see beta and stable releases
@@ -719,6 +723,9 @@ function AppContent() {
 
   const closeUpdate = () => {
     if (dl?.phase === "downloading") return;
+    if (update?.version) {
+      AsyncStorage.setItem("skippedVersion", update.version).catch(() => {});
+    }
     setUpdate(null);
     setDl(null);
   };
