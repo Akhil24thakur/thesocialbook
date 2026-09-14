@@ -7,6 +7,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   SafeAreaView,
@@ -64,9 +65,11 @@ export default function LiveStreamScreen() {
   const [permDenied, setPermDenied] = useState(false);
   const [remoteUid, setRemoteUid] = useState(0);
 
+  const [titleInput, setTitleInput] = useState("");
   const [viewersModalVisible, setViewersModalVisible] = useState(false);
   const [viewers, setViewers] = useState<any[]>([]);
   const [viewersLoading, setViewersLoading] = useState(false);
+  const endedRef = useRef(false);
 
   const cameraRef = useRef<CameraView>(null);
   const sessionRef = useRef<any>(null);
@@ -75,6 +78,8 @@ export default function LiveStreamScreen() {
   const agoraEventHandlerRef = useRef<IRtcEngineEventHandler | null>(null);
 
   const isHost = session?.hostId === user?.id;
+  const isHostRef = useRef(false);
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -203,6 +208,15 @@ export default function LiveStreamScreen() {
       unsubscribeLiveEnded();
       hasJoinedRef.current = false;
       cleanupAgora();
+      if (!endedRef.current && sessionRef.current?.id) {
+        endedRef.current = true;
+        if (isHostRef.current) {
+          api.live.end(token!, sessionRef.current.id).catch(() => {});
+        } else {
+          api.live.leave(token!, sessionRef.current.id).catch(() => {});
+        }
+        sendWs({ type: "leave_live", sessionId: sessionRef.current.id });
+      }
     };
   }, [token, navigation, route.params?.sessionId, isViewer, cleanupAgora]);
 
@@ -235,10 +249,11 @@ export default function LiveStreamScreen() {
 
   const startNewLive = async () => {
     try {
+      endedRef.current = false;
       setStreamStatus("connecting");
-      const res = await api.live.start(token!);
+      const res = await api.live.start(token!, titleInput.trim() || undefined);
       setSession(res.session);
-      await joinLive(res.session.id);
+      await joinLive(res.session.id, true);
       initAgora(res.agoraAppId, res.agoraChannel, res.agoraToken, true);
     } catch (e: any) {
       setStreamStatus("error");
@@ -246,10 +261,10 @@ export default function LiveStreamScreen() {
     }
   };
 
-  const joinLive = async (sessionId: number) => {
+  const joinLive = async (sessionId: number, asHost: boolean = false) => {
     try {
       await api.live.join(token!, sessionId);
-      sendWs({ type: "join_live", sessionId });
+      sendWs({ type: "join_live", sessionId, isHost: asHost });
     } catch (e: any) {
       setStreamStatus("error");
       setStreamError(e.message ?? "Failed to join live");
@@ -258,6 +273,7 @@ export default function LiveStreamScreen() {
 
   const endLive = async () => {
     if (!session) return;
+    endedRef.current = true;
     try {
       cleanupAgora();
       if (isHost) {
@@ -478,7 +494,7 @@ export default function LiveStreamScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {isStreaming && (
         <RtcSurfaceView
           canvas={{ uid: 0, sourceType: VideoSourceType.VideoSourceCamera }}
@@ -489,85 +505,130 @@ export default function LiveStreamScreen() {
       {!isStreaming && (
         <CameraView
           ref={cameraRef}
-          style={styles.camera}
+          style={StyleSheet.absoluteFill}
           facing={cameraType}
           flash={flashMode}
           videoStabilizationMode="standard"
         />
       )}
 
-      <View style={styles.overlay}>
-        <View style={styles.topBar}>
+      {/* Top gradient overlay */}
+      <View style={styles.topOverlay} pointerEvents="box-none">
+        <View style={styles.topOverlayInner}>
           <TouchableOpacity style={styles.backBtn} onPress={handleBackPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name="chevron-back" size={28} color={colors.white} />
           </TouchableOpacity>
-          <View style={styles.titleWrap}>
-            <Text style={styles.liveTitle}>{session?.title || "Live"}</Text>
-            <View style={styles.liveBadge}>
-              <View style={[styles.liveDot, { backgroundColor: streamStatus === "live" ? "#00FF00" : colors.danger }]} />
-              <Text style={styles.liveText}>{streamStatus === "live" ? "LIVE" : streamStatus.toUpperCase()}</Text>
-            </View>
+          <View style={styles.topBarCenter}>
+            {streamStatus === "live" && (
+              <View style={styles.liveIndicator}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveLabel}>LIVE</Text>
+              </View>
+            )}
+            {streamStatus === "connecting" && (
+              <View style={styles.liveIndicator}>
+                <ActivityIndicator size={12} color={colors.white} />
+                <Text style={styles.liveLabel}>CONNECTING</Text>
+              </View>
+            )}
           </View>
-          <TouchableOpacity style={styles.viewerWrap} onPress={loadViewers} disabled={!isStreaming}>
-            <Icon name="people" size={18} color={colors.white} />
+          <TouchableOpacity style={styles.viewerPill} onPress={loadViewers} disabled={!isStreaming}>
+            <Icon name="people" size={16} color={colors.white} />
             <Text style={styles.viewerCount}>{viewerCount}</Text>
           </TouchableOpacity>
         </View>
 
         {!isStreaming && streamStatus === "idle" && (
-          <View style={styles.centerContent}>
-            <TouchableOpacity style={styles.goLiveBtn} onPress={startNewLive}>
-              <Icon name="videocam" size={40} color={colors.white} />
-              <Text style={styles.goLiveText}>Go Live</Text>
-              <Text style={styles.goLiveSub}>Tap to start broadcasting</Text>
-            </TouchableOpacity>
+          <View style={styles.titleInputWrap}>
+            <TextInput
+              style={styles.titleInput}
+              placeholder="Add a title..."
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={titleInput}
+              onChangeText={setTitleInput}
+              maxLength={100}
+              returnKeyType="done"
+            />
           </View>
         )}
 
-        {streamStatus === "connecting" && (
-          <View style={styles.centerContent}>
+        {(isStreaming || streamStatus !== "idle") && session?.title ? (
+          <View style={styles.titleDisplayWrap}>
+            <Text style={styles.titleDisplay} numberOfLines={2}>{session.title}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Center status messages */}
+      {streamStatus === "connecting" && (
+        <View style={styles.centerOverlay}>
+          <View style={styles.statusCard}>
             <ActivityIndicator size="large" color={colors.white} />
-            <Text style={styles.connectingText}>Connecting...</Text>
+            <Text style={styles.statusText}>Starting your live stream...</Text>
           </View>
-        )}
+        </View>
+      )}
 
-        {streamError && (
-          <View style={styles.centerContent}>
-            <Icon name="alert-circle" size={48} color={colors.danger} />
+      {streamError && (
+        <View style={styles.centerOverlay}>
+          <View style={styles.statusCard}>
+            <Icon name="alert-circle" size={40} color={colors.danger} />
             <Text style={styles.errorText}>{streamError}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={() => { setStreamError(null); setStreamStatus("idle"); }}>
               <Text style={styles.retryText}>Try Again</Text>
             </TouchableOpacity>
           </View>
-        )}
+        </View>
+      )}
 
+      {/* Bottom gradient overlay */}
+      <View style={styles.bottomOverlay} pointerEvents="box-none">
         {isStreaming && isHost && (
-          <View style={styles.hostEndBar}>
+          <View style={styles.hostEndWrap}>
             <TouchableOpacity style={styles.hostEndBtn} onPress={() => {
               Alert.alert("End Live?", "This will end the live stream for everyone. Viewers will be disconnected.", [
                 { text: "Cancel", style: "cancel" },
                 { text: "End Live", style: "destructive", onPress: endLive },
               ]);
-            }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="stop-circle" size={28} color={colors.white} />
+            }}>
+              <Icon name="stop-circle" size={20} color={colors.white} />
               <Text style={styles.hostEndBtnText}>End Live</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <View style={styles.bottomBar}>
+        <View style={styles.controlsRow}>
           <TouchableOpacity style={styles.controlBtn} onPress={switchCamera} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon name="camera-reverse" size={26} color={colors.white} />
+            <Icon name="camera-reverse" size={24} color={colors.white} />
+            <Text style={styles.controlLabel}>Flip</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "aperture" : "flash-off"} size={26} color={colors.white} />
+            <Icon name={flashMode === "on" ? "flash" : flashMode === "auto" ? "aperture" : "flash-off"} size={24} color={colors.white} />
+            <Text style={styles.controlLabel}>Flash</Text>
           </TouchableOpacity>
 
+          {!isStreaming && streamStatus === "idle" && (
+            <TouchableOpacity style={styles.goLiveBtn} onPress={startNewLive}>
+              <View style={styles.goLiveInner}>
+                <Icon name="videocam" size={28} color={colors.white} />
+              </View>
+              <Text style={styles.goLiveLabel}>Go Live</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.controlBtn} onPress={toggleMic} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon name={micMuted ? "mic-off" : "mic"} size={26} color={colors.white} />
+            <Icon name={micMuted ? "mic-off" : "mic"} size={24} color={colors.white} />
+            <Text style={styles.controlLabel}>{micMuted ? "Unmute" : "Mute"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.controlBtn} onPress={loadViewers} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Icon name="people" size={24} color={colors.white} />
+            <Text style={styles.controlLabel}>Viewers</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={{ height: insets.bottom + 8 }} />
       </View>
 
       <Modal visible={viewersModalVisible} transparent animationType="slide" onRequestClose={() => setViewersModalVisible(false)}>
@@ -623,7 +684,8 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
       paddingHorizontal: 16,
       paddingBottom: 8,
     },
-    overlay: { flex: 1, backgroundColor: "transparent" },
+
+    // Viewer styles (kept for viewer view)
     topBar: {
       flexDirection: "row",
       alignItems: "center",
@@ -632,55 +694,164 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
       paddingHorizontal: 16,
       paddingBottom: 8,
     },
-    backBtn: { padding: 4 },
     titleWrap: { flex: 1, alignItems: "center" },
-    hostInfo: { flexDirection: "row", alignItems: "center", gap: 8 },
     liveTitle: { fontSize: 17, fontWeight: "700", color: colors.white },
     liveBadge: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-    liveDot: { width: 6, height: 6, borderRadius: 3 },
     liveText: { fontSize: 11, fontWeight: "800", color: colors.white },
     viewerWrap: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
-    viewerCount: { fontSize: 14, fontWeight: "700", color: colors.white },
     centerContent: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-    goLiveBtn: {
-      width: 160,
-      height: 160,
-      borderRadius: 80,
-      backgroundColor: colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8,
-    },
-    goLiveText: { fontSize: 20, fontWeight: "800", color: colors.white },
-    goLiveSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", textAlign: "center" },
-    connectingText: { fontSize: 16, color: colors.white, marginTop: 12 },
-    viewerLiveText: { fontSize: 20, fontWeight: "700", color: colors.white, marginTop: 12 },
-    viewerWatchingRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-    viewerCountText: { fontSize: 14, color: "rgba(255,255,255,0.7)" },
-    pulseRing: {
-      width: 140,
-      height: 140,
-      borderRadius: 70,
-      borderWidth: 3,
-      borderColor: "#FF3B30",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    errorText: { fontSize: 14, color: colors.white, marginTop: 8, textAlign: "center", paddingHorizontal: 32 },
-    retryBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 },
-    retryText: { fontSize: 14, fontWeight: "700", color: colors.white },
     bottomBar: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-around",
-      paddingBottom: insets.bottom + 16,
+      paddingBottom: 16,
       paddingHorizontal: 8,
     },
-    controlBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(10,14,22,0.6)", alignItems: "center", justifyContent: "center" },
-    endBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" },
+    liveDot: { width: 6, height: 6, borderRadius: 3 },
     hostEndBar: { alignItems: "center", paddingBottom: 8 },
-    hostEndBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FF3B30", paddingVertical: 12, paddingHorizontal: 32, borderRadius: 28 },
-    hostEndBtnText: { fontSize: 16, fontWeight: "800", color: colors.white },
+
+    // Top overlay
+    topOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      paddingTop: insets.top + 4,
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+      backgroundColor: "rgba(0,0,0,0.45)",
+    },
+    topOverlayInner: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    topBarCenter: { flex: 1, alignItems: "center" },
+    liveIndicator: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,59,48,0.9)",
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 14,
+    },
+    liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#fff" },
+    liveLabel: { fontSize: 12, fontWeight: "800", color: colors.white, letterSpacing: 0.8 },
+    viewerPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.18)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+    },
+    viewerCount: { fontSize: 14, fontWeight: "700", color: colors.white },
+
+    // Title input (pre-stream)
+    titleInputWrap: { marginTop: 12 },
+    titleInput: {
+      backgroundColor: "rgba(255,255,255,0.12)",
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.white,
+    },
+
+    // Title display (during stream)
+    titleDisplayWrap: { marginTop: 10 },
+    titleDisplay: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: "rgba(255,255,255,0.9)",
+      textAlign: "center",
+      lineHeight: 22,
+    },
+
+    // Center overlays
+    centerOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.3)",
+    },
+    statusCard: {
+      alignItems: "center",
+      gap: 14,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      paddingHorizontal: 32,
+      paddingVertical: 28,
+      borderRadius: 20,
+    },
+    statusText: { fontSize: 15, fontWeight: "600", color: colors.white },
+
+    // Bottom overlay
+    bottomOverlay: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      paddingBottom: 4,
+      backgroundColor: "rgba(0,0,0,0.45)",
+    },
+    hostEndWrap: { alignItems: "center", paddingTop: 16 },
+    hostEndBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: "#FF3B30",
+      paddingVertical: 10,
+      paddingHorizontal: 24,
+      borderRadius: 22,
+    },
+    hostEndBtnText: { fontSize: 15, fontWeight: "700", color: colors.white },
+
+    // Controls
+    controlsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-evenly",
+      paddingTop: 16,
+      paddingHorizontal: 8,
+    },
+    controlBtn: {
+      alignItems: "center",
+      justifyContent: "center",
+      width: 60,
+      gap: 4,
+    },
+    controlLabel: { fontSize: 11, fontWeight: "500", color: "rgba(255,255,255,0.85)" },
+    goLiveBtn: { alignItems: "center", gap: 6 },
+    goLiveInner: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: "#FF3B30",
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#FF3B30",
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    goLiveLabel: { fontSize: 12, fontWeight: "700", color: colors.white },
+
+    errorText: { fontSize: 14, color: colors.white, textAlign: "center", maxWidth: 220 },
+    retryBtn: { marginTop: 8, paddingHorizontal: 20, paddingVertical: 8, backgroundColor: colors.primary, borderRadius: 16 },
+    retryText: { fontSize: 14, fontWeight: "700", color: colors.white },
+
     leaveBtn: { alignItems: "center", justifyContent: "center" },
     permissionText: { marginTop: 16, color: colors.white, textAlign: "center" },
 

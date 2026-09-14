@@ -37,4 +37,4 @@ setInterval(() => {
       if (r.count > 0) console.log(`Auto-ended ${r.count} stale live sessions`);
     })
     .catch(() => {});
-}, 60 * 60 * 1000);
+}, 5 * 60 * 1000);
