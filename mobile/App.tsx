@@ -178,9 +178,8 @@ function isNewerVersion(latest: string, current: string) {
   }
   const aPre = latest.includes("-") ? latest.split("-")[1] : "";
   const bPre = current.includes("-") ? current.split("-")[1] : "";
-  if (aPre && !bPre) return false;
-  if (!aPre && bPre) return true;
-  return aPre > bPre;
+  if (aPre && bPre) return aPre > bPre;
+  return false;
 }
 
 interface UpdateInfo {
