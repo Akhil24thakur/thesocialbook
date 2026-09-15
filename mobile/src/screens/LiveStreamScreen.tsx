@@ -70,6 +70,7 @@ export default function LiveStreamScreen() {
   const [viewers, setViewers] = useState<any[]>([]);
   const [viewersLoading, setViewersLoading] = useState(false);
   const endedRef = useRef(false);
+  const agoraTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cameraRef = useRef<CameraView>(null);
   const sessionRef = useRef<any>(null);
@@ -102,7 +103,7 @@ export default function LiveStreamScreen() {
   const initAgora = useCallback(
     (agoraAppId: string, channelName: string, token: string, asHost: boolean) => {
       if (!agoraAppId) {
-        throw new Error("Agora App ID not configured");
+        throw new Error("Agora App ID not configured on server");
       }
 
       cleanupAgora();
@@ -115,6 +116,10 @@ export default function LiveStreamScreen() {
 
       const eventHandler: IRtcEngineEventHandler = {
         onJoinChannelSuccess: () => {
+          if (agoraTimeoutRef.current) {
+            clearTimeout(agoraTimeoutRef.current);
+            agoraTimeoutRef.current = null;
+          }
           if (asHost) {
             engine.enableVideo();
             engine.startPreview();
@@ -134,6 +139,10 @@ export default function LiveStreamScreen() {
         },
         onError: (errCode) => {
           console.error("Agora error:", errCode);
+          if (streamStatus === "connecting") {
+            setStreamStatus("error");
+            setStreamError(`Connection failed (error ${errCode}). Check Agora credentials.`);
+          }
         },
       };
 
@@ -147,7 +156,7 @@ export default function LiveStreamScreen() {
         engine.muteLocalAudioStream(micMuted);
       }
 
-      engine.joinChannel(token || "", channelName, asHost ? (user?.id ?? 0) : 0, {
+      const result = engine.joinChannel(token || "", channelName, asHost ? (user?.id ?? 0) : 0, {
         channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
         clientRoleType: asHost ? ClientRoleType.ClientRoleBroadcaster : ClientRoleType.ClientRoleAudience,
         publishMicrophoneTrack: asHost,
@@ -158,6 +167,23 @@ export default function LiveStreamScreen() {
           ? undefined
           : AudienceLatencyLevelType.AudienceLatencyLevelUltraLowLatency,
       });
+
+      if (result !== 0) {
+        setStreamStatus("error");
+        setStreamError(`Failed to join channel (code ${result}).`);
+      }
+
+      const connectTimeout = setTimeout(() => {
+        setStreamStatus((prev) => {
+          if (prev === "connecting") {
+            setStreamError("Connection timed out. Check your internet and Agora credentials.");
+            return "error";
+          }
+          return prev;
+        });
+      }, 30000);
+
+      return () => clearTimeout(connectTimeout);
     },
     [cleanupAgora, micMuted, user?.id, remoteUid]
   );
@@ -565,6 +591,16 @@ export default function LiveStreamScreen() {
           <View style={styles.statusCard}>
             <ActivityIndicator size="large" color={colors.white} />
             <Text style={styles.statusText}>Starting your live stream...</Text>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => {
+              cleanupAgora();
+              setIsStreaming(false);
+              setStreamStatus("idle");
+              if (session?.id) {
+                api.live.end(token!, session.id).catch(() => {});
+              }
+            }}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -795,6 +831,8 @@ function createStyles(colors: Colors, insets: EdgeInsets) {
       borderRadius: 20,
     },
     statusText: { fontSize: 15, fontWeight: "600", color: colors.white },
+    cancelBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 16 },
+    cancelBtnText: { fontSize: 14, fontWeight: "600", color: colors.white },
 
     // Bottom overlay
     bottomOverlay: {
