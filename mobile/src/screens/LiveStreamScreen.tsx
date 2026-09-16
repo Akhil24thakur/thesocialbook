@@ -156,7 +156,7 @@ export default function LiveStreamScreen() {
         engine.muteLocalAudioStream(micMuted);
       }
 
-      const result = engine.joinChannel(token || "", channelName, asHost ? (user?.id ?? 0) : 0, {
+      const result = engine.joinChannel(token || "", channelName, user?.id ?? 0, {
         channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
         clientRoleType: asHost ? ClientRoleType.ClientRoleBroadcaster : ClientRoleType.ClientRoleAudience,
         publishMicrophoneTrack: asHost,

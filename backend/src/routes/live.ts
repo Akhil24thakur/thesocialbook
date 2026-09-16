@@ -13,7 +13,7 @@ const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE ?? "";
 const AGORA_TOKEN_EXPIRATION = 86400;
 
 function generateAgoraToken(channelName: string, uid: number | string, role: 1 | 2): string {
-  if (!AGORA_APP_CERTIFICATE) return "";
+  if (!AGORA_APP_CERTIFICATE || !AGORA_APP_ID) return "";
 
   const now = Math.floor(Date.now() / 1000);
   const expiration = now + AGORA_TOKEN_EXPIRATION;
@@ -35,8 +35,9 @@ function generateAgoraToken(channelName: string, uid: number | string, role: 1 |
   const expBuf = Buffer.alloc(4);
   expBuf.writeUInt32BE(expiration, 0);
 
+  const hmacKey = crypto.createHash("sha256").update(AGORA_APP_ID + AGORA_APP_CERTIFICATE).digest();
   const signing = Buffer.concat([salt, expBuf, contentBuf]);
-  const hmac = crypto.createHmac("sha256", AGORA_APP_CERTIFICATE).update(signing).digest();
+  const hmac = crypto.createHmac("sha256", hmacKey).update(signing).digest();
 
   const tokenBuf = Buffer.alloc(1 + 4 + 4 + hmac.length);
   tokenBuf.writeUInt8(1, 0);
