@@ -37,8 +37,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+
+      - name: Install Android build tools
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0" "platforms;android-35" || true
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
 
       - name: Install dependencies (root + workspaces)
         run: npm ci
