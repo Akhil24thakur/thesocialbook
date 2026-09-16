@@ -12,8 +12,39 @@ const AGORA_APP_ID = process.env.AGORA_APP_ID ?? "";
 const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE ?? "";
 const AGORA_TOKEN_EXPIRATION = 86400;
 
-function generateAgoraToken(_channelName: string, _uid: number | string, _role: 1 | 2): string {
-  return "";
+function generateAgoraToken(channelName: string, uid: number | string, role: 1 | 2): string {
+  if (!AGORA_APP_CERTIFICATE) return "";
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiration = now + AGORA_TOKEN_EXPIRATION;
+  const salt = crypto.randomBytes(4);
+
+  const uidStr = String(uid);
+  const chNameBuf = Buffer.from(channelName, "utf8");
+  const uidBuf = Buffer.from(uidStr, "utf8");
+
+  const contentBuf = Buffer.alloc(1 + 2 + uidBuf.length + 2 + chNameBuf.length + 4);
+  let offset = 0;
+  contentBuf.writeUInt8(1, offset); offset += 1;
+  contentBuf.writeUInt16BE(uidBuf.length, offset); offset += 2;
+  uidBuf.copy(contentBuf, offset); offset += uidBuf.length;
+  contentBuf.writeUInt16BE(chNameBuf.length, offset); offset += 2;
+  chNameBuf.copy(contentBuf, offset); offset += chNameBuf.length;
+  contentBuf.writeUInt32BE(role, offset);
+
+  const expBuf = Buffer.alloc(4);
+  expBuf.writeUInt32BE(expiration, 0);
+
+  const signing = Buffer.concat([salt, expBuf, contentBuf]);
+  const hmac = crypto.createHmac("sha256", AGORA_APP_CERTIFICATE).update(signing).digest();
+
+  const tokenBuf = Buffer.alloc(1 + 4 + 4 + hmac.length);
+  tokenBuf.writeUInt8(1, 0);
+  salt.copy(tokenBuf, 1);
+  expBuf.copy(tokenBuf, 5);
+  hmac.copy(tokenBuf, 9);
+
+  return tokenBuf.toString("base64");
 }
 
 function getChannelName(sessionId: number): string {
