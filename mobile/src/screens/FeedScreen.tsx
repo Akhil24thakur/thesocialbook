@@ -195,7 +195,25 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
     [storyItems, user?.id]
   );
 
-  myStoriesMemo placeholder
+  const myStories = useMemo(
+    () => storyItems.filter((s) => s.author.id === user?.id),
+    [storyItems, user?.id]
+  );
+
+  const myStoryGroup = useMemo<StoryGroup | null>(() => {
+    if (!myStories.length) return null;
+    return {
+      name: user?.name ?? "You",
+      avatarUrl: user?.avatarUrl,
+      stories: myStories.map<Story>((s) => ({
+        id: s.id,
+        name: user?.name ?? "You",
+        content: "",
+        imageUrl: s.imageUrl,
+        createdAt: s.createdAt,
+      })),
+    };
+  }, [myStories, user?.name, user?.avatarUrl]);
 
   const onDeleteStory = useCallback(
     async (id: number) => {
@@ -212,7 +230,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         <StoriesStrip
           groups={friendGroups}
           myStoryGroup={myStoryGroup}
-          liveSessions={liveSessions.filter((s) => s.hostId !== user?.id)}
+          liveSessions={liveSessions.filter((s) => hostIdMatch(liveSessions, user, s))}
           userName={user?.name ?? "?"}
           userAvatarUrl={user?.avatarUrl}
           onRefresh={load}
@@ -260,6 +278,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         }
         onScroll={onScroll}
         scrollEventThrottle={16}
+        perf_note="numColumns>1 requires per-item keys; PostCard width handled by FlatList column layout"
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
         onViewableItemsChanged={onViewableItemsChanged}
@@ -277,7 +296,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         windowSize={11}
         initialNumToRender={5}
       />
-    </View>
+    </View FlatList>
   );
 }
 
