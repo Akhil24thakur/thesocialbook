@@ -1,8 +1,6 @@
-import { useWindowDimensions } from "react-native";
-
 /**
  * Apple HIG-aligned design system for SocialBook.
- * Light & dark palettes use system colors (Apple systemGray/blue/green/red).
+ * Light & dark palettes use iOS system colors.
  * Typography mirrors SF text styles. Spacing uses the 4pt grid.
  * All legacy keys (primary, purple, ...) remain for backward compatibility.
  */
@@ -32,14 +30,12 @@ export const lightColors = {
   systemGroupedBackground: "#F2F2F7",
   systemBackground: "#FFFFFF",
   elevated: "#FFFFFF",
-  labelPrimary: "#0A0A0A",
   labelSecondary: "#3C3C43",
   labelTertiary: "#8E8E93",
-  fillPrimary: "#787880",
-  fillSecondary: "#78788033", // 20% fill
-  fillTertiary: "#78788052", // 32% fill
-  blurLight: "rgba(255,255,255,0.72)",
-  blurDark: "rgba(28,28,30,0.72)",
+  fillSecondary: "rgba(120,120,128,0.16)",
+  fillTertiary: "rgba(120,120,128,0.24)",
+  blurLight: "rgba(249,249,249,0.94)",
+  blurDark: "rgba(28,28,30,0.94)",
 };
 
 export type Colors = typeof lightColors;
@@ -53,11 +49,9 @@ export const darkColors: Colors = {
   saffron: "#FF9F0A",
   green: "#30D158",
   online: "#30D158",
-  white: "#FFFFFF",
   background: "#000000",
   card: "#1C1C1E",
   text: "#FFFFFF",
-  textSecondary: "#8E8E93",
   border: "#38383A",
   danger: "#FF453A",
   amber: "#FF9F0A",
@@ -69,14 +63,12 @@ export const darkColors: Colors = {
   systemGroupedBackground: "#000000",
   systemBackground: "#1C1C1E",
   elevated: "#2C2C2E",
-  labelPrimary: "#FFFFFF",
-  labelSecondary: "#EBEBF599",
-  labelTertiary: "#EBEBF545",
-  fillPrimary: "#787880",
-  fillSecondary: "#78788033",
-  fillTertiary: "#7878805C",
-  blurLight: "rgba(255,255,255,0.72)",
-  blurDark: "rgba(28,28,30,0.72)",
+  labelSecondary: "rgba(235,235,245,0.6)",
+  labelTertiary: "rgba(235,235,245,0.3)",
+  fillSecondary: "rgba(120,120,128,0.32)",
+  fillTertiary: "rgba(120,120,128,0.24)",
+  blurLight: "rgba(249,249,249,0.94)",
+  blurDark: "rgba(28,28,30,0.94)",
 };
 
 export const colors = lightColors;
@@ -123,19 +115,8 @@ export const radius = {
   pill: 999,
 };
 
-/** Responsive breakpoints (HIG layout adaptivity) */
-export const useResponsive = () => {
-  const { width, height } = useWindowDimensions();
-  return {
-    width,
-    height,
-    isPhone: width < 430,
-    isTablet: width >= 768,
-    isLandscape: width > height,
-    columns: width >= 768 ? 2 : 1,
-    gutter: width >= 768 ? 32 : 16,
-  };
-};
+/** Scroll direction signal shared between the feed and the app bar. */
+export type ScrollDirection = "up" | "down";
 
 const ONLINE_WINDOW_MS = 3 * 60 * 1000;
 
@@ -147,8 +128,16 @@ export function isOnline(lastSeenAt?: string | null): boolean {
 }
 
 export const formatTime = (iso: string) => {
-  const date = new Date(ipattern);
-  return "";
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 };
 
 export const formatCount = (n: number) => {
