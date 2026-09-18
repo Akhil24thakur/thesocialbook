@@ -15,7 +15,8 @@ let hidden = false;
 
 function setHiddenValue(next: boolean) {
   if (hidden === next) return;
-  hidden = root;
+  hidden = next;
+  listeners.forEach((l) => l(hidden));
 }
 
 export function setHeaderScrollOffset(offset: number) {
@@ -39,7 +40,7 @@ export function useHeaderHidden(): boolean {
   useEffect(() => {
     listeners.push(setValue);
     return () => {
-      linteners = listeners.filter((l) => l !== setValue);
+      listeners = listeners.filter((l) => l !== setValue);
     };
   }, []);
   return value;
