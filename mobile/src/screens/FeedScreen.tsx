@@ -17,7 +17,7 @@ import PostCard from "../components/PostCard";
 import { EmptyFeed, ErrorFeed } from "../components/home/FeedStates";
 import SkeletonFeed from "../components/home/SkeletonFeed";
 import StoriesStrip from "../components/home/StoriesStrip";
-import { useHeaderVisibility } from "../components/home/HeaderVisibility";
+import { setHeaderScrollOffset, resetHeader } from "../components/home/HeaderVisibility";
 import { Story, StoryGroup } from "../components/home/StoryViewer";
 import { storyGroupsFromApi } from "../data/stories";
 import { type Colors } from "../theme";
@@ -45,7 +45,6 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   const loadingMoreRef = useRef(false);
   const seenRef = useRef(new Set<number>());
   const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { setScrollOffset, reset: resetHeader } = useHeaderVisibility();
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -140,10 +139,10 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
     if (active) load();
   }, [active, load]);
 
+  // Reveal the header whenever the feed tab becomes active.
   useEffect(() => {
-    if (!active) return;
-    resetHeader();
-  }, [active, resetHeader]);
+    if (active) resetHeader();
+  }, [active]);
 
   useEffect(() => {
     if (!active || !token) return;
@@ -196,25 +195,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
     [storyItems, user?.id]
   );
 
-  const myStories = useMemo(
-    () => storyItems.filter((s) => s.author.id === user?.id),
-    [storyItems, user?.id]
-  );
-
-  const myStoryGroup = useMemo<StoryGroup | null>(() => {
-    if (!myStories.length) return null;
-    return {
-      name: user?.name ?? "You",
-      avatarUrl: user?.avatarUrl,
-      stories: myStories.map<Story>((s) => ({
-        id: s.id,
-        name: user?.name ?? "You",
-        content: "",
-        imageUrl: s.imageUrl,
-        createdAt: s.createdAt,
-      })),
-    };
-  }, [myStories, user?.name, user?.avatarUrl]);
+  myStoriesMemo placeholder
 
   const onDeleteStory = useCallback(
     async (id: number) => {
@@ -262,17 +243,14 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
 
   const onRefreshFeed = useCallback(() => load(true), [load]);
 
-  const onScroll = useCallback(
-    (e: any) => {
-      setScrollOffset(e.nativeEvent.contentOffset.y);
-    },
-    [setScrollOffset]
-  );
+  const onScroll = useCallback((e: any) => {
+    setHeaderScrollOffset(e.nativeEvent.contentOffset.y);
+  }, []);
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={numColumns > 1 ? posts : posts}
+        data={posts}
         keyExtractor={keyExtractor}
         numColumns={numColumns}
         ListHeaderComponent={header}
