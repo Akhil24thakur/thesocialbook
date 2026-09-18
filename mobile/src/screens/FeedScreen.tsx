@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -16,6 +17,7 @@ import PostCard from "../components/PostCard";
 import { EmptyFeed, ErrorFeed } from "../components/home/FeedStates";
 import SkeletonFeed from "../components/home/SkeletonFeed";
 import StoriesStrip from "../components/home/StoriesStrip";
+import { useHeaderVisibility } from "../components/home/HeaderVisibility";
 import { Story, StoryGroup } from "../components/home/StoryViewer";
 import { storyGroupsFromApi } from "../data/stories";
 import { type Colors } from "../theme";
@@ -43,9 +45,19 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   const loadingMoreRef = useRef(false);
   const seenRef = useRef(new Set<number>());
   const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { setScrollOffset, reset: resetHeader } = useHeaderVisibility();
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Responsive layout (HIG adaptivity): wider screens get 2-column feed.
+  const [windowWidth, setWindowWidth] = useState(() => Dimensions.get("window").width);
+  useEffect(() => {
+    const sub = Dimensions.addEventListener("change", ({ window }) => setWindowWidth(window.width));
+    return () => sub.remove();
+  }, []);
+  const isTablet = windowWidth >= 768;
+  const numColumns = isTablet ? 2 : 1;
 
   const load = useCallback(
     async (refresh = false) => {
@@ -127,6 +139,11 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   useEffect(() => {
     if (active) load();
   }, [active, load]);
+
+  useEffect(() => {
+    if (!active) return;
+    resetHeader();
+  }, [active, resetHeader]);
 
   useEffect(() => {
     if (!active || !token) return;
@@ -245,16 +262,26 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
 
   const onRefreshFeed = useCallback(() => load(true), [load]);
 
+  const onScroll = useCallback(
+    (e: any) => {
+      setScrollOffset(e.nativeEvent.contentOffset.y);
+    },
+    [setScrollOffset]
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={posts}
+        data={numColumns > 1 ? posts : posts}
         keyExtractor={keyExtractor}
+        numColumns={numColumns}
         ListHeaderComponent={header}
         renderItem={renderItem}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefreshFeed} tintColor={colors.primary} />
         }
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
         onViewableItemsChanged={onViewableItemsChanged}
