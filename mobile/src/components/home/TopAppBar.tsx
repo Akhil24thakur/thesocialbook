@@ -2,25 +2,26 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "../Icon";
+import { useHeaderHidden } from "./HeaderVisibility";
 import { type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
 
 const LOGO_HEADER = require("../../../assets/brand/logo-header.png");
 
 const BAR_CONTENT_HEIGHT = 48;
-const SCROLL_THRESHOLD = 6;
 
 /**
  * Apple HIG-style top app bar:
  * - Translucent material-style surface with hairline separator
  * - 44pt touch targets, SF Symbol-sized icons
- * - Hides on scroll-down, reveals on scroll-up (native-driven spring)
+ * - Hides when the feed scrolls down, reveals on scroll-up
+ *   (subscribes to the shared scroll signal; no prop wiring required)
  */
 export default function TopAppBar({
   onNotify,
   onNewPost,
   unreadCount = 0,
-  hidden = false,
+  hidden: hiddenProp,
 }: {
   onNotify: () => void;
   onNewPost: () => void;
@@ -30,11 +31,13 @@ export default function TopAppBar({
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
+  const hiddenFromScroll = useHeaderHidden();
+  const hidden = hiddenProp ?? hiddenFromScroll;
   const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(translateY, {
-      toValue: hidden ? -(BAR_CONTENT_HEIGHT + 10) : 0,
+      toValue: hidden ? -(BAR_CONTENT_HEIGHT + 12) : 0,
       useNativeDriver: true,
       speed: 16,
       bounciness: 3,
@@ -87,7 +90,7 @@ const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   bar: {
     zIndex: 20,
     elevation: 6,
-    height: BAR_CONTENT_HEIGHT + 10,
+    height: BAR_CONTENT_HEIGHT + 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -146,4 +149,3 @@ const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
 });
 
 export const TOP_APP_BAR_CONTENT_HEIGHT = BAR_CONTENT_HEIGHT;
-export const TOP_APP_BAR_SCROLL_THRESHOLD = SCROLL_THRESHOLD;
