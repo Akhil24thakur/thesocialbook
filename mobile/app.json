@@ -2,7 +2,7 @@
   "expo": {
     "name": "SocialBook",
     "slug": "thesocialbook",
-    "version": "4.5.7-beta.2",
+    "version": "4.6.0-beta.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "socialbook",
