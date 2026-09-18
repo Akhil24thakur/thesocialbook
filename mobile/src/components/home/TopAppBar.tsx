@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useRef } from "react";
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "../Icon";
 import { type Colors } from "../../theme";
@@ -7,20 +7,48 @@ import { useTheme } from "../../theme-context";
 
 const LOGO_HEADER = require("../../../assets/brand/logo-header.png");
 
+const BAR_CONTENT_HEIGHT = 48;
+const SCROLL_THRESHOLD = 6;
+
+/**
+ * Apple HIG-style top app bar:
+ * - Translucent material-style surface with hairline separator
+ * - 44pt touch targets, SF Symbol-sized icons
+ * - Hides on scroll-down, reveals on scroll-up (native-driven spring)
+ */
 export default function TopAppBar({
   onNotify,
   onNewPost,
   unreadCount = 0,
+  hidden = false,
 }: {
   onNotify: () => void;
   onNewPost: () => void;
   unreadCount?: number;
+  hidden?: boolean;
 }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(translateY, {
+      toValue: hidden ? -(BAR_CONTENT_HEIGHT + 10) : 0,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 3,
+    }).start();
+  }, [hidden, translateY]);
+
   return (
-    <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
+    <Animated.View
+      style={[
+        styles.bar,
+        { paddingTop: insets.top, transform: [{ translateY }] },
+      ]}
+      accessibilityRole="header"
+    >
       <View style={styles.brand}>
         <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
       </View>
@@ -28,47 +56,54 @@ export default function TopAppBar({
         <TouchableOpacity
           onPress={onNewPost}
           accessibilityLabel="Create post"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
           style={styles.iconBtn}
         >
-          <Icon name="add" size={26} color={colors.text} />
+          <View style={styles.iconCircle}>
+            <Icon name="add" size={22} color={colors.text} />
+          </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.iconBtn}
           onPress={onNotify}
           accessibilityLabel="Notifications"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
         >
-          <Icon name="heart-outline" size={24} color={colors.text} />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-            </View>
-          )}
+          <View style={styles.iconCircle}>
+            <Icon name="heart-outline" size={21} color={colors.text} />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
-const createStyles = (colors: Colors) => StyleSheet.create({
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   bar: {
+    zIndex: 20,
+    elevation: 6,
+    height: BAR_CONTENT_HEIGHT + 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    backgroundColor: isDark ? colors.blurDark : colors.blurLight,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.separator,
   },
   brand: {
     flex: 1,
     alignItems: "flex-start",
   },
   brandImg: {
-    width: 130,
-    height: 32,
+    width: 128,
+    height: 30,
+    marginLeft: 4,
   },
   actions: {
     flexDirection: "row",
@@ -76,22 +111,32 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     gap: 4,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.fillSecondary,
     alignItems: "center",
     justifyContent: "center",
   },
   badge: {
     position: "absolute",
-    top: 4,
-    right: 2,
-    minWidth: 18,
-    height: 18,
+    top: -3,
+    right: -5,
+    minWidth: 17,
+    height: 17,
     borderRadius: 9,
     backgroundColor: colors.danger,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: isDark ? colors.blurDark : colors.blurLight,
   },
   badgeText: {
     color: colors.white,
@@ -99,3 +144,6 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     fontWeight: "700",
   },
 });
+
+export const TOP_APP_BAR_CONTENT_HEIGHT = BAR_CONTENT_HEIGHT;
+export const TOP_APP_BAR_SCROLL_THRESHOLD = SCROLL_THRESHOLD;
