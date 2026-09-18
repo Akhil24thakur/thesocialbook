@@ -5,7 +5,7 @@ import { avatarGradient, type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 import Icon from "./Icon";
 
-const AVATAR_COLORS = ["#1877F2", "#E0245E", "#0E8A3E", "#F1A100", "#7C3AED", "#0EA5E9", "#DB2777", "#059669"];
+const AVATAR_COLORS = ["#0A0A0A", "#E0245E", "#34C759", "#FF9500", "#6366F1", "#0095F6", "#FF2D55", "#059669"];
 
 export default function Avatar({
   name,
@@ -108,12 +108,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   initials: {
     color: colors.white,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   badge: {
     position: "absolute",
-    backgroundColor: "#1877F2",
-    borderWidth: 1.5,
+    backgroundColor: colors.accent,
+    borderWidth: 2,
     borderColor: colors.card,
     alignItems: "center",
     justifyContent: "center",

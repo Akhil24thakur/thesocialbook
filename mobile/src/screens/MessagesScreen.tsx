@@ -111,7 +111,7 @@ export default function MessagesScreen({ active }: { active: boolean }) {
               {other?.name ?? "Unknown"}
             </Text>
             {other?.isVerified && (
-              <Icon name="checkmark-circle" size={16} color="#1877F2" style={{ marginLeft: 4 }} />
+              <Icon name="checkmark-circle" size={16} color={colors.accent} />
             )}
           </View>
           <Text
@@ -148,7 +148,7 @@ export default function MessagesScreen({ active }: { active: boolean }) {
             <View style={styles.emptyIcon}>
               <Icon name="chatbubble-ellipses-outline" size={32} color={colors.textSecondary} />
             </View>
-            <Text style={styles.emptyTitle}>No messages yet</Text>
+            <Text style={styles.emptyTitle}>No conversations yet</Text>
             <Text style={styles.emptySub}>
               Open a user's profile, tap Message, and the conversation will show up here.
             </Text>
@@ -172,16 +172,16 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     justifyContent: "center",
   },
   list: {
-    padding: 16,
+    paddingHorizontal: 16,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   avatarWrap: {
     position: "relative",
@@ -193,12 +193,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 5,
     borderWidth: 2,
-    borderColor: colors.card,
+    borderColor: colors.background,
   },
   badgeText: {
     color: colors.white,
@@ -211,7 +211,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   name: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
   },
   nameRow: {
@@ -219,35 +219,36 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
   },
   preview: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
   },
   previewUnread: {
     color: colors.text,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   time: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
     alignSelf: "flex-start",
+    marginTop: 2,
   },
   empty: {
     alignItems: "center",
-    padding: 40,
+    padding: 48,
   },
   emptyIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "#E8EBF1",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
     marginBottom: 6,
   },
@@ -255,5 +256,6 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: "center",
+    lineHeight: 20,
   },
 });

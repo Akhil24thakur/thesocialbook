@@ -62,7 +62,6 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
       }
       setFollowed((prev) => !prev);
     } catch {
-      // silent fail
     } finally {
       setFollowBusy(false);
     }
@@ -72,18 +71,13 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
     const w = e.nativeEvent?.width ?? e.nativeEvent?.source?.width;
     const h = e.nativeEvent?.height ?? e.nativeEvent?.source?.height;
     if (!w || !h) return;
-    const containerW = Dimensions.get("window").width - 32 - CARD_PAD * 2;
+    const containerW = Dimensions.get("window").width - CARD_PAD * 2;
     const ratio = h / w;
     setImgH(Math.max(IMG_MIN_H, Math.min(IMG_MAX_H, containerW * ratio)));
   };
 
-  const postMenu = () => {
-    setMenuOpen(true);
-  };
-
-  const confirmDelete = () => {
-    setDeleteOpen(true);
-  };
+  const postMenu = () => setMenuOpen(true);
+  const confirmDelete = () => setDeleteOpen(true);
 
   const doDelete = async () => {
     if (!token) return;
@@ -100,10 +94,6 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
     }
   };
 
-  const onShare = async () => {
-    setShareOpen(true);
-  };
-
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -114,7 +104,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         >
           <Avatar
             name={post.author.name}
-            size={44}
+            size={36}
             imageUrl={post.author.avatarUrl}
             gradient={post.author.id === user?.id}
             online={isOnline(post.author.lastSeenAt)}
@@ -122,18 +112,9 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
           />
           <View style={styles.headerText}>
             <View style={styles.nameRow}>
-              <Text style={styles.name} numberOfLines={1}>
-                {post.author.name}
-              </Text>
-              {post.author.isVerified && (
-                <Icon name="checkmark-circle" size={16} color={colors.primary} />
-              )}
+              <Text style={styles.name} numberOfLines={1}>{post.author.name}</Text>
             </View>
-            <View style={styles.timeRow}>
-              <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
-              <Text style={styles.dotSep}>·</Text>
-              <Icon name="globe-outline" size={11} color={colors.textSecondary} />
-            </View>
+            <Text style={styles.time}>{formatTime(post.createdAt)}</Text>
           </View>
         </TouchableOpacity>
         {isOther ? (
@@ -154,17 +135,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
             accessibilityLabel="Post options"
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Icon name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        )}
-        {isOther && (
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={postMenu}
-            accessibilityLabel="Post options"
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          >
-            <Icon name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+            <Icon name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -189,43 +160,44 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
 
       <View style={styles.actions}>
         <Pressable
-          style={({ pressed }) => [styles.actionBtn, pressed && styles.actionPressed]}
+          style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5 }]}
           onPress={() => onToggleLike(post)}
-          android_ripple={{ color: "#00000008", borderless: false }}
           accessibilityRole="button"
           accessibilityLabel={post.likedByMe ? "Unlike" : "Like"}
           accessibilityState={{ selected: post.likedByMe }}
         >
           <Icon
             name={post.likedByMe ? "heart" : "heart-outline"}
-            size={20}
-            color={post.likedByMe ? colors.danger : colors.textSecondary}
+            size={22}
+            color={post.likedByMe ? colors.danger : colors.text}
           />
-          <Text style={[styles.actionText, post.likedByMe && styles.actionTextActiveLike]}>
-            {post.likedByMe ? "Liked" : "Like"}{post.likeCount > 0 ? ` ${formatCount(post.likeCount)}` : ""}
-          </Text>
         </Pressable>
         <Pressable
-          style={({ pressed }) => [styles.actionBtn, pressed && styles.actionPressed]}
+          style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5 }]}
           onPress={() => navigation.navigate("PostDetail", { postId: post.id, post })}
-          android_ripple={{ color: "#00000008", borderless: false }}
           accessibilityLabel="Comment"
         >
-          <Icon name="chatbubble-outline" size={20} color={colors.textSecondary} />
-          <Text style={styles.actionText}>
-            Comment{post.commentCount > 0 ? ` ${formatCount(post.commentCount)}` : ""}
-          </Text>
+          <Icon name="chatbubble-outline" size={21} color={colors.text} />
         </Pressable>
         <Pressable
-          style={({ pressed }) => [styles.actionBtn, pressed && styles.actionPressed]}
-          onPress={onShare}
-          android_ripple={{ color: "#00000008", borderless: false }}
+          style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5 }]}
+          onPress={() => setShareOpen(true)}
           accessibilityLabel="Share"
         >
-          <Icon name="paper-plane-outline" size={20} color={colors.textSecondary} />
-          <Text style={styles.actionText}>Share</Text>
+          <Icon name="paper-plane-outline" size={21} color={colors.text} />
         </Pressable>
       </View>
+
+      {(post.likeCount > 0 || post.commentCount > 0) && (
+        <View style={styles.statsRow}>
+          {post.likeCount > 0 && (
+            <Text style={styles.statsText}>{formatCount(post.likeCount)} {post.likeCount === 1 ? "like" : "likes"}</Text>
+          )}
+          {post.commentCount > 0 && (
+            <Text style={styles.statsText}>{formatCount(post.commentCount)} {post.commentCount === 1 ? "comment" : "comments"}</Text>
+          )}
+        </View>
+      )}
 
       <ShareSheet
         visible={shareOpen}
@@ -237,7 +209,7 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
       <ConfirmDialog
         visible={deleteOpen}
         title="Delete post?"
-        message="This post and everything linked to it will be permanently removed. This cannot be undone."
+        message="This post and everything linked to it will be permanently removed."
         confirmLabel="Delete"
         icon="trash-outline"
         destructive
@@ -263,17 +235,14 @@ function PostCard({ post, onToggleLike, onChanged }: Props) {
         message="We'll review this post and take action if it breaks our community guidelines."
         confirmLabel="Report"
         icon="flag-outline"
-        onConfirm={() => {
-          setReportOpen(false);
-          setThanksOpen(true);
-        }}
+        onConfirm={() => { setReportOpen(false); setThanksOpen(true); }}
         onClose={() => setReportOpen(false)}
       />
 
       <ConfirmDialog
         visible={thanksOpen}
         title="Thanks!"
-        message="We've received your report. Our team will review this post."
+        message="We've received your report."
         confirmLabel="OK"
         icon="checkmark-circle-outline"
         hideCancel
@@ -297,21 +266,15 @@ export default React.memo(PostCard);
 const createStyles = (colors: Colors) => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: 24,
-    marginBottom: 14,
+    paddingVertical: 12,
     paddingHorizontal: CARD_PAD,
-    paddingTop: 16,
-    paddingBottom: 4,
-    shadowColor: "#172033",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   authorBtn: {
     flex: 1,
@@ -323,8 +286,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontWeight: "700",
-    fontSize: 15,
+    fontWeight: "600",
+    fontSize: 14,
     color: colors.text,
   },
   nameRow: {
@@ -332,19 +295,10 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
   time: {
     color: colors.textSecondary,
     fontSize: 12,
-  },
-  dotSep: {
-    color: colors.textSecondary,
-    fontSize: 12,
+    marginTop: 1,
   },
   menuBtn: {
     width: 32,
@@ -353,19 +307,19 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     justifyContent: "center",
   },
   followBtn: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    borderRadius: 8,
+    backgroundColor: colors.accent,
   },
   followingBtn: {
     backgroundColor: "transparent",
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   followBtnText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.white,
   },
   followingBtnText: {
@@ -373,44 +327,37 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   content: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 21,
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   imageWrap: {
     marginHorizontal: -CARD_PAD,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   image: {
     width: "100%",
     borderRadius: 0,
-    backgroundColor: colors.border,
+    backgroundColor: colors.primaryLight,
   },
   actions: {
     flexDirection: "row",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    paddingVertical: 2,
+    paddingTop: 4,
+    paddingBottom: 2,
+    gap: 16,
   },
   actionBtn: {
-    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  statsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 44,
-    borderRadius: 10,
+    gap: 12,
+    paddingBottom: 2,
   },
-  actionPressed: {
-    opacity: 0.5,
-  },
-  actionText: {
+  statsText: {
     fontSize: 13,
-    fontWeight: "600",
     color: colors.textSecondary,
-  },
-  actionTextActiveLike: {
-    color: colors.danger,
-    fontWeight: "700",
+    fontWeight: "500",
   },
 });

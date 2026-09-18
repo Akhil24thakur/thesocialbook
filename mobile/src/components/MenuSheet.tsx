@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon, { IconName } from "./Icon";
-import { radius, type Colors } from "../theme";
+import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
 export interface MenuOption {
@@ -25,6 +25,7 @@ export default function MenuSheet({ visible, title, options, onClose }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
+          <View style={styles.handle} />
           {!!title && <Text style={styles.title}>{title}</Text>}
           {options.map((o) => (
             <TouchableOpacity
@@ -36,9 +37,7 @@ export default function MenuSheet({ visible, title, options, onClose }: Props) {
               }}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, o.danger && styles.iconWrapDanger]}>
-                <Icon name={o.icon} size={20} color={o.danger ? colors.danger : colors.primary} />
-              </View>
+              <Icon name={o.icon} size={20} color={o.danger ? colors.danger : colors.text} />
               <Text style={[styles.label, o.danger && styles.labelDanger]}>{o.label}</Text>
             </TouchableOpacity>
           ))}
@@ -54,67 +53,58 @@ export default function MenuSheet({ visible, title, options, onClose }: Props) {
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(23,32,51,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   sheet: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 28,
-    shadowColor: "#172033",
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 12,
+    paddingTop: 12,
+    paddingBottom: 32,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: 12,
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.textSecondary,
+    marginBottom: 8,
   },
   item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    paddingVertical: 12,
-  },
-  iconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconWrapDanger: {
-    backgroundColor: "#FDE7EE",
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "500",
     color: colors.text,
   },
   labelDanger: {
     color: colors.danger,
   },
   cancel: {
-    marginTop: 8,
-    height: 48,
-    borderRadius: radius.md,
+    marginTop: 10,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
   cancelText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "500",
     color: colors.textSecondary,
   },
 });

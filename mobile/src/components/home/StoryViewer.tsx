@@ -454,7 +454,7 @@ const GroupPage = memo(function GroupPage({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "#0A0E16",
+    backgroundColor: colors.background,
   },
   page: {
     flex: 1,
@@ -471,7 +471,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0A0E16",
+    backgroundColor: colors.background,
   },
   textBg: {
     flex: 1,
@@ -506,8 +506,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(10,14,22,0.72)",
-    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -515,7 +515,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -524,12 +524,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   musicTitle: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.white,
   },
   musicArtist: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.7)",
+    color: colors.textSecondary,
     marginTop: 1,
   },
   userRow: {
@@ -542,12 +542,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   name: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.white,
   },
   time: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
+    color: colors.textSecondary,
     marginTop: 1,
   },
   close: {
@@ -570,16 +570,16 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   progressSegment: {
     flex: 1,
-    height: 2.5,
-    borderRadius: 1.5,
-    backgroundColor: "rgba(255,255,255,0.35)",
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "rgba(255,255,255,0.3)",
     overflow: "hidden",
   },
   progressDone: {
     backgroundColor: colors.white,
   },
   progressIdle: {
-    backgroundColor: "rgba(255,255,255,0.35)",
+    backgroundColor: "rgba(255,255,255,0.3)",
   },
   progressFill: {
     height: "100%",
@@ -603,7 +603,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(10,14,22,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     zIndex: 40,
   },
   menuPop: {
@@ -615,12 +615,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   menuCard: {
     width: 170,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#141A26",
+    backgroundColor: colors.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: colors.border,
   },
   menuDeleteRow: {
     alignItems: "center",
@@ -629,7 +629,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   menuDeleteText: {
     fontSize: 17,
-    fontWeight: "800",
+    fontWeight: "700",
     color: colors.danger,
   },
 });

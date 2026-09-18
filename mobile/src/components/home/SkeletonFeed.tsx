@@ -45,19 +45,15 @@ export default function SkeletonFeed() {
 
 const createStyles = (colors: Colors) => StyleSheet.create({
   block: {
-    backgroundColor: "#E8EBF1",
-    borderRadius: 8,
+    backgroundColor: colors.border,
+    borderRadius: 6,
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 22,
     padding: 16,
-    marginBottom: 14,
-    shadowColor: "#172033",
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   headerRow: {
     flexDirection: "row",
@@ -66,26 +62,26 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     marginBottom: 14,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
   lineName: {
     width: "40%",
-    height: 14,
+    height: 12,
   },
   lineTime: {
     width: "25%",
     height: 10,
   },
   lineBody: {
-    height: 13,
+    height: 12,
     marginBottom: 10,
     width: "90%",
   },
   image: {
     height: 200,
-    borderRadius: 16,
+    borderRadius: 12,
     marginTop: 4,
     marginBottom: 14,
   },

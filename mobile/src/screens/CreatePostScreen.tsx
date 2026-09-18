@@ -14,14 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { api, uploadImage } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import RichPasteModal from "../components/RichPasteModal";
-import { brandGradient, type Colors } from "../theme";
+import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
 export default function CreatePostScreen({ navigation, route }: any) {
@@ -164,25 +163,23 @@ export default function CreatePostScreen({ navigation, route }: any) {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
-      <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} disabled={busy || uploading} style={styles.headerBtn}>
-            <Icon name="close" size={22} color={colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Post</Text>
-          <TouchableOpacity
-            onPress={submit}
-            disabled={!canPost}
-            style={[styles.headerBtn, styles.postBtn, !canPost && styles.postBtnDisabled]}
-          >
-            {busy || uploading ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <Text style={styles.postBtnText}>Share</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} disabled={busy || uploading} style={styles.headerBtn}>
+          <Icon name="close" size={22} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>New Post</Text>
+        <TouchableOpacity
+          onPress={submit}
+          disabled={!canPost}
+          style={[styles.postBtn, !canPost && styles.postBtnDisabled]}
+        >
+          {busy || uploading ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <Text style={styles.postBtnText}>Share</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         style={styles.bodyScroll}
@@ -358,6 +355,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingTop: 50,
     paddingBottom: 12,
+    backgroundColor: colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   headerBtn: {
     width: 40,
@@ -368,13 +368,14 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: "700",
-    color: colors.white,
+    fontWeight: "600",
+    color: colors.text,
   },
   postBtn: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 20,
+    backgroundColor: colors.accent,
+    borderRadius: 10,
     paddingHorizontal: 16,
+    paddingVertical: 8,
     width: "auto",
   },
   postBtnDisabled: {
@@ -383,7 +384,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   postBtnText: {
     color: colors.white,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   bodyScroll: {
     flex: 1,
@@ -401,8 +402,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flex: 1,
   },
   authorName: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
     color: colors.text,
   },
   audienceRow: {
@@ -427,34 +428,30 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   photoPreview: {
     marginBottom: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     backgroundColor: colors.border,
   },
   photo: {
     width: "100%",
     height: 220,
-    borderRadius: 16,
+    borderRadius: 14,
   },
   removePhoto: {
     position: "absolute",
     top: 8,
     right: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 16,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   uploadCard: {
     backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 16,
+    borderRadius: 14,
     paddingHorizontal: 24,
     paddingVertical: 20,
     alignItems: "center",
@@ -481,9 +478,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   actionsCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 16,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
   addLabel: {
@@ -503,9 +500,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     gap: 6,
   },
   actionIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -532,17 +529,17 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   modalCard: {
     width: "84%",
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 20,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
     marginBottom: 14,
   },
   modalInput: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
@@ -572,11 +569,11 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   modalOkText: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.white,
   },
   errorRow: {

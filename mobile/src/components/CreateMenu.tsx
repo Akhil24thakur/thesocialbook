@@ -16,16 +16,17 @@ export default function CreateMenu({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const OPTIONS = [
-    { key: "post", label: "Create Post", sub: "Share text, photo and more", icon: "create-outline", color: colors.primary },
-    { key: "photo", label: "Upload Photo", sub: "Add a photo to your post", icon: "image-outline", color: colors.green },
-    { key: "live", label: "Go Live", sub: "Broadcast to your followers", icon: "videocam-outline", color: colors.primary },
+    { key: "post", label: "Post", sub: "Share what's on your mind", icon: "create-outline" },
+    { key: "photo", label: "Photo", sub: "Share a photo", icon: "image-outline" },
+    { key: "live", label: "Live video", sub: "Go live with your audience", icon: "videocam-outline" },
   ] as const;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>Create</Text>
+          <View style={styles.handle} />
+          <Text style={styles.title}>Create new</Text>
           {OPTIONS.map((o) => (
             <TouchableOpacity
               key={o.key}
@@ -36,8 +37,8 @@ export default function CreateMenu({
               }}
               accessibilityLabel={o.label}
             >
-              <View style={[styles.iconBox, { backgroundColor: `${o.color}1A` }]}>
-                <Icon name={o.icon as any} size={22} color={o.color} />
+              <View style={styles.iconCircle}>
+                <Icon name={o.icon as any} size={22} color={colors.text} />
               </View>
               <View style={styles.itemText}>
                 <Text style={styles.itemLabel}>{o.label}</Text>
@@ -54,22 +55,30 @@ export default function CreateMenu({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(23,32,51,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   sheet: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingBottom: 36,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: 16,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "600",
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   item: {
     flexDirection: "row",
@@ -77,10 +86,11 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     gap: 14,
     paddingVertical: 12,
   },
-  iconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -88,13 +98,13 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flex: 1,
   },
   itemLabel: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
     color: colors.text,
   },
   itemSub: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
   },
 });

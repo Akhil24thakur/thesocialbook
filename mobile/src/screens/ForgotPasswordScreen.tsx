@@ -12,12 +12,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import BrandLogo from "../components/BrandLogo";
 import Icon from "../components/Icon";
-import { brandGradient, type Colors } from "../theme";
+import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
 type Step = "phone" | "code";
@@ -112,7 +111,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
   };
 
   return (
-    <LinearGradient colors={[colors.primaryLight, colors.background]} style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -212,18 +211,11 @@ export default function ForgotPasswordScreen({ navigation }: any) {
               disabled={busy}
               activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={brandGradient(colors)}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
-              >
-                {busy ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Text style={styles.buttonText}>{step === "phone" ? "Send Code" : "Reset Password"}</Text>
-                )}
-              </LinearGradient>
+              {busy ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>{step === "phone" ? "Send Code" : "Reset Password"}</Text>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.linkBtn} onPress={goBack}>
               <Text style={styles.linkText}>{step === "phone" ? "Back to login" : "Back to phone number"}</Text>
@@ -231,13 +223,14 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   flex: {
     flex: 1,
@@ -255,10 +248,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     marginBottom: 10,
   },
   logo: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: colors.primaryDark,
-    letterSpacing: 0.2,
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.text,
     marginTop: 8,
   },
   logoCompact: {
@@ -277,22 +269,18 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   form: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
   info: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: "center",
     marginBottom: 16,
+    lineHeight: 20,
   },
   strong: {
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
   },
   inputWrap: {
@@ -300,7 +288,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
     marginBottom: 12,
     backgroundColor: colors.background,
@@ -322,9 +310,9 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     height: 48,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
     backgroundColor: colors.background,
   },
@@ -335,18 +323,16 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     textAlign: "center",
   },
   button: {
-    borderRadius: 10,
+    borderRadius: 12,
     marginTop: 4,
-    overflow: "hidden",
-  },
-  buttonGradient: {
-    paddingVertical: 13,
+    backgroundColor: colors.accent,
+    paddingVertical: 14,
     alignItems: "center",
   },
   buttonText: {
     color: colors.white,
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
   },
   linkBtn: {
     alignItems: "center",

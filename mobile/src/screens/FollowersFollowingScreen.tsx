@@ -186,8 +186,11 @@ const createStyles = (colors: Colors) =>
     userRow: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 10,
+      paddingVertical: 12,
+      paddingHorizontal: 4,
       gap: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
     },
     userInfo: {
       flex: 1,
@@ -199,7 +202,7 @@ const createStyles = (colors: Colors) =>
     },
     name: {
       fontSize: 15,
-      fontWeight: "700",
+      fontWeight: "600",
       color: colors.text,
     },
     username: {
@@ -209,10 +212,10 @@ const createStyles = (colors: Colors) =>
     },
     followBtn: {
       paddingHorizontal: 18,
-      paddingVertical: 7,
-      borderRadius: 20,
-      backgroundColor: colors.primary,
-      minWidth: 80,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: colors.accent,
+      minWidth: 88,
       alignItems: "center",
     },
     followingBtn: {
@@ -222,7 +225,7 @@ const createStyles = (colors: Colors) =>
     },
     followBtnText: {
       fontSize: 13,
-      fontWeight: "700",
+      fontWeight: "600",
       color: colors.white,
     },
     followingBtnText: {

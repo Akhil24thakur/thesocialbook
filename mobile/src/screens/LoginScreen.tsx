@@ -11,11 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../auth/AuthContext";
 import BrandLogo from "../components/BrandLogo";
 import Icon from "../components/Icon";
-import { brandGradient, type Colors } from "../theme";
+import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
 export default function LoginScreen({ navigation }: any) {
@@ -25,17 +24,8 @@ export default function LoginScreen({ navigation }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [kbHeight, setKbHeight] = useState(0);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", (e) => setKbHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
-    return () => { show.remove(); hide.remove(); };
-  }, []);
-
-  const compact = kbHeight > 0;
 
   const detectType = (val: string): "phone" | "email" | "username" => {
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) return "email";
@@ -67,36 +57,28 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[colors.primary, colors.pink]} style={styles.topGradient}>
-        <View style={[styles.brand, compact && styles.brandCompact]}>
-          <BrandLogo size={compact ? 48 : 80} />
-          <Text style={[styles.logo, compact && styles.logoCompact]}>SocialBook</Text>
-          <Text style={[styles.tagline, compact && styles.taglineCompact]}>India's own social network</Text>
-        </View>
-        <View style={styles.tricolor}>
-          <View style={[styles.tricolorBar, { backgroundColor: colors.saffron }]} />
-          <View style={[styles.tricolorBar, { backgroundColor: colors.white }]} />
-          <View style={[styles.tricolorBar, { backgroundColor: colors.green }]} />
-        </View>
-      </LinearGradient>
-
       <KeyboardAvoidingView
-        style={styles.formWrap}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.formCard}>
+          <View style={styles.header}>
+            <BrandLogo size={56} />
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text>
+          </View>
+
+          <View style={styles.form}>
             <View style={styles.inputWrap}>
-              <Icon name="person-outline" size={20} color={colors.textSecondary} />
+              <Icon name="person-outline" size={18} color={colors.textSecondary} />
               <TextInput
                 style={styles.input}
                 placeholder="Phone, email, or username"
-                placeholderTextColor={colors.textSecondary + "99"}
+                placeholderTextColor={colors.textSecondary}
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={identifier}
@@ -105,11 +87,11 @@ export default function LoginScreen({ navigation }: any) {
             </View>
 
             <View style={styles.inputWrap}>
-              <Icon name="lock-closed-outline" size={20} color={colors.textSecondary} />
+              <Icon name="lock-closed-outline" size={18} color={colors.textSecondary} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor={colors.textSecondary + "99"}
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -120,7 +102,7 @@ export default function LoginScreen({ navigation }: any) {
               >
                 <Icon
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={20}
+                  size={18}
                   color={colors.textSecondary}
                 />
               </TouchableOpacity>
@@ -128,35 +110,23 @@ export default function LoginScreen({ navigation }: any) {
 
             {!!error && <Text style={styles.error}>{error}</Text>}
 
-            <TouchableOpacity style={styles.button} onPress={submit} disabled={busy} activeOpacity={0.85}>
-              <LinearGradient
-                colors={brandGradient(colors)}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
-              >
-                {busy ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Text style={styles.buttonText}>Login</Text>
-                )}
-              </LinearGradient>
+            <TouchableOpacity style={styles.button} onPress={submit} disabled={busy} activeOpacity={0.8}>
+              {busy ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>Log in</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
               <Text style={styles.linkText}>Forgot password?</Text>
             </TouchableOpacity>
+          </View>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity style={styles.signupBtn} onPress={() => navigation.navigate("Signup")} activeOpacity={0.85}>
-              <Text style={styles.signupText}>
-                New here? <Text style={styles.signupStrong}>Create account</Text>
-              </Text>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+              <Text style={styles.footerLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -168,80 +138,41 @@ export default function LoginScreen({ navigation }: any) {
 const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  topGradient: {
-    paddingTop: 80,
-    paddingBottom: 40,
-    alignItems: "center",
-  },
-  brand: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  brandCompact: {
-    marginBottom: 6,
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: colors.white,
-    letterSpacing: 0.3,
-    marginTop: 10,
-  },
-  logoCompact: {
-    fontSize: 24,
-    marginTop: 4,
-  },
-  tagline: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 6,
-    fontWeight: "500",
-  },
-  taglineCompact: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  tricolor: {
-    flexDirection: "row",
-    marginTop: 14,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  tricolorBar: {
-    width: 28,
-    height: 4,
-  },
-  formWrap: {
-    flex: 1,
-    marginTop: -20,
+    backgroundColor: colors.card,
   },
   scroll: {
     flexGrow: 1,
+    justifyContent: "center",
     padding: 24,
-    paddingTop: 30,
   },
-  formCard: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+  header: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.text,
+    marginTop: 16,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginTop: 6,
+  },
+  form: {
+    gap: 12,
   },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    marginBottom: 14,
+    height: 50,
     backgroundColor: colors.background,
-    height: 52,
   },
   input: {
     flex: 1,
@@ -252,61 +183,43 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   error: {
     color: colors.danger,
     fontSize: 13,
-    marginBottom: 10,
     textAlign: "center",
+    marginBottom: 4,
   },
   button: {
-    borderRadius: 14,
-    marginTop: 4,
-    overflow: "hidden",
-  },
-  buttonGradient: {
-    paddingVertical: 15,
+    backgroundColor: colors.accent,
+    height: 50,
+    borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
   },
   buttonText: {
     color: colors.white,
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
   },
   linkBtn: {
     alignItems: "center",
-    marginTop: 14,
+    marginTop: 8,
   },
   linkText: {
-    color: colors.primary,
+    color: colors.accent,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
   },
-  divider: {
+  footer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-    gap: 12,
+    justifyContent: "center",
+    marginTop: 32,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
+  footerText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
-  dividerText: {
-    fontSize: 12,
+  footerLink: {
+    fontSize: 14,
+    color: colors.accent,
     fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  signupBtn: {
-    alignItems: "center",
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-  },
-  signupText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  signupStrong: {
-    color: colors.primary,
-    fontWeight: "700",
   },
 });

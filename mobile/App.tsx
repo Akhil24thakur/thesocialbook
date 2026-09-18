@@ -327,34 +327,23 @@ async function checkForUpdates(
 function SectionHeader({ title, onMenu }: { title: string; onMenu?: () => void }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-      <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-      <View
-        style={{
-          paddingTop: insets.top + 2,
-          paddingBottom: 8,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: 12,
-        }}
-      >
-        {onMenu ? (
-          <TouchableOpacity
-            onPress={onMenu}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20 }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel="Menu"
-          >
-            <Icon name="menu" size={22} color={colors.white} />
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
-        <Text style={{ fontSize: 17, fontWeight: "700", color: colors.white }}>{title}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-    </LinearGradient>
+    <View style={[s.sectionBar, { paddingTop: insets.top + 4 }]}>
+      <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
+      {onMenu ? (
+        <TouchableOpacity
+          onPress={onMenu}
+          style={s.sectionMenuBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Menu"
+        >
+          <Icon name="menu-outline" size={22} color={colors.text} />
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 38 }} />
+      )}
+    </View>
   );
 }
 
@@ -493,19 +482,16 @@ function HomeTabs() {
         accessibilityLabel={t.label}
         accessibilityState={{ selected: active }}
       >
-        {active ? (
-          <LinearGradient colors={brandGradient(colors)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.tabIconActive}>
-            <Icon name={t.icon as any} size={22} color={colors.white} />
-          </LinearGradient>
-        ) : (
-          <Icon name={t.iconOutline as any} size={22} color={colors.textSecondary} />
-        )}
+        <Icon
+          name={(active ? t.icon : t.iconOutline) as any}
+          size={24}
+          color={active ? colors.text : colors.textSecondary}
+        />
         {t.badge > 0 && (
           <View style={[styles.tabBadgeDot, { backgroundColor: colors.danger }]}>
             <Text style={styles.tabBadgeText}>{t.badge > 99 ? "99+" : t.badge}</Text>
           </View>
         )}
-        <Text style={[styles.tabLabel, { color: active ? colors.primary : colors.textSecondary, fontWeight: active ? "700" : "600" }]}>{t.label}</Text>
       </TouchableOpacity>
     );
   };
@@ -974,44 +960,48 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  sectionBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  sectionMenuBtn: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   tabBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.card,
-    paddingTop: 8,
+    paddingTop: 6,
     paddingBottom: 4,
-    borderTopWidth: 0,
-    shadowColor: "#172033",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    position: "relative",
   },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  tabItemActive: {
-    gap: 3,
-  },
-  tabIconActive: {
-    width: 40,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  tabItemActive: {},
   tabBadgeDot: {
     position: "absolute",
-    top: -4,
-    right: -18,
+    top: 0,
+    right: "25%",
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -1021,7 +1011,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   tabBadgeText: {
     color: colors.white,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
   },
   pagerWrap: {
@@ -1047,47 +1037,46 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     top: -16,
   },
   createShadow: {
-    shadowColor: "#172033",
-    shadowOpacity: 0.3,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
     borderRadius: 30,
   },
   plusButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(23,32,51,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   menuSheet: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16,
     paddingBottom: 32,
   },
   menuTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "600",
     color: colors.text,
-    marginBottom: 2,
-    fontFamily: "Caveat_700Bold",
-  },
-  menuVersion: {
-    fontSize: 11,
-    color: colors.textSecondary,
     marginBottom: 4,
   },
+  menuVersion: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
   menuPush: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 12,
   },
@@ -1095,19 +1084,19 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    paddingVertical: 12,
+    paddingVertical: 11,
   },
   menuIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
   menuLabel: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "500",
     color: colors.text,
   },
   menuDanger: {
@@ -1115,60 +1104,55 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   updateOverlay: {
     flex: 1,
-    backgroundColor: "rgba(23,32,51,0.45)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
-    padding: 28,
+    padding: 24,
   },
   updateCard: {
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 340,
     backgroundColor: colors.card,
-    borderRadius: 28,
+    borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#172033",
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
   },
   updateHeader: {
     alignItems: "center",
     paddingTop: 24,
-    paddingBottom: 20,
+    paddingBottom: 16,
     paddingHorizontal: 20,
   },
   updateIconWrap: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
   },
   updateTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "600",
     color: colors.white,
   },
   updatePill: {
     marginTop: 8,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 3,
   },
   updatePillText: {
     color: colors.white,
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "600",
   },
   updateBody: {
     alignItems: "center",
-    padding: 22,
-    gap: 12,
-    minHeight: 110,
+    padding: 20,
+    gap: 10,
+    minHeight: 100,
     justifyContent: "center",
   },
   updateStatus: {
@@ -1176,47 +1160,48 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   updateError: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.danger,
     textAlign: "center",
   },
   progressTrack: {
     width: "100%",
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: colors.border,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
-    backgroundColor: colors.primary,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
   },
   updatePct: {
     fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
+    fontWeight: "600",
+    color: colors.accent,
   },
   updateNotes: {
-    maxHeight: 150,
-    paddingHorizontal: 22,
-    paddingTop: 18,
+    maxHeight: 140,
+    paddingHorizontal: 20,
+    paddingTop: 14,
   },
   updateNotesText: {
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 18,
     color: colors.textSecondary,
   },
   updateRow: {
     flexDirection: "row",
-    gap: 12,
-    padding: 22,
+    gap: 10,
+    padding: 20,
+    paddingTop: 12,
   },
   updateBtn: {
     flex: 1,
-    height: 46,
-    borderRadius: 16,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1226,20 +1211,20 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     borderColor: colors.border,
   },
   updateBtnGhostText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "500",
     color: colors.textSecondary,
   },
   updateBtnPrimary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   updateBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     color: colors.white,
   },
   themeOptionActive: {
-    color: colors.primary,
-    fontWeight: "700",
+    color: colors.accent,
+    fontWeight: "600",
   },
 });

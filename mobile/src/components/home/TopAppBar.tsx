@@ -1,9 +1,8 @@
 import React, { useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import Icon from "../Icon";
-import { brandGradient, type Colors } from "../../theme";
+import { type Colors } from "../../theme";
 import { useTheme } from "../../theme-context";
 
 const LOGO_HEADER = require("../../../assets/brand/logo-header.png");
@@ -21,28 +20,26 @@ export default function TopAppBar({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   return (
-    <LinearGradient colors={[colors.primary, colors.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-      <View style={[styles.bar, { paddingTop: insets.top + 2 }]}>
+    <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
+      <View style={styles.brand}>
+        <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
+      </View>
+      <View style={styles.actions}>
         <TouchableOpacity
           onPress={onNewPost}
           accessibilityLabel="Create post"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.createWrap}
+          style={styles.iconBtn}
         >
-          <View style={styles.createBtn}>
-            <Icon name="add" size={20} color={colors.white} />
-          </View>
+          <Icon name="add" size={26} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.brand}>
-          <Image source={LOGO_HEADER} style={styles.brandImg} resizeMode="contain" />
-        </View>
         <TouchableOpacity
           style={styles.iconBtn}
           onPress={onNotify}
           accessibilityLabel="Notifications"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Icon name="notifications-outline" size={21} color={colors.white} />
+          <Icon name="heart-outline" size={24} color={colors.text} />
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
@@ -50,7 +47,7 @@ export default function TopAppBar({
           )}
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -59,53 +56,46 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingBottom: 8,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-  },
-  createWrap: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  createBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   brand: {
     flex: 1,
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   brandImg: {
-    width: 120,
-    height: 30,
+    width: 130,
+    height: 32,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
   },
   badge: {
     position: "absolute",
-    top: 2,
-    right: 0,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.white,
+    top: 4,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+    paddingHorizontal: 5,
   },
   badgeText: {
-    color: colors.primary,
-    fontSize: 9,
-    fontWeight: "800",
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "700",
   },
 });

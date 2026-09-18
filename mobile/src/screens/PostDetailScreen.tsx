@@ -331,7 +331,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   post: {
     backgroundColor: colors.card,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 10,
   },
@@ -348,7 +348,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     marginLeft: 10,
   },
   name: {
-    fontWeight: "700",
+    fontWeight: "600",
     fontSize: 15,
     color: colors.text,
   },
@@ -378,8 +378,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   liked: {
-    color: colors.primary,
-    fontWeight: "700",
+    color: colors.accent,
+    fontWeight: "600",
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -388,7 +388,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   commentsTitle: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
     marginBottom: 4,
   },
@@ -409,7 +409,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   commentName: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
     marginBottom: 2,
   },
@@ -435,8 +435,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   replyLink: {
     fontSize: 12,
-    fontWeight: "700",
-    color: colors.primary,
+    fontWeight: "600",
+    color: colors.accent,
     marginTop: 4,
     marginLeft: 10,
   },
@@ -445,7 +445,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     marginBottom: 14,
     marginLeft: 40,
     paddingLeft: 10,
-    borderLeftWidth: 2,
+    borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: colors.border,
   },
   replyBubble: {
@@ -457,8 +457,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   opTag: {
     fontSize: 11,
-    fontWeight: "700",
-    color: colors.primary,
+    fontWeight: "600",
+    color: colors.accent,
   },
   composerBody: {
     flex: 1,
@@ -466,7 +466,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   replyChip: {
     alignSelf: "flex-start",
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.accent + "10",
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -474,12 +474,12 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   replyChipText: {
     fontSize: 12,
-    color: colors.primary,
+    color: colors.accent,
     fontWeight: "600",
   },
   replyChipX: {
     color: colors.textSecondary,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   composer: {
     flexDirection: "row",
@@ -502,8 +502,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   send: {
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.primary,
+    fontWeight: "600",
+    color: colors.accent,
     paddingVertical: 6,
   },
   sendDisabled: {

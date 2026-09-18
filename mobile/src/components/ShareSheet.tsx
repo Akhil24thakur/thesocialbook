@@ -32,10 +32,7 @@ export default function ShareSheet({
   const copyLink = async () => {
     await Clipboard.setStringAsync(link);
     setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-      onClose();
-    }, 900);
+    setTimeout(() => { setCopied(false); onClose(); }, 900);
   };
 
   const shareSocial = () => {
@@ -57,41 +54,27 @@ export default function ShareSheet({
     }
   };
 
-  const openWhatsApp = () => {
-    onClose();
-    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`).catch(() => {});
-  };
-
-  const openMessages = () => {
-    onClose();
-    Linking.openURL(`sms:?body=${encodeURIComponent(message)}`).catch(() => {});
-  };
-
-  const openInstagram = () => {
-    onClose();
-    Linking.openURL("https://www.instagram.com/").catch(() => {});
-  };
-
-  const more = () => {
-    onClose();
-    Share.share({ message }).catch(() => {});
-  };
+  const openWhatsApp = () => { onClose(); Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`).catch(() => {}); };
+  const openMessages = () => { onClose(); Linking.openURL(`sms:?body=${encodeURIComponent(message)}`).catch(() => {}); };
+  const openInstagram = () => { onClose(); Linking.openURL("https://www.instagram.com/").catch(() => {}); };
+  const more = () => { onClose(); Share.share({ message }).catch(() => {}); };
 
   const OPTIONS = [
-    { label: copied ? "Link copied" : "Copy Link", icon: copied ? "checkmark" : "link-outline", color: colors.primary, action: copyLink },
-    { label: sharingToStory ? "Sharing..." : "Share to Story", icon: "images-outline", color: colors.primary, action: shareToStory },
-    { label: "Share to SocialBook", icon: "paper-plane-outline", color: colors.primary, action: shareSocial },
+    { label: copied ? "Link copied" : "Copy Link", icon: copied ? "checkmark" : "link-outline", color: colors.text, action: copyLink },
+    { label: sharingToStory ? "Sharing..." : "Share to Story", icon: "images-outline", color: colors.text, action: shareToStory },
+    { label: "Share to SocialBook", icon: "paper-plane-outline", color: colors.text, action: shareSocial },
     { label: "WhatsApp", icon: "logo-whatsapp", color: colors.green, action: openWhatsApp },
     { label: "Instagram", icon: "logo-instagram", color: colors.pink, action: openInstagram },
-    { label: "Messages", icon: "chatbubble-ellipses-outline", color: colors.primary, action: openMessages },
-    { label: "More", icon: "ellipsis-horizontal", color: colors.textSecondary, action: more },
+    { label: "Messages", icon: "chatbubble-ellipses-outline", color: colors.text, action: openMessages },
+    { label: "More", icon: "ellipsis-horizontal-outline", color: colors.text, action: more },
   ];
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>Share</Text>
+          <View style={styles.handle} />
+          <Text style={styles.title}>Share to</Text>
           {OPTIONS.map((o) => (
             <TouchableOpacity
               key={o.label}
@@ -99,7 +82,7 @@ export default function ShareSheet({
               onPress={o.action}
               accessibilityLabel={o.label}
             >
-              <View style={[styles.iconBox, { backgroundColor: `${o.color}1A` }]}>
+              <View style={styles.iconCircle}>
                 <Icon name={o.icon as any} size={20} color={o.color} />
               </View>
               <Text style={styles.itemLabel}>{o.label}</Text>
@@ -114,22 +97,30 @@ export default function ShareSheet({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(23,32,51,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   sheet: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 12,
     paddingBottom: 32,
   },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: 12,
+  },
   title: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.textSecondary,
+    marginBottom: 8,
   },
   item: {
     flexDirection: "row",
@@ -137,16 +128,17 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     gap: 14,
     paddingVertical: 11,
   },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
   itemLabel: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "500",
     color: colors.text,
   },
 });

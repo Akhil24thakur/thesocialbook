@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon, { IconName } from "./Icon";
-import { radius, type Colors } from "../theme";
+import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
 
 interface Props {
@@ -36,7 +36,7 @@ export default function ConfirmDialog({
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={[styles.iconWrap, destructive && styles.iconWrapDanger]}>
-            <Icon name={icon} size={26} color={destructive ? colors.danger : colors.primary} />
+            <Icon name={icon} size={24} color={destructive ? colors.danger : colors.accent} />
           </View>
           <Text style={styles.title}>{title}</Text>
           {!!message && <Text style={styles.message}>{message}</Text>}
@@ -68,39 +68,34 @@ export default function ConfirmDialog({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(23,32,51,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",
     justifyContent: "center",
-    padding: 28,
+    padding: 24,
   },
   card: {
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 320,
     backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: 22,
+    borderRadius: 16,
+    padding: 24,
     alignItems: "center",
-    shadowColor: "#172033",
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
   },
   iconWrap: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   iconWrapDanger: {
-    backgroundColor: "#FDE7EE",
+    backgroundColor: "rgba(255,59,48,0.1)",
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     color: colors.text,
     textAlign: "center",
   },
@@ -109,18 +104,18 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     lineHeight: 20,
     color: colors.textSecondary,
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 6,
   },
   row: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 20,
+    gap: 10,
+    marginTop: 18,
     width: "100%",
   },
   btn: {
     flex: 1,
-    height: 46,
-    borderRadius: radius.md,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -130,19 +125,19 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     borderColor: colors.border,
   },
   btnGhostText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "500",
     color: colors.textSecondary,
   },
   btnPrimary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   btnDanger: {
     backgroundColor: colors.danger,
   },
   btnText: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     color: colors.white,
   },
 });
