@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   View,
-  Text,
   type ViewToken,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -49,14 +48,13 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Responsive layout (HIG adaptivity): wider screens get 2-column feed.
+  // Responsive layout (HIG adaptivity): tablets get a 2-column feed.
   const [windowWidth, setWindowWidth] = useState(() => Dimensions.get("window").width);
   useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => setWindowWidth(window.width));
     return () => sub.remove();
   }, []);
-  const isTablet = windowWidth >= 768;
-  const numColumns = isTablet ? 2 : 1;
+  const numColumns = windowWidth >= 768 ? 2 : 1;
 
   const load = useCallback(
     async (refresh = false) => {
@@ -230,7 +228,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         <StoriesStrip
           groups={friendGroups}
           myStoryGroup={myStoryGroup}
-          liveSessions={liveSessions.filter((s) => hostIdMatch(liveSessions, user, s))}
+          liveSessions={liveSessions.filter((s) => s.hostId !== user?.id)}
           userName={user?.name ?? "?"}
           userAvatarUrl={user?.avatarUrl}
           onRefresh={load}
@@ -240,7 +238,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         />
       </View>
     ),
-    [friendGroups, myStoryGroup, liveSessions, user, load, onDeleteStory, navigation, colors]
+    [friendGroups, myStoryGroup, liveSessions, user, load, onDeleteStory, navigation, styles]
   );
 
   const renderItem = useCallback(
@@ -278,7 +276,6 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         }
         onScroll={onScroll}
         scrollEventThrottle={16}
-        perf_note="numColumns>1 requires per-item keys; PostCard width handled by FlatList column layout"
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
         onViewableItemsChanged={onViewableItemsChanged}
@@ -296,7 +293,7 @@ export default function FeedScreen({ active, refreshSignal }: { active: boolean;
         windowSize={11}
         initialNumToRender={5}
       />
-    </View FlatList>
+    </View>
   );
 }
 
