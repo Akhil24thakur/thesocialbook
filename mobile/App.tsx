@@ -8,6 +8,7 @@ import PagerView, { type PagerViewOnPageSelectedEvent } from "react-native-pager
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
 import { AuthProvider, useAuth } from "./src/auth/AuthContext";
@@ -325,24 +326,29 @@ async function checkForUpdates(
   }
 }
 function SectionHeader({ title, onMenu }: { title: string; onMenu?: () => void }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-    <View style={[s.sectionBar, { paddingTop: insets.top + 4 }]}>
-      <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
-      {onMenu ? (
-        <TouchableOpacity
-          onPress={onMenu}
-          style={s.sectionMenuBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityLabel="Menu"
-        >
-          <Icon name="menu-outline" size={22} color={colors.text} />
-        </TouchableOpacity>
-      ) : (
-        <View style={{ width: 38 }} />
-      )}
+    <View style={[s.sectionContainer, { paddingTop: insets.top }]}>
+      <BlurView intensity={isDark ? 60 : 80} tint={isDark ? "dark" : "light"} style={s.sectionBlur}>
+        <View style={s.sectionBar}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
+          {onMenu ? (
+            <TouchableOpacity
+              onPress={onMenu}
+              style={s.sectionMenuBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Menu"
+            >
+              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)" }]}>
+                <Icon name="menu-outline" size={20} color={colors.text} />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 38 }} />
+          )}
+        </View>
+      </BlurView>
     </View>
   );
 }
@@ -507,66 +513,79 @@ function HomeTabs() {
           overdrag={false}
         >
           <View style={styles.page} key="feed" collapsable={false}>
+            <View style={{ height: insets.top + 56 }} />
+            <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
             <TopAppBar
               onNotify={() => navigation.navigate("Notifications")}
               onNewPost={() => setCreateOpen(true)}
               unreadCount={unreadCount}
             />
-            <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
           </View>
           <View style={styles.page} key="reels" collapsable={false}>
             <ReelsScreen active={page === 1} restartSignal={restartSignal} />
           </View>
           <View style={styles.page} key="messages" collapsable={false}>
-            <SectionHeader title="Messages" />
+            <View style={{ height: insets.top + 56 }} />
             <MessagesScreen active={page === 2} />
+            <SectionHeader title="Messages" />
           </View>
           <View style={styles.page} key="search" collapsable={false}>
             <SearchScreen />
           </View>
           <View style={styles.page} key="profile" collapsable={false}>
-            <SectionHeader title="My Profile" onMenu={() => setMenuOpen(true)} />
+            <View style={{ height: insets.top + 56 }} />
             <ProfileScreen active={page === 4} />
+            <SectionHeader title="My Profile" onMenu={() => setMenuOpen(true)} />
           </View>
         </PagerView>
-        <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
-{renderTab(tabItems[0])}
-          {renderTab(tabItems[1])}
-          {renderTab(tabItems[2])}
-          {renderTab(tabItems[3])}
-          {renderTab(tabItems[4])}
+        <View style={[styles.tabBarWrap, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+          <BlurView intensity={isDark ? 60 : 80} tint={isDark ? "dark" : "light"} style={styles.tabBarBlur}>
+            <View style={styles.tabBar}>
+              {renderTab(tabItems[0])}
+              {renderTab(tabItems[1])}
+              {renderTab(tabItems[2])}
+              {renderTab(tabItems[3])}
+              {renderTab(tabItems[4])}
+            </View>
+          </BlurView>
         </View>
       </View>
       <CreateMenu visible={createOpen} onClose={() => setCreateOpen(false)} onSelect={openCreate} />
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <View style={styles.menuSheet}>
-            <Image source={LOGO_MARK} style={styles.menuLogo} resizeMode="contain" />
-            <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "2.0.25"}</Text>
-            {MENU_ITEMS.map((m) => (
-              <TouchableOpacity
-                key={m.label}
-                style={styles.menuItem}
-                onPress={() => {
-                  setMenuOpen(false);
-                  m.action();
-                }}
-              >
-                <View style={styles.menuIcon}>
-                  <Icon name={m.icon as any} size={20} color={m.danger ? colors.danger : colors.primary} />
-                </View>
-                <Text style={[styles.menuLabel, m.danger && styles.menuDanger]}>{m.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <BlurView intensity={isDark ? 50 : 70} tint={isDark ? "dark" : "light"} style={{ flex: 1 }}>
+              <View style={{ padding: 20 }}>
+                <Image source={LOGO_MARK} style={styles.menuLogo} resizeMode="contain" />
+                <Text style={styles.menuVersion}>v{Constants.expoConfig?.version ?? "2.0.25"}</Text>
+                {MENU_ITEMS.map((m) => (
+                  <TouchableOpacity
+                    key={m.label}
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      m.action();
+                    }}
+                  >
+                    <View style={styles.menuIcon}>
+                      <Icon name={m.icon as any} size={20} color={m.danger ? colors.danger : colors.text} />
+                    </View>
+                    <Text style={[styles.menuLabel, m.danger && styles.menuDanger]}>{m.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </BlurView>
           </View>
         </TouchableOpacity>
       </Modal>
       <Modal visible={themeOpen} transparent animationType="fade" onRequestClose={() => setThemeOpen(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setThemeOpen(false)}>
           <View style={styles.menuSheet}>
-            <Text style={styles.menuTitle}>Theme</Text>
+            <BlurView intensity={isDark ? 50 : 70} tint={isDark ? "dark" : "light"} style={{ flex: 1 }}>
+              <View style={{ padding: 20 }}>
+                <Text style={styles.menuTitle}>Theme</Text>
             <Text style={styles.menuPush}>Choose how SocialBook looks</Text>
-            {(
+              {(
               [
                 { key: "system", label: "System Theme", desc: "Follows your phone (Default)", icon: "phone-portrait-outline" },
                 { key: "dark", label: "Dark", desc: "Always use dark mode", icon: "moon-outline" },
@@ -582,15 +601,17 @@ function HomeTabs() {
                 }}
               >
                 <View style={styles.menuIcon}>
-                  <Icon name={t.icon as any} size={20} color={colors.primary} />
+                  <Icon name={t.icon as any} size={20} color={colors.text} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.menuLabel, mode === t.key && styles.themeOptionActive]}>{t.label}</Text>
                   <Text style={styles.menuPush}>{t.desc}</Text>
                 </View>
-                {mode === t.key && <Icon name="checkmark" size={20} color={colors.primary} />}
+                {mode === t.key && <Icon name="checkmark" size={20} color={colors.accent} />}
               </TouchableOpacity>
             ))}
+              </View>
+            </BlurView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -960,15 +981,22 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  sectionContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  sectionBlur: {
+    overflow: "hidden",
+  },
   sectionBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    backgroundColor: colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    paddingBottom: 10,
   },
   sectionTitle: {
     fontSize: 22,
@@ -981,14 +1009,25 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  sectionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabBarWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  tabBarBlur: {
+    overflow: "hidden",
+  },
   tabBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
     paddingTop: 6,
     paddingBottom: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
   },
   tabItem: {
     flex: 1,
@@ -1053,16 +1092,16 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
   menuSheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 32,
+    overflow: "hidden",
   },
   menuTitle: {
     fontSize: 17,

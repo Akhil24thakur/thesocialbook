@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import Icon, { IconName } from "./Icon";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
@@ -19,31 +20,35 @@ interface Props {
 }
 
 export default function MenuSheet({ visible, title, options, onClose }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
-          <View style={styles.handle} />
-          {!!title && <Text style={styles.title}>{title}</Text>}
-          {options.map((o) => (
-            <TouchableOpacity
-              key={o.label}
-              style={styles.item}
-              onPress={() => {
-                onClose();
-                o.onPress();
-              }}
-              activeOpacity={0.7}
-            >
-              <Icon name={o.icon} size={20} color={o.danger ? colors.danger : colors.text} />
-              <Text style={[styles.label, o.danger && styles.labelDanger]}>{o.label}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.cancel} onPress={onClose} activeOpacity={0.7}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
+          <BlurView intensity={isDark ? 50 : 70} tint={isDark ? "dark" : "light"} style={{ flex: 1 }}>
+            <View style={styles.content}>
+              <View style={styles.handle} />
+              {!!title && <Text style={styles.title}>{title}</Text>}
+              {options.map((o) => (
+                <TouchableOpacity
+                  key={o.label}
+                  style={styles.item}
+                  onPress={() => {
+                    onClose();
+                    o.onPress();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name={o.icon} size={20} color={o.danger ? colors.danger : colors.text} />
+                  <Text style={[styles.label, o.danger && styles.labelDanger]}>{o.label}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.cancel} onPress={onClose} activeOpacity={0.7}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </BlurView>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -53,13 +58,16 @@ export default function MenuSheet({ visible, title, options, onClose }: Props) {
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "80%",
+    overflow: "hidden",
+  },
+  content: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 32,
@@ -68,7 +76,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.border,
+    backgroundColor: "rgba(128,128,128,0.3)",
     alignSelf: "center",
     marginBottom: 12,
   },
@@ -84,7 +92,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     gap: 14,
     paddingVertical: 13,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: "rgba(128,128,128,0.15)",
   },
   label: {
     fontSize: 15,
@@ -97,8 +105,8 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   cancel: {
     marginTop: 10,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    borderRadius: 14,
+    backgroundColor: "rgba(128,128,128,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },

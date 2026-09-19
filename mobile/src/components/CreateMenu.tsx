@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import Icon from "./Icon";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
@@ -13,7 +14,7 @@ export default function CreateMenu({
   onClose: () => void;
   onSelect: (key: "post" | "photo" | "live") => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const OPTIONS = [
     { key: "post", label: "Post", sub: "Share what's on your mind", icon: "create-outline" },
@@ -25,27 +26,31 @@ export default function CreateMenu({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Create new</Text>
-          {OPTIONS.map((o) => (
-            <TouchableOpacity
-              key={o.key}
-              style={styles.item}
-              onPress={() => {
-                onClose();
-                onSelect(o.key);
-              }}
-              accessibilityLabel={o.label}
-            >
-              <View style={styles.iconCircle}>
-                <Icon name={o.icon as any} size={22} color={colors.text} />
-              </View>
-              <View style={styles.itemText}>
-                <Text style={styles.itemLabel}>{o.label}</Text>
-                <Text style={styles.itemSub}>{o.sub}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          <BlurView intensity={isDark ? 50 : 70} tint={isDark ? "dark" : "light"} style={{ flex: 1 }}>
+            <View style={styles.content}>
+              <View style={styles.handle} />
+              <Text style={styles.title}>Create new</Text>
+              {OPTIONS.map((o) => (
+                <TouchableOpacity
+                  key={o.key}
+                  style={styles.item}
+                  onPress={() => {
+                    onClose();
+                    onSelect(o.key);
+                  }}
+                  accessibilityLabel={o.label}
+                >
+                  <View style={styles.iconCircle}>
+                    <Icon name={o.icon as any} size={22} color={colors.text} />
+                  </View>
+                  <View style={styles.itemText}>
+                    <Text style={styles.itemLabel}>{o.label}</Text>
+                    <Text style={styles.itemSub}>{o.sub}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </BlurView>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -55,13 +60,15 @@ export default function CreateMenu({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+  },
+  content: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 36,
@@ -70,7 +77,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.border,
+    backgroundColor: "rgba(128,128,128,0.3)",
     alignSelf: "center",
     marginBottom: 16,
   },
@@ -90,7 +97,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: "rgba(128,128,128,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },

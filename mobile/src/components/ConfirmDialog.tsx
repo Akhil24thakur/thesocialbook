@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import Icon, { IconName } from "./Icon";
 import { type Colors } from "../theme";
 import { useTheme } from "../theme-context";
@@ -29,12 +30,12 @@ export default function ConfirmDialog({
   onConfirm,
   onClose,
 }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.card}>
+        <BlurView intensity={isDark ? 40 : 60} tint={isDark ? "dark" : "light"} style={styles.card}>
           <View style={[styles.iconWrap, destructive && styles.iconWrapDanger]}>
             <Icon name={icon} size={24} color={destructive ? colors.danger : colors.accent} />
           </View>
@@ -59,7 +60,7 @@ export default function ConfirmDialog({
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </BlurView>
       </View>
     </Modal>
   );
@@ -68,7 +69,7 @@ export default function ConfirmDialog({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -76,22 +77,22 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 320,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 24,
+    padding: 28,
     alignItems: "center",
+    overflow: "hidden",
   },
   iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(128,128,128,0.15)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 14,
   },
   iconWrapDanger: {
-    backgroundColor: "rgba(255,59,48,0.1)",
+    backgroundColor: "rgba(255,59,48,0.12)",
   },
   title: {
     fontSize: 16,
@@ -109,20 +110,18 @@ const createStyles = (colors: Colors) => StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 18,
+    marginTop: 20,
     width: "100%",
   },
   btn: {
     flex: 1,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   btnGhost: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: "rgba(128,128,128,0.12)",
   },
   btnGhostText: {
     fontSize: 14,

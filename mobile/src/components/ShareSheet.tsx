@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Alert, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "./Icon";
@@ -19,7 +20,7 @@ export default function ShareSheet({
   postId: number;
   content: string;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<any>();
   const [copied, setCopied] = useState(false);
@@ -73,21 +74,25 @@ export default function ShareSheet({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Share to</Text>
-          {OPTIONS.map((o) => (
-            <TouchableOpacity
-              key={o.label}
-              style={styles.item}
-              onPress={o.action}
-              accessibilityLabel={o.label}
-            >
-              <View style={styles.iconCircle}>
-                <Icon name={o.icon as any} size={20} color={o.color} />
-              </View>
-              <Text style={styles.itemLabel}>{o.label}</Text>
-            </TouchableOpacity>
-          ))}
+          <BlurView intensity={isDark ? 50 : 70} tint={isDark ? "dark" : "light"} style={{ flex: 1 }}>
+            <View style={styles.content}>
+              <View style={styles.handle} />
+              <Text style={styles.title}>Share to</Text>
+              {OPTIONS.map((o) => (
+                <TouchableOpacity
+                  key={o.label}
+                  style={styles.item}
+                  onPress={o.action}
+                  accessibilityLabel={o.label}
+                >
+                  <View style={styles.iconCircle}>
+                    <Icon name={o.icon as any} size={20} color={o.color} />
+                  </View>
+                  <Text style={styles.itemLabel}>{o.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </BlurView>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -97,13 +102,16 @@ export default function ShareSheet({
 const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "80%",
+    overflow: "hidden",
+  },
+  content: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 32,
@@ -112,7 +120,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.border,
+    backgroundColor: "rgba(128,128,128,0.3)",
     alignSelf: "center",
     marginBottom: 12,
   },
@@ -132,7 +140,7 @@ const createStyles = (colors: Colors) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: "rgba(128,128,128,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
