@@ -513,29 +513,26 @@ function HomeTabs() {
           overdrag={false}
         >
           <View style={styles.page} key="feed" collapsable={false}>
-            <View style={{ height: insets.top + 56 }} />
-            <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
             <TopAppBar
               onNotify={() => navigation.navigate("Notifications")}
               onNewPost={() => setCreateOpen(true)}
               unreadCount={unreadCount}
             />
+            <FeedScreen active={page === 0} refreshSignal={feedRefresh} />
           </View>
           <View style={styles.page} key="reels" collapsable={false}>
             <ReelsScreen active={page === 1} restartSignal={restartSignal} />
           </View>
           <View style={styles.page} key="messages" collapsable={false}>
-            <View style={{ height: insets.top + 56 }} />
-            <MessagesScreen active={page === 2} />
             <SectionHeader title="Messages" />
+            <MessagesScreen active={page === 2} />
           </View>
           <View style={styles.page} key="search" collapsable={false}>
             <SearchScreen />
           </View>
           <View style={styles.page} key="profile" collapsable={false}>
-            <View style={{ height: insets.top + 56 }} />
-            <ProfileScreen active={page === 4} />
             <SectionHeader title="My Profile" onMenu={() => setMenuOpen(true)} />
+            <ProfileScreen active={page === 4} />
           </View>
         </PagerView>
         <View style={[styles.tabBarWrap, { paddingBottom: Math.max(insets.bottom, 6) }]}>
